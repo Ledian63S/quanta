@@ -1,12 +1,11 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'instrument.dart';
 
 class QuantaState extends ChangeNotifier {
   double accountBalance = 50000;
-  double riskAmount = 300;       // persisted setting
-  double? _sessionRisk;          // temporary override, not persisted
+  double riskAmount = 300; // persisted setting
+  double? _sessionRisk; // temporary override, not persisted
   double get effectiveRisk => _sessionRisk ?? riskAmount;
   String selectedTicker = 'MNQ';
   double stopLossPoints = 0;
@@ -29,7 +28,8 @@ class QuantaState extends ChangeNotifier {
 
   // Core calculation — ALWAYS floor, never round
   int get contracts => stopLossPoints > 0
-      ? (effectiveRisk / (stopLossPoints * currentInstrument.pointValue)).floor()
+      ? (effectiveRisk / (stopLossPoints * currentInstrument.pointValue))
+          .floor()
       : 0;
 
   double get actualRisk =>
@@ -97,37 +97,58 @@ class QuantaState extends ChangeNotifier {
     _save();
   }
 
-  void setRememberBalance(bool v) { rememberBalance = v; notifyListeners(); _save(); }
-  void setRememberRisk(bool v)    { rememberRisk = v;    notifyListeners(); _save(); }
-  void setRememberInstrument(bool v) { rememberInstrument = v; notifyListeners(); _save(); }
-  void setThemeMode(ThemeMode mode) { themeMode = mode; notifyListeners(); _save(); }
+  void setRememberBalance(bool v) {
+    rememberBalance = v;
+    notifyListeners();
+    _save();
+  }
+
+  void setRememberRisk(bool v) {
+    rememberRisk = v;
+    notifyListeners();
+    _save();
+  }
+
+  void setRememberInstrument(bool v) {
+    rememberInstrument = v;
+    notifyListeners();
+    _save();
+  }
+
+  void setThemeMode(ThemeMode mode) {
+    themeMode = mode;
+    notifyListeners();
+    _save();
+  }
 
   Future<void> load() async {
     final prefs = await SharedPreferences.getInstance();
-    rememberBalance   = prefs.getBool('rememberBalance')   ?? true;
-    rememberRisk      = prefs.getBool('rememberRisk')      ?? true;
-    rememberInstrument= prefs.getBool('rememberInstrument')   ?? true;
-    if (rememberBalance)    accountBalance = prefs.getDouble('balance')    ?? 50000;
-    if (rememberRisk)       riskAmount     = prefs.getDouble('risk')       ?? 300;
-    if (rememberInstrument) selectedTicker = prefs.getString('instrument') ?? 'MNQ';
+    rememberBalance = prefs.getBool('rememberBalance') ?? true;
+    rememberRisk = prefs.getBool('rememberRisk') ?? true;
+    rememberInstrument = prefs.getBool('rememberInstrument') ?? true;
+    if (rememberBalance) accountBalance = prefs.getDouble('balance') ?? 50000;
+    if (rememberRisk) riskAmount = prefs.getDouble('risk') ?? 300;
+    if (rememberInstrument) {
+      selectedTicker = prefs.getString('instrument') ?? 'MNQ';
+    }
     final favList = prefs.getStringList('favorites') ?? ['MNQ'];
     favorites = Set<String>.from(favList);
     if (!favorites.contains(selectedTicker)) {
       selectedTicker = favorites.first;
     }
     final themeModeStr = prefs.getString('themeMode') ?? 'light';
-    themeMode = ThemeMode.values.firstWhere(
-        (m) => m.name == themeModeStr, orElse: () => ThemeMode.light);
+    themeMode = ThemeMode.values.firstWhere((m) => m.name == themeModeStr,
+        orElse: () => ThemeMode.light);
     notifyListeners();
   }
 
   Future<void> _save() async {
     final prefs = await SharedPreferences.getInstance();
-    prefs.setBool('rememberBalance',    rememberBalance);
-    prefs.setBool('rememberRisk',       rememberRisk);
+    prefs.setBool('rememberBalance', rememberBalance);
+    prefs.setBool('rememberRisk', rememberRisk);
     prefs.setBool('rememberInstrument', rememberInstrument);
-    if (rememberBalance)    prefs.setDouble('balance',    accountBalance);
-    if (rememberRisk)       prefs.setDouble('risk',       riskAmount);
+    if (rememberBalance) prefs.setDouble('balance', accountBalance);
+    if (rememberRisk) prefs.setDouble('risk', riskAmount);
     if (rememberInstrument) prefs.setString('instrument', selectedTicker);
     prefs.setStringList('favorites', favorites.toList());
     prefs.setString('themeMode', themeMode.name);
