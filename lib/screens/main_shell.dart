@@ -1,5 +1,7 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_theme.dart';
 import 'calculator_screen.dart';
 import 'levels_screen.dart';
@@ -27,125 +29,112 @@ class _MainShellState extends State<MainShell> {
     return Scaffold(
       resizeToAvoidBottomInset: false,
       backgroundColor: AppColors.bg,
-      body: GestureDetector(
-        onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
-        behavior: HitTestBehavior.translucent,
-        child: SafeArea(
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final contentWidth = constraints.maxWidth.clamp(0.0, 430.0);
-              final hPad = (constraints.maxWidth - contentWidth) / 2;
-              return Stack(
-                children: [
-                  ...List.generate(_screens.length, (i) => Positioned(
-                    top: 0, bottom: 0,
-                    left: hPad, width: contentWidth,
-                    child: AnimatedOpacity(
-                      duration: const Duration(milliseconds: 220),
-                      curve: Curves.easeInOut,
-                      opacity: _currentIndex == i ? 1.0 : 0.0,
-                      child: IgnorePointer(
-                        ignoring: _currentIndex != i,
-                        child: _screens[i],
+      body: Stack(
+        children: [
+          // Scanlines
+          const Positioned.fill(child: ScanlineOverlay()),
+          // Grain
+          const Positioned.fill(child: GrainOverlay()),
+
+          GestureDetector(
+            onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+            behavior: HitTestBehavior.translucent,
+            child: SafeArea(
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final contentWidth = constraints.maxWidth.clamp(0.0, 430.0);
+                  final hPad = (constraints.maxWidth - contentWidth) / 2;
+                  return Stack(
+                    children: [
+                      ...List.generate(_screens.length, (i) => Positioned(
+                        top: 0, bottom: 0,
+                        left: hPad, width: contentWidth,
+                        child: AnimatedOpacity(
+                          duration: const Duration(milliseconds: 120),
+                          opacity: _currentIndex == i ? 1.0 : 0.0,
+                          child: IgnorePointer(
+                            ignoring: _currentIndex != i,
+                            child: _screens[i],
+                          ),
+                        ),
+                      )),
+                      Positioned(
+                        bottom: 0, left: hPad, width: contentWidth,
+                        child: _TerminalNav(
+                          currentIndex: _currentIndex,
+                          onTap: (i) {
+                            HapticFeedback.selectionClick();
+                            setState(() => _currentIndex = i);
+                          },
+                        ),
                       ),
-                    ),
-                  )),
-                  Positioned(
-                    bottom: 10,
-                    left: hPad, width: contentWidth,
-                    child: _NavBar(
-                      currentIndex: _currentIndex,
-                      onTap: (i) {
-                        HapticFeedback.selectionClick();
-                        setState(() => _currentIndex = i);
-                      },
-                    ),
-                  ),
-                ],
-              );
-            },
+                    ],
+                  );
+                },
+              ),
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
 }
 
-class _NavBar extends StatelessWidget {
+// ── Terminal-style tab bar ─────────────────────────────────────────────────
+class _TerminalNav extends StatelessWidget {
   final int currentIndex;
   final ValueChanged<int> onTap;
-  const _NavBar({required this.currentIndex, required this.onTap});
+  const _TerminalNav({required this.currentIndex, required this.onTap});
 
-  static const _items = [
-    (Icons.calculate_outlined, Icons.calculate_rounded, 'Calc'),
-    (Icons.bar_chart_outlined, Icons.bar_chart_rounded, 'Levels'),
-    (Icons.star_outline_rounded, Icons.star_rounded, 'Markets'),
-    (Icons.tune_outlined, Icons.tune_rounded, 'Settings'),
-  ];
+  static const _labels = ['CALC', 'LEVELS', 'MARKETS', 'SETTINGS'];
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Container(
-        decoration: BoxDecoration(
-          color: AppColors.card,
-          borderRadius: BorderRadius.circular(28),
-          border: Border.all(color: AppColors.border, width: 1),
-          boxShadow: [
-            BoxShadow(color: Colors.black.withValues(alpha: 0.6), blurRadius: 40, offset: const Offset(0, 10)),
-            BoxShadow(color: AppColors.accent.withValues(alpha: 0.04), blurRadius: 60),
-          ],
-        ),
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
-        child: Row(
-          children: List.generate(_items.length, (i) {
-            final (iconOut, iconFill, label) = _items[i];
-            final active = currentIndex == i;
-            return Expanded(
-              child: MouseRegion(
-                cursor: SystemMouseCursors.click,
-                child: GestureDetector(
-                  onTap: () => onTap(i),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 220),
-                    curve: Curves.easeOut,
-                    padding: const EdgeInsets.symmetric(vertical: 10),
-                    decoration: BoxDecoration(
-                      color: active ? AppColors.accent.withValues(alpha: 0.12) : Colors.transparent,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 200),
-                          child: Icon(
-                            active ? iconFill : iconOut,
-                            key: ValueKey(active),
-                            size: 22,
-                            color: active ? AppColors.accent : AppColors.muted,
+    return ClipRect(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+        child: Container(
+          decoration: BoxDecoration(
+            color: AppColors.bg.withValues(alpha: 0.92),
+            border: Border(
+              top: BorderSide(color: AppColors.border, width: 1),
+            ),
+          ),
+          child: Row(
+            children: List.generate(_labels.length, (i) {
+              final active = currentIndex == i;
+              return Expanded(
+                child: MouseRegion(
+                  cursor: SystemMouseCursors.click,
+                  child: GestureDetector(
+                    onTap: () => onTap(i),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 150),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      decoration: BoxDecoration(
+                        border: Border(
+                          top: BorderSide(
+                            color: active ? AppColors.accent : Colors.transparent,
+                            width: 2,
                           ),
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          label,
-                          maxLines: 1,
-                          softWrap: false,
-                          style: TextStyle(
-                            fontFamily: 'Manrope',
-                            fontSize: 10,
-                            fontWeight: FontWeight.w700,
-                            color: active ? AppColors.accent : AppColors.muted,
-                          ),
+                      ),
+                      child: Text(
+                        _labels[i],
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.jetBrainsMono(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 1.4,
+                          color: active ? AppColors.accent : AppColors.muted,
                         ),
-                      ],
+                      ),
                     ),
                   ),
                 ),
-              ),
-            );
-          }),
+              );
+            }),
+          ),
         ),
       ),
     );

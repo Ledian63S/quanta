@@ -49,85 +49,94 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
     final state = context.watch<QuantaState>();
     final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
 
-    return Stack(
-      children: [
-        Positioned.fill(
-          child: SingleChildScrollView(
-            padding: EdgeInsets.fromLTRB(16, 14, 16, 108 + keyboardHeight),
-            child: Column(children: [
+    return Stack(children: [
+      Positioned.fill(
+        child: SingleChildScrollView(
+          padding: EdgeInsets.fromLTRB(16, 16, 16, 100 + keyboardHeight),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
 
-              // ── Top bar: Balance | Risk ──────────────────────────────
-              _TopBar(
-                state: state,
-                balanceController: _balanceController,
-                riskController: _riskController,
-                balanceFocus: _balanceFocus,
-                riskFocus: _riskFocus,
-                slFocus: _slFocus,
-                balanceFocused: _balanceFocused,
-                riskFocused: _riskFocused,
-              ),
-              const SizedBox(height: 14),
+            // ── Account strip ────────────────────────────────────────
+            _AccountStrip(
+              state: state,
+              balanceController: _balanceController,
+              riskController: _riskController,
+              balanceFocus: _balanceFocus,
+              riskFocus: _riskFocus,
+              slFocus: _slFocus,
+              balanceFocused: _balanceFocused,
+              riskFocused: _riskFocused,
+            ),
+            const SizedBox(height: 20),
 
-              // ── Instrument chips ─────────────────────────────────────
-              _InstrumentRow(state: state, onChanged: () => _slController.clear()),
-              const SizedBox(height: 14),
+            // ── Instrument ───────────────────────────────────────────
+            Text('INSTRUMENT', style: AppText.label()),
+            const SizedBox(height: 8),
+            _InstrumentRow(state: state, onChanged: () => _slController.clear()),
+            const SizedBox(height: 20),
 
-              // ── Stop loss hero input ─────────────────────────────────
-              _StopLossHero(
-                state: state,
-                controller: _slController,
-                focusNode: _slFocus,
-                focused: _slFocused,
-                onChanged: (v) => state.setStopLoss(double.tryParse(v) ?? 0),
-              ),
-              const SizedBox(height: 14),
-
-              // ── Result hero ──────────────────────────────────────────
-              _ResultHero(state: state),
+            // ── Stop loss input ──────────────────────────────────────
+            Row(children: [
+              Text('STOP LOSS', style: AppText.label()),
+              const SizedBox(width: 8),
+              Expanded(child: Container(height: 1,
+                  color: AppColors.border)),
             ]),
-          ),
-        ),
+            const SizedBox(height: 8),
+            _StopLossPanel(
+              controller: _slController,
+              focusNode: _slFocus,
+              focused: _slFocused,
+              ticker: state.currentInstrument.ticker,
+              onChanged: (v) => state.setStopLoss(double.tryParse(v) ?? 0),
+            ),
+            const SizedBox(height: 20),
 
-        // Done button
-        if (keyboardHeight > 0)
-          Positioned(
-            bottom: keyboardHeight + 12, right: 16,
-            child: AnimatedOpacity(
-              duration: const Duration(milliseconds: 180),
-              opacity: (_slFocused || _riskFocused || _balanceFocused) ? 1.0 : 0.0,
-              child: IgnorePointer(
-                ignoring: !(_slFocused || _riskFocused || _balanceFocused),
-                child: Clickable(
-                  onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                    decoration: BoxDecoration(
-                      color: AppColors.accent,
-                      borderRadius: BorderRadius.circular(22),
-                      boxShadow: [BoxShadow(
-                          color: AppColors.accent.withValues(alpha: 0.4),
-                          blurRadius: 16, offset: const Offset(0, 4))],
-                    ),
-                    child: Text('Done', style: AppText.label(color: Colors.white)),
+            // ── Result ───────────────────────────────────────────────
+            Row(children: [
+              Text('RESULT', style: AppText.label()),
+              const SizedBox(width: 8),
+              Expanded(child: Container(height: 1, color: AppColors.border)),
+            ]),
+            const SizedBox(height: 8),
+            _ResultPanel(state: state),
+          ]),
+        ),
+      ),
+
+      // Done button
+      if (keyboardHeight > 0)
+        Positioned(
+          bottom: keyboardHeight + 12, right: 16,
+          child: AnimatedOpacity(
+            duration: const Duration(milliseconds: 150),
+            opacity: (_slFocused || _riskFocused || _balanceFocused) ? 1.0 : 0.0,
+            child: IgnorePointer(
+              ignoring: !(_slFocused || _riskFocused || _balanceFocused),
+              child: Clickable(
+                onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: AppColors.accent,
+                    borderRadius: BorderRadius.circular(4),
                   ),
+                  child: Text('DONE', style: AppText.label(color: Colors.black)),
                 ),
               ),
             ),
           ),
-      ],
-    );
+        ),
+    ]);
   }
 }
 
-// ── Top bar ────────────────────────────────────────────────────────────────
-class _TopBar extends StatelessWidget {
+// ── Account strip ──────────────────────────────────────────────────────────
+class _AccountStrip extends StatelessWidget {
   final QuantaState state;
   final TextEditingController balanceController, riskController;
   final FocusNode balanceFocus, riskFocus, slFocus;
   final bool balanceFocused, riskFocused;
-
-  const _TopBar({
+  const _AccountStrip({
     required this.state,
     required this.balanceController, required this.riskController,
     required this.balanceFocus, required this.riskFocus, required this.slFocus,
@@ -138,44 +147,41 @@ class _TopBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: AppDecor.card(),
-      child: IntrinsicHeight(
-        child: Row(children: [
-          Expanded(child: _TopField(
-            label: 'Balance',
-            prefix: '\$',
-            controller: balanceController,
-            focusNode: balanceFocus,
-            focused: balanceFocused,
-            align: TextAlign.left,
-            onChanged: (v) => state.setBalance(double.tryParse(v) ?? state.accountBalance),
-            onSubmitted: (_) => riskFocus.requestFocus(),
-          )),
-          VerticalDivider(width: 1, thickness: 1, color: AppColors.border),
-          Expanded(child: _TopField(
-            label: 'Risk / Trade',
-            prefix: '\$',
-            controller: riskController,
-            focusNode: riskFocus,
-            focused: riskFocused,
-            align: TextAlign.right,
-            onChanged: (v) => state.setSessionRisk(double.tryParse(v) ?? state.riskAmount),
-            onSubmitted: (_) => slFocus.requestFocus(),
-          )),
-        ]),
-      ),
+      child: Row(children: [
+        _AccountField(
+          label: 'BALANCE',
+          prefix: '\$',
+          controller: balanceController,
+          focusNode: balanceFocus,
+          focused: balanceFocused,
+          align: TextAlign.left,
+          onChanged: (v) => state.setBalance(double.tryParse(v) ?? state.accountBalance),
+          onSubmitted: (_) => riskFocus.requestFocus(),
+        ),
+        Container(width: 1, height: 52, color: AppColors.border),
+        _AccountField(
+          label: 'RISK/TRADE',
+          prefix: '\$',
+          controller: riskController,
+          focusNode: riskFocus,
+          focused: riskFocused,
+          align: TextAlign.right,
+          onChanged: (v) => state.setSessionRisk(double.tryParse(v) ?? state.riskAmount),
+          onSubmitted: (_) => slFocus.requestFocus(),
+        ),
+      ]),
     );
   }
 }
 
-class _TopField extends StatelessWidget {
+class _AccountField extends StatelessWidget {
   final String label, prefix;
   final TextEditingController controller;
   final FocusNode focusNode;
   final bool focused;
   final TextAlign align;
   final ValueChanged<String> onChanged, onSubmitted;
-
-  const _TopField({
+  const _AccountField({
     required this.label, required this.prefix, required this.controller,
     required this.focusNode, required this.focused, required this.align,
     required this.onChanged, required this.onSubmitted,
@@ -183,21 +189,21 @@ class _TopField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+    return Expanded(child: Padding(
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
       child: Column(
         crossAxisAlignment: align == TextAlign.right
             ? CrossAxisAlignment.end : CrossAxisAlignment.start,
         children: [
           Text(label, style: AppText.label(
               color: focused ? AppColors.accentLight : AppColors.muted)),
-          const SizedBox(height: 5),
+          const SizedBox(height: 4),
           Row(
             mainAxisAlignment: align == TextAlign.right
                 ? MainAxisAlignment.end : MainAxisAlignment.start,
             children: [
-              Text(prefix, style: AppText.mono(size: 18, weight: FontWeight.w600,
-                  color: focused ? AppColors.accentLight : AppColors.muted)),
+              Text(prefix, style: AppText.mono(size: 16, weight: FontWeight.w600,
+                  color: focused ? AppColors.accent : AppColors.muted)),
               IntrinsicWidth(child: TextField(
                 controller: controller,
                 focusNode: focusNode,
@@ -208,8 +214,9 @@ class _TopField extends StatelessWidget {
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
                 inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[\d.]'))],
                 enableInteractiveSelection: false,
-                style: AppText.mono(size: 18, weight: FontWeight.w700,
-                    color: focused ? Colors.white : AppColors.text),
+                cursorColor: AppColors.accent,
+                style: AppText.mono(size: 16, weight: FontWeight.w600,
+                    color: focused ? AppColors.accentLight : AppColors.text),
                 decoration: const InputDecoration(
                   border: InputBorder.none, isDense: true, contentPadding: EdgeInsets.zero),
               )),
@@ -217,7 +224,7 @@ class _TopField extends StatelessWidget {
           ),
         ],
       ),
-    );
+    ));
   }
 }
 
@@ -232,9 +239,9 @@ class _InstrumentRow extends StatelessWidget {
     final favs = state.favoriteInstruments;
     if (favs.isEmpty) {
       return Container(
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.all(12),
         decoration: AppDecor.card(),
-        child: Text('★ Star instruments to add here',
+        child: Text('> STAR INSTRUMENTS TO ADD HERE',
             style: AppText.body(color: AppColors.muted)),
       );
     }
@@ -249,20 +256,23 @@ class _InstrumentRow extends StatelessWidget {
             onChanged();
           },
           child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
+            duration: const Duration(milliseconds: 150),
             margin: const EdgeInsets.only(right: 8),
-            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-            decoration: isActive ? AppDecor.activeInstrument() : AppDecor.inactiveInstrument(),
-            child: Column(mainAxisSize: MainAxisSize.min, children: [
-              Text(inst.ticker, style: GoogleFonts.manrope(
-                fontSize: 14, fontWeight: FontWeight.w800,
-                color: isActive ? AppColors.accentLight : AppColors.text,
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: isActive
+                ? AppDecor.activeInstrument()
+                : AppDecor.inactiveInstrument(),
+            child: Column(mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+              Text(inst.ticker, style: AppText.mono(
+                size: 14, weight: FontWeight.w700,
+                color: isActive ? AppColors.accent : AppColors.text,
               )),
               const SizedBox(height: 2),
-              Text('\$${inst.pointValue}/pt', style: GoogleFonts.manrope(
-                fontSize: 10, fontWeight: FontWeight.w500,
-                color: isActive
-                    ? AppColors.accent.withValues(alpha: 0.7) : AppColors.muted,
+              Text('\$${inst.pointValue}/PT', style: AppText.label(
+                color: isActive ? AppColors.accent.withValues(alpha: 0.6)
+                    : AppColors.muted,
               )),
             ]),
           ),
@@ -272,215 +282,142 @@ class _InstrumentRow extends StatelessWidget {
   }
 }
 
-// ── Stop loss hero ─────────────────────────────────────────────────────────
-class _StopLossHero extends StatelessWidget {
-  final QuantaState state;
+// ── Stop loss panel ────────────────────────────────────────────────────────
+class _StopLossPanel extends StatelessWidget {
   final TextEditingController controller;
   final FocusNode focusNode;
   final bool focused;
+  final String ticker;
   final ValueChanged<String> onChanged;
-
-  const _StopLossHero({
-    required this.state, required this.controller,
-    required this.focusNode, required this.focused, required this.onChanged,
+  const _StopLossPanel({
+    required this.controller, required this.focusNode,
+    required this.focused, required this.ticker, required this.onChanged,
   });
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () => focusNode.requestFocus(),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeOut,
-        width: double.infinity,
-        padding: const EdgeInsets.fromLTRB(24, 24, 24, 20),
-        decoration: BoxDecoration(
-          color: focused ? AppColors.elevated : AppColors.card,
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(
-            color: focused
-                ? AppColors.accent.withValues(alpha: 0.5)
-                : AppColors.border,
-            width: 1,
-          ),
-          boxShadow: focused ? [BoxShadow(
-            color: AppColors.accent.withValues(alpha: 0.15),
-            blurRadius: 48, offset: const Offset(0, 8),
-          )] : null,
-        ),
-        child: Column(children: [
-          // Ticker + label row
-          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-            AnimatedDefaultTextStyle(
-              duration: const Duration(milliseconds: 300),
-              style: GoogleFonts.manrope(
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-                color: focused ? AppColors.accentLight : AppColors.muted,
-              ),
-              child: Text(state.currentInstrument.ticker),
-            ),
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 300),
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: focused
-                    ? AppColors.accent.withValues(alpha: 0.12)
-                    : AppColors.elevated,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: focused
-                      ? AppColors.accent.withValues(alpha: 0.3)
-                      : AppColors.border,
-                ),
-              ),
-              child: Text('STOP LOSS', style: AppText.label(
-                  color: focused ? AppColors.accentLight : AppColors.muted)),
-            ),
-          ]),
-          const SizedBox(height: 16),
-
-          // The big number
-          TextField(
-            controller: controller,
-            focusNode: focusNode,
-            onChanged: onChanged,
-            onSubmitted: (_) => FocusManager.instance.primaryFocus?.unfocus(),
-            textInputAction: TextInputAction.done,
-            textAlign: TextAlign.center,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[\d.]'))],
-            enableInteractiveSelection: false,
-            style: AppText.mono(
-              size: 64,
-              weight: FontWeight.w600,
-              color: focused ? Colors.white : AppColors.text.withValues(alpha: 0.85),
-            ),
-            decoration: InputDecoration(
-              border: InputBorder.none,
-              hintText: '0.0',
-              hintStyle: AppText.mono(
-                size: 64, weight: FontWeight.w300,
-                color: AppColors.muted.withValues(alpha: 0.2),
-              ),
-              isDense: true,
-              contentPadding: EdgeInsets.zero,
-            ),
-          ),
-
-          const SizedBox(height: 12),
-
-          // pts label + animated underline
-          Column(children: [
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 300),
-              height: 1.5,
-              width: focused ? 80 : 40,
-              decoration: BoxDecoration(
-                color: focused
-                    ? AppColors.accent
-                    : AppColors.muted.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text('pts', style: AppText.label(
-                color: focused ? AppColors.accent : AppColors.muted)),
-          ]),
-        ]),
-      ),
-    );
-  }
-}
-
-// ── Result hero ────────────────────────────────────────────────────────────
-class _ResultHero extends StatelessWidget {
-  final QuantaState state;
-  const _ResultHero({required this.state});
-
-  @override
-  Widget build(BuildContext context) {
-    final hasData = state.stopLossPoints > 0;
-    return Container(
-      width: double.infinity,
-      decoration: AppDecor.glowCard(
-          glowColor: hasData ? AppColors.accent : AppColors.subtle),
-      padding: const EdgeInsets.fromLTRB(24, 28, 24, 20),
-      child: Column(children: [
-        // Contracts — the hero number
-        Row(mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-          AnimatedSwitcher(
-            duration: const Duration(milliseconds: 250),
-            transitionBuilder: (child, anim) => ScaleTransition(
-              scale: Tween(begin: 0.8, end: 1.0)
-                  .animate(CurvedAnimation(parent: anim, curve: Curves.easeOut)),
-              child: FadeTransition(opacity: anim, child: child),
-            ),
-            child: Text(
-              hasData ? '${state.contracts}' : '--',
-              key: ValueKey(hasData ? state.contracts : -1),
-              style: AppText.mono(
-                size: 88,
-                weight: FontWeight.w700,
-                color: hasData
-                    ? Colors.white
-                    : AppColors.subtle,
-              ),
-            ),
-          ),
-        ]),
-
-        const SizedBox(height: 2),
-        Text('contracts',
-            style: GoogleFonts.manrope(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: AppColors.muted,
-              letterSpacing: 2,
-            )),
-
-        const SizedBox(height: 20),
-
-        // Divider
-        Container(height: 1, color: AppColors.border),
-        const SizedBox(height: 16),
-
-        // Risk row
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      decoration: focused ? AppDecor.focusCard() : AppDecor.card(),
+      padding: const EdgeInsets.fromLTRB(14, 14, 14, 10),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        // Prompt line
         Row(children: [
-          _RiskStat(label: 'MAX RISK',
-              value: '\$${state.effectiveRisk.toStringAsFixed(0)}',
-              color: AppColors.muted),
-          _RiskStat(label: 'ACTUAL',
-              value: '\$${state.actualRisk.toStringAsFixed(0)}',
-              color: AppColors.green),
-          _RiskStat(label: 'UNUSED',
-              value: '\$${state.unusedRisk.toStringAsFixed(0)}',
-              color: AppColors.orange),
+          Text('> ', style: AppText.mono(size: 12,
+              color: focused ? AppColors.accent : AppColors.muted)),
+          Text('$ticker  ', style: AppText.mono(size: 12,
+              color: focused ? AppColors.accentLight : AppColors.subtle)),
+          const Spacer(),
+          Text('PTS', style: AppText.label(
+              color: focused ? AppColors.accent : AppColors.muted)),
         ]),
+        const SizedBox(height: 10),
+
+        // Big number input
+        TextField(
+          controller: controller,
+          focusNode: focusNode,
+          onChanged: onChanged,
+          onSubmitted: (_) => FocusManager.instance.primaryFocus?.unfocus(),
+          textInputAction: TextInputAction.done,
+          textAlign: TextAlign.left,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[\d.]'))],
+          enableInteractiveSelection: false,
+          cursorColor: AppColors.accent,
+          cursorWidth: 2,
+          style: GoogleFonts.jetBrainsMono(
+            fontSize: 56,
+            fontWeight: FontWeight.w700,
+            color: focused ? AppColors.accent : AppColors.text,
+            height: 1.0,
+          ),
+          decoration: InputDecoration(
+            border: InputBorder.none,
+            hintText: '0.0',
+            hintStyle: GoogleFonts.jetBrainsMono(
+              fontSize: 56, fontWeight: FontWeight.w300,
+              color: AppColors.muted.withValues(alpha: 0.3),
+              height: 1.0,
+            ),
+            isDense: true,
+            contentPadding: EdgeInsets.zero,
+          ),
+        ),
+        const SizedBox(height: 4),
       ]),
     );
   }
 }
 
-class _RiskStat extends StatelessWidget {
-  final String label, value;
-  final Color color;
-  const _RiskStat({required this.label, required this.value, required this.color});
+// ── Result panel ───────────────────────────────────────────────────────────
+class _ResultPanel extends StatelessWidget {
+  final QuantaState state;
+  const _ResultPanel({required this.state});
 
   @override
   Widget build(BuildContext context) {
-    return Expanded(child: Column(children: [
-      Text(label, style: AppText.label(size: 9, color: AppColors.muted)),
-      const SizedBox(height: 5),
+    final hasData = state.stopLossPoints > 0;
+    return Container(
+      decoration: AppDecor.glowCard(
+          glowColor: hasData ? AppColors.accent : AppColors.border),
+      padding: const EdgeInsets.all(14),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+
+        // Readout header
+        Row(children: [
+          Text('CONTRACTS', style: AppText.label(
+              color: hasData ? AppColors.accent : AppColors.muted)),
+          const Spacer(),
+          Text(state.currentInstrument.ticker, style: AppText.label(
+              color: AppColors.muted)),
+        ]),
+        const SizedBox(height: 8),
+
+        // Giant contract number
+        TerminalNumber(
+          value: hasData ? state.contracts : 0,
+          size: 80,
+          color: AppColors.accent,
+        ),
+
+        const SizedBox(height: 16),
+        Container(height: 1, color: AppColors.border),
+        const SizedBox(height: 12),
+
+        // Risk readout — table style
+        _ReadoutRow('MAX RISK ',
+            '\$${state.effectiveRisk.toStringAsFixed(0)}', AppColors.muted),
+        const SizedBox(height: 6),
+        _ReadoutRow('ACTUAL   ',
+            '\$${state.actualRisk.toStringAsFixed(0)}', AppColors.green),
+        const SizedBox(height: 6),
+        _ReadoutRow('UNUSED   ',
+            '\$${state.unusedRisk.toStringAsFixed(0)}', AppColors.orange),
+      ]),
+    );
+  }
+}
+
+class _ReadoutRow extends StatelessWidget {
+  final String label, value;
+  final Color color;
+  const _ReadoutRow(this.label, this.value, this.color);
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(children: [
+      Text(label, style: AppText.mono(size: 11, color: AppColors.muted)),
+      Text('..', style: AppText.mono(size: 11,
+          color: AppColors.muted.withValues(alpha: 0.3))),
+      const Spacer(),
       AnimatedSwitcher(
-        duration: const Duration(milliseconds: 200),
+        duration: const Duration(milliseconds: 150),
         child: Text(value,
           key: ValueKey(value),
-          style: AppText.mono(size: 16, weight: FontWeight.w600, color: color),
+          style: AppText.mono(size: 13, weight: FontWeight.w700, color: color),
         ),
       ),
-    ]));
+    ]);
   }
 }

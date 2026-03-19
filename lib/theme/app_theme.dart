@@ -1,7 +1,9 @@
+import 'dart:math';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-/// Pointer cursor + hover opacity for desktop.
+// ── Clickable ──────────────────────────────────────────────────────────────
 class Clickable extends StatefulWidget {
   final Widget child;
   final VoidCallback? onTap;
@@ -20,8 +22,8 @@ class _ClickableState extends State<Clickable> {
       child: GestureDetector(
         onTap: widget.onTap,
         child: AnimatedOpacity(
-          duration: const Duration(milliseconds: 120),
-          opacity: _hovered ? 0.70 : 1.0,
+          duration: const Duration(milliseconds: 100),
+          opacity: _hovered ? 0.65 : 1.0,
           child: widget.child,
         ),
       ),
@@ -29,32 +31,133 @@ class _ClickableState extends State<Clickable> {
   }
 }
 
+// ── Terminal number — flicker update like a real terminal ──────────────────
+class TerminalNumber extends StatefulWidget {
+  final int value;
+  final double size;
+  final Color? color;
+  const TerminalNumber({super.key, required this.value,
+      this.size = 80, this.color});
+  @override
+  State<TerminalNumber> createState() => _TerminalNumberState();
+}
+class _TerminalNumberState extends State<TerminalNumber>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _ctrl;
+  late Animation<double> _opacity;
+  int _displayed = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _displayed = widget.value;
+    _ctrl = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 120));
+    _opacity = Tween(begin: 1.0, end: 0.0)
+        .animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeIn));
+  }
+
+  @override
+  void didUpdateWidget(TerminalNumber old) {
+    super.didUpdateWidget(old);
+    if (old.value != widget.value) {
+      _ctrl.forward().then((_) {
+        setState(() => _displayed = widget.value);
+        _ctrl.reverse();
+      });
+    }
+  }
+
+  @override
+  void dispose() { _ctrl.dispose(); super.dispose(); }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = widget.color ?? AppColors.accent;
+    return AnimatedBuilder(
+      animation: _opacity,
+      builder: (_, __) => Opacity(
+        opacity: _opacity.value,
+        child: Text(
+          _displayed > 0 ? '$_displayed' : '--',
+          style: GoogleFonts.jetBrainsMono(
+            fontSize: widget.size,
+            fontWeight: FontWeight.w700,
+            color: _displayed > 0 ? c : AppColors.muted,
+            height: 1.0,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Scanline overlay ───────────────────────────────────────────────────────
+class ScanlineOverlay extends StatelessWidget {
+  const ScanlineOverlay({super.key});
+  @override
+  Widget build(BuildContext context) => IgnorePointer(
+    child: CustomPaint(painter: _ScanlinePainter(), size: Size.infinite),
+  );
+}
+class _ScanlinePainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()..color = Colors.black.withValues(alpha: 0.06);
+    for (double y = 0; y < size.height; y += 3) {
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
+    }
+  }
+  @override bool shouldRepaint(covariant CustomPainter old) => false;
+}
+
+// ── Grain overlay ──────────────────────────────────────────────────────────
+class GrainOverlay extends StatelessWidget {
+  final double opacity;
+  const GrainOverlay({super.key, this.opacity = 0.025});
+  @override
+  Widget build(BuildContext context) => IgnorePointer(
+    child: CustomPaint(painter: _GrainPainter(opacity), size: Size.infinite),
+  );
+}
+class _GrainPainter extends CustomPainter {
+  final double opacity;
+  _GrainPainter(this.opacity);
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rng = Random(99);
+    for (int i = 0; i < 10000; i++) {
+      canvas.drawCircle(
+        Offset(rng.nextDouble() * size.width, rng.nextDouble() * size.height),
+        rng.nextDouble() * 0.7,
+        Paint()..color = Colors.white.withValues(alpha: rng.nextDouble() * opacity),
+      );
+    }
+  }
+  @override bool shouldRepaint(covariant CustomPainter old) => false;
+}
+
+// ── Colors ─────────────────────────────────────────────────────────────────
 class AppColors {
-  // ── Surfaces ────────────────────────────────────────────────────────────
-  static const bg       = Color(0xFF07080F); // deep space
-  static const card     = Color(0xFF0E1020); // surface 1
-  static const elevated = Color(0xFF151829); // surface 2
-  static const high     = Color(0xFF1C2038); // surface 3
+  static const bg       = Color(0xFF080601); // near-black, warm tint
+  static const card     = Color(0xFF0D0A00); // dark amber-black
+  static const elevated = Color(0xFF131000);
+  static const high     = Color(0xFF1A1600);
 
-  // ── Text ────────────────────────────────────────────────────────────────
-  static const text     = Color(0xFFFFFFFF);
-  static const muted    = Color(0xFF64748B);
-  static const subtle   = Color(0xFF334155);
+  static const text     = Color(0xFFDDD5A0); // aged amber-white
+  static const muted    = Color(0xFF5C5530); // dark amber
+  static const subtle   = Color(0xFF2E2A18);
 
-  // ── Accent (indigo → violet gradient) ───────────────────────────────────
-  static const accent      = Color(0xFF6366F1); // indigo
-  static const accentLight = Color(0xFF818CF8); // lighter indigo
-  static const accentBlue  = Color(0xFF6366F1); // alias
+  static const accent      = Color(0xFFE8A000); // Bloomberg amber
+  static const accentLight = Color(0xFFFFBF3C); // brighter amber
+  static const accentBlue  = Color(0xFFE8A000); // alias
 
-  // ── Semantic ────────────────────────────────────────────────────────────
-  static const green  = Color(0xFF10B981); // emerald
-  static const orange = Color(0xFFF59E0B); // amber
+  static const green  = Color(0xFF4ADE80); // terminal green
+  static const orange = Color(0xFFFF6B35); // warm orange-red for negatives
 
-  // ── Structural ──────────────────────────────────────────────────────────
-  static const border = Color(0x12FFFFFF); // 7% white
-  static const glow   = Color(0x1A6366F1); // indigo glow
+  static const border = Color(0xFF2A2510); // warm dark border
 
-  // ── Legacy aliases (keep screens compiling) ─────────────────────────────
+  // Legacy aliases
   static const darkBg     = bg;
   static const darkCard   = card;
   static const darkBorder = border;
@@ -67,6 +170,7 @@ class AppColors {
   static const pill       = card;
 }
 
+// ── Theme ──────────────────────────────────────────────────────────────────
 class AppTheme {
   static ThemeData light() => _build();
   static ThemeData dark() => _build();
@@ -79,7 +183,11 @@ class AppTheme {
       secondary: AppColors.accentLight,
       surface: AppColors.card,
     ),
-    textTheme: GoogleFonts.manropeTextTheme(ThemeData.dark().textTheme).apply(
+    textSelectionTheme: const TextSelectionThemeData(
+      cursorColor: AppColors.accent,
+    ),
+    textTheme: GoogleFonts.jetBrainsMonoTextTheme(
+        ThemeData.dark().textTheme).apply(
       bodyColor: AppColors.text,
       displayColor: AppColors.text,
     ),
@@ -90,68 +198,76 @@ class AppTheme {
   );
 }
 
+// ── Text styles — monospace everything ─────────────────────────────────────
 class AppText {
+  // Numbers / data
   static TextStyle mono({double size = 16, FontWeight weight = FontWeight.w500, Color? color}) =>
     GoogleFonts.jetBrainsMono(fontSize: size, fontWeight: weight, color: color);
 
-  static TextStyle label({double size = 11, Color? color}) =>
-    GoogleFonts.manrope(
+  // Section labels — all caps, tracked
+  static TextStyle label({double size = 10, Color? color}) =>
+    GoogleFonts.jetBrainsMono(
       fontSize: size,
-      fontWeight: FontWeight.w600,
-      letterSpacing: 0.6,
+      fontWeight: FontWeight.w700,
+      letterSpacing: 1.8,
       color: color ?? AppColors.muted,
     );
 
-  static TextStyle body({double size = 14, FontWeight weight = FontWeight.w500, Color? color}) =>
-    GoogleFonts.manrope(fontSize: size, fontWeight: weight, color: color);
+  // Body — also monospace for terminal feel
+  static TextStyle body({double size = 13, FontWeight weight = FontWeight.w400, Color? color}) =>
+    GoogleFonts.jetBrainsMono(fontSize: size, fontWeight: weight, color: color);
+
+  // Display (unused but kept for compat)
+  static TextStyle display({double size = 80, FontWeight weight = FontWeight.w700, Color? color}) =>
+    GoogleFonts.jetBrainsMono(fontSize: size, fontWeight: weight,
+        color: color, height: 1.0);
 }
 
+// ── Decorations ────────────────────────────────────────────────────────────
 class AppDecor {
-  // Standard glass card
-  static BoxDecoration card({double radius = 16, Color? color}) => BoxDecoration(
+  // Terminal panel — thin border, sharp corners
+  static BoxDecoration card({double radius = 4, Color? color}) => BoxDecoration(
     color: color ?? AppColors.card,
     borderRadius: BorderRadius.circular(radius),
     border: Border.all(color: AppColors.border, width: 1),
   );
 
-  // Glowing accent card (result, levels summary)
-  static BoxDecoration glowCard({double radius = 20, Color? glowColor}) {
+  // Active/glow card
+  static BoxDecoration glowCard({double radius = 4, Color? glowColor}) {
     final c = glowColor ?? AppColors.accent;
     return BoxDecoration(
       color: AppColors.elevated,
       borderRadius: BorderRadius.circular(radius),
-      border: Border.all(color: c.withValues(alpha: 0.25), width: 1),
+      border: Border.all(color: c.withValues(alpha: 0.4), width: 1),
       boxShadow: [
-        BoxShadow(color: c.withValues(alpha: 0.14), blurRadius: 40, offset: const Offset(0, 8)),
-        BoxShadow(color: c.withValues(alpha: 0.06), blurRadius: 80, offset: const Offset(0, 16)),
+        BoxShadow(color: c.withValues(alpha: 0.08), blurRadius: 24, offset: const Offset(0, 4)),
       ],
     );
   }
 
-  // Focused stop loss card
-  static BoxDecoration focusCard({double radius = 24}) => BoxDecoration(
+  // Focused input
+  static BoxDecoration focusCard({double radius = 4}) => BoxDecoration(
     color: AppColors.elevated,
     borderRadius: BorderRadius.circular(radius),
-    border: Border.all(color: AppColors.accent.withValues(alpha: 0.5), width: 1),
+    border: Border.all(color: AppColors.accent.withValues(alpha: 0.7), width: 1),
     boxShadow: [
-      BoxShadow(color: AppColors.accent.withValues(alpha: 0.16), blurRadius: 40, offset: const Offset(0, 8)),
+      BoxShadow(color: AppColors.accent.withValues(alpha: 0.1), blurRadius: 20),
     ],
   );
 
-  // Legacy aliases
-  static BoxDecoration navyGradientCard({double radius = 20}) => glowCard(radius: radius);
-  static BoxDecoration whiteCard({double radius = 20}) => card(radius: radius);
+  // Legacy
+  static BoxDecoration navyGradientCard({double radius = 20}) => glowCard(radius: 4);
+  static BoxDecoration whiteCard({double radius = 20}) => card(radius: 4);
 
   static BoxDecoration activeInstrument() => BoxDecoration(
-    color: AppColors.accent.withValues(alpha: 0.12),
-    borderRadius: BorderRadius.circular(12),
-    border: Border.all(color: AppColors.accent.withValues(alpha: 0.45), width: 1),
-    boxShadow: [BoxShadow(color: AppColors.accent.withValues(alpha: 0.1), blurRadius: 12)],
+    color: AppColors.accent.withValues(alpha: 0.1),
+    borderRadius: BorderRadius.circular(4),
+    border: Border.all(color: AppColors.accent.withValues(alpha: 0.6), width: 1),
   );
 
   static BoxDecoration inactiveInstrument() => BoxDecoration(
     color: AppColors.card,
-    borderRadius: BorderRadius.circular(12),
+    borderRadius: BorderRadius.circular(4),
     border: Border.all(color: AppColors.border, width: 1),
   );
 }

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../models/quanta_state.dart';
 import '../models/instrument.dart';
@@ -19,9 +18,20 @@ class InstrumentsScreen extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
 
-          // ── Favorites strip ──────────────────────────────────────────
+          // ── Header ───────────────────────────────────────────────────
+          Row(children: [
+            Text('> ', style: AppText.mono(size: 11, color: AppColors.accent)),
+            Text('MARKETS', style: AppText.label(color: AppColors.accentLight)),
+          ]),
+          const SizedBox(height: 16),
+
+          // ── Watchlist strip ──────────────────────────────────────────
           if (state.favoriteInstruments.isNotEmpty) ...[
-            Text('WATCHLIST', style: AppText.label()),
+            Row(children: [
+              Text('WATCHLIST', style: AppText.label()),
+              const SizedBox(width: 8),
+              Expanded(child: Container(height: 1, color: AppColors.border)),
+            ]),
             const SizedBox(height: 10),
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
@@ -29,57 +39,64 @@ class InstrumentsScreen extends StatelessWidget {
                 final isSelected = inst.ticker == state.selectedTicker;
                 return Container(
                   margin: const EdgeInsets.only(right: 10),
-                  padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-                  decoration: BoxDecoration(
-                    color: isSelected
-                        ? AppColors.accent.withValues(alpha: 0.12)
-                        : AppColors.card,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: isSelected
-                          ? AppColors.accent.withValues(alpha: 0.4)
-                          : AppColors.border,
-                    ),
-                  ),
+                  padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+                  decoration: isSelected
+                      ? AppDecor.activeInstrument()
+                      : AppDecor.inactiveInstrument(),
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text(inst.ticker, style: GoogleFonts.manrope(
-                      fontSize: 16, fontWeight: FontWeight.w800,
-                      color: isSelected ? AppColors.accentLight : AppColors.text,
+                    Text(inst.ticker, style: AppText.mono(
+                      size: 14, weight: FontWeight.w700,
+                      color: isSelected ? AppColors.accent : AppColors.text,
                     )),
                     const SizedBox(height: 3),
-                    Text('\$${inst.pointValue}/pt', style: AppText.mono(
-                      size: 11, weight: FontWeight.w500,
+                    Text('\$${inst.pointValue}/PT', style: AppText.label(
                       color: isSelected
-                          ? AppColors.accent.withValues(alpha: 0.7) : AppColors.muted,
+                          ? AppColors.accent.withValues(alpha: 0.6) : AppColors.muted,
                     )),
                   ]),
                 );
               }).toList()),
             ),
-            const SizedBox(height: 28),
+            const SizedBox(height: 24),
           ],
 
           // ── All instruments ──────────────────────────────────────────
-          Text('ALL INSTRUMENTS', style: AppText.label()),
+          Row(children: [
+            Text('ALL INSTRUMENTS', style: AppText.label()),
+            const SizedBox(width: 8),
+            Expanded(child: Container(height: 1, color: AppColors.border)),
+          ]),
           const SizedBox(height: 10),
+
           ...groups.map((g) {
             final instruments = kAllInstruments.where((i) => i.group == g).toList();
             return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Padding(
                 padding: const EdgeInsets.only(top: 4, bottom: 8),
-                child: Row(children: [
-                  Text(g, style: AppText.body(
-                      size: 12, weight: FontWeight.w600, color: AppColors.muted)),
-                  const SizedBox(width: 10),
-                  Expanded(child: Container(height: 1, color: AppColors.border)),
+                child: Text('// $g', style: AppText.mono(
+                    size: 11, color: AppColors.muted)),
+              ),
+              Container(
+                decoration: AppDecor.card(),
+                child: Column(children: [
+                  ...instruments.asMap().entries.map((e) {
+                    final i = e.key;
+                    final inst = e.value;
+                    final isFav = state.favorites.contains(inst.ticker);
+                    return Column(children: [
+                      _InstrumentRow(
+                        instrument: inst,
+                        isFav: isFav,
+                        onToggle: () => state.toggleFavorite(inst.ticker),
+                      ),
+                      if (i < instruments.length - 1)
+                        Container(height: 1, color: AppColors.border,
+                            margin: const EdgeInsets.symmetric(horizontal: 12)),
+                    ]);
+                  }),
                 ]),
               ),
-              ...instruments.map((inst) => _InstrumentRow(
-                instrument: inst,
-                isFav: state.favorites.contains(inst.ticker),
-                onToggle: () => state.toggleFavorite(inst.ticker),
-              )),
-              const SizedBox(height: 8),
+              const SizedBox(height: 12),
             ]);
           }),
         ]),
@@ -96,99 +113,66 @@ class _InstrumentRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      decoration: BoxDecoration(
-        color: AppColors.card,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isFav
-              ? AppColors.orange.withValues(alpha: 0.2)
-              : AppColors.border,
-          width: 1,
-        ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 14, 12, 14),
-        child: Row(children: [
-          // Ticker + name
-          Expanded(child: Row(children: [
-            Container(
-              width: 42, height: 42,
-              decoration: BoxDecoration(
-                color: isFav
-                    ? AppColors.orange.withValues(alpha: 0.08)
-                    : AppColors.elevated,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: isFav
-                      ? AppColors.orange.withValues(alpha: 0.2)
-                      : AppColors.border,
-                ),
-              ),
-              child: Center(child: Text(
-                instrument.ticker.substring(0, 1),
-                style: GoogleFonts.manrope(
-                  fontSize: 15, fontWeight: FontWeight.w800,
-                  color: isFav ? AppColors.orange : AppColors.muted,
-                ),
-              )),
-            ),
-            const SizedBox(width: 12),
-            Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(instrument.ticker, style: GoogleFonts.manrope(
-                  fontSize: 15, fontWeight: FontWeight.w800, color: AppColors.text)),
-              const SizedBox(height: 2),
-              Text(instrument.name, style: AppText.body(
-                  size: 11, color: AppColors.muted)),
-            ]),
-          ])),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
+      child: Row(children: [
+        // Ticker prefix
+        Text('> ', style: AppText.mono(size: 11,
+            color: isFav ? AppColors.accent : AppColors.subtle)),
 
-          // Point value
-          Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-            Text('\$${instrument.pointValue}',
-                style: AppText.mono(size: 15, weight: FontWeight.w700,
-                    color: AppColors.accentLight)),
-            const SizedBox(height: 2),
-            Text('per point', style: AppText.label(size: 9)),
-          ]),
+        // Ticker + name
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(instrument.ticker, style: AppText.mono(
+              size: 14, weight: FontWeight.w700,
+              color: isFav ? AppColors.accentLight : AppColors.text)),
+          const SizedBox(height: 2),
+          Text(instrument.name, style: AppText.mono(
+              size: 10, color: AppColors.muted)),
+        ])),
 
-          const SizedBox(width: 14),
-
-          // Star button
-          Clickable(
-            onTap: () {
-              HapticFeedback.lightImpact();
-              onToggle();
-            },
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              width: 38, height: 38,
-              decoration: BoxDecoration(
-                color: isFav
-                    ? AppColors.orange.withValues(alpha: 0.12)
-                    : Colors.transparent,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(
-                  color: isFav
-                      ? AppColors.orange.withValues(alpha: 0.3)
-                      : AppColors.border,
-                ),
-              ),
-              child: Center(child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 200),
-                child: Text(
-                  isFav ? '★' : '☆',
-                  key: ValueKey(isFav),
-                  style: TextStyle(
-                      fontSize: 17,
-                      color: isFav ? AppColors.orange : AppColors.muted),
-                ),
-              )),
-            ),
-          ),
+        // Point value
+        Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+          Text('\$${instrument.pointValue}',
+              style: AppText.mono(size: 13, weight: FontWeight.w700,
+                  color: isFav ? AppColors.accent : AppColors.muted)),
+          Text('per pt', style: AppText.label(size: 9)),
         ]),
-      ),
+
+        const SizedBox(width: 14),
+
+        // Star toggle
+        Clickable(
+          onTap: () {
+            HapticFeedback.lightImpact();
+            onToggle();
+          },
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            width: 34, height: 34,
+            decoration: BoxDecoration(
+              color: isFav
+                  ? AppColors.accent.withValues(alpha: 0.12)
+                  : Colors.transparent,
+              borderRadius: BorderRadius.circular(4),
+              border: Border.all(
+                color: isFav
+                    ? AppColors.accent.withValues(alpha: 0.4)
+                    : AppColors.border,
+              ),
+            ),
+            child: Center(child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 150),
+              child: Text(
+                isFav ? '★' : '☆',
+                key: ValueKey(isFav),
+                style: TextStyle(
+                    fontSize: 15,
+                    color: isFav ? AppColors.accent : AppColors.muted),
+              ),
+            )),
+          ),
+        ),
+      ]),
     );
   }
 }

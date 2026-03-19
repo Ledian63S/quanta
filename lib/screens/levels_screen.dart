@@ -58,21 +58,22 @@ class _LevelsScreenState extends State<LevelsScreen> {
     if (!hasData) {
       return Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
         Container(
-          width: 64, height: 64,
+          width: 48, height: 48,
           decoration: BoxDecoration(
             color: AppColors.card,
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(4),
             border: Border.all(color: AppColors.border),
           ),
-          child: Icon(Icons.bar_chart_rounded, size: 30, color: AppColors.muted),
+          child: Center(
+            child: Text('///', style: AppText.mono(size: 14,
+                weight: FontWeight.w700, color: AppColors.muted)),
+          ),
         ),
         const SizedBox(height: 16),
-        Text('No stop loss set',
-            style: GoogleFonts.manrope(fontSize: 16, fontWeight: FontWeight.w700,
-                color: AppColors.text)),
+        Text('NO DATA', style: AppText.label(color: AppColors.muted)),
         const SizedBox(height: 6),
-        Text('Enter a value in Calculator first',
-            style: GoogleFonts.manrope(fontSize: 13, color: AppColors.muted)),
+        Text('> SET STOP LOSS IN CALC FIRST',
+            style: AppText.mono(size: 11, color: AppColors.subtle)),
       ]));
     }
 
@@ -94,80 +95,72 @@ class _LevelsScreenState extends State<LevelsScreen> {
 
     return SafeArea(
       child: Column(children: [
-        // ── Hero: selected stop ────────────────────────────────────────
+        // ── Hero ──────────────────────────────────────────────────────
         Padding(
-          padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-          child: Column(children: [
-            // Ticker chip
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-              decoration: BoxDecoration(
-                color: AppColors.accent.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: AppColors.accent.withValues(alpha: 0.25)),
-              ),
-              child: Text(
-                '${state.currentInstrument.ticker}  ·  \$${state.currentInstrument.pointValue}/pt',
-                style: AppText.label(color: AppColors.accentLight),
-              ),
-            ),
-            const SizedBox(height: 24),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
 
-            // Big stop number
-            AnimatedSwitcher(
-              duration: const Duration(milliseconds: 200),
-              child: Text(
-                selectedStop.toStringAsFixed(1),
-                key: ValueKey(selectedStop),
-                style: AppText.mono(size: 72, weight: FontWeight.w700, color: Colors.white),
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text('pts', style: AppText.label(color: AppColors.muted)),
-
-            const SizedBox(height: 24),
-
-            // Contracts + risk inline
-            Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-              _HeroStat(
-                value: '$contracts',
-                label: 'contracts',
-                color: AppColors.accentLight,
-                large: true,
-              ),
-              Container(width: 1, height: 36, color: AppColors.border,
-                  margin: const EdgeInsets.symmetric(horizontal: 20)),
-              _HeroStat(
-                value: '\$${actualRisk.toStringAsFixed(0)}',
-                label: 'actual risk',
-                color: AppColors.green,
-                large: true,
-              ),
+            // Status bar
+            Row(children: [
+              Text('> ', style: AppText.mono(size: 11, color: AppColors.accent)),
+              Text(state.currentInstrument.ticker,
+                  style: AppText.mono(size: 11, color: AppColors.accentLight,
+                      weight: FontWeight.w700)),
+              Text('  \$${state.currentInstrument.pointValue}/PT',
+                  style: AppText.mono(size: 11, color: AppColors.muted)),
+              const Spacer(),
+              Text('LEVELS', style: AppText.label(color: AppColors.muted)),
             ]),
+            const SizedBox(height: 16),
+
+            // Big stop display
+            Container(
+              decoration: AppDecor.glowCard(glowColor: AppColors.accent),
+              padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+              child: Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text('STOP LOSS', style: AppText.label(color: AppColors.muted)),
+                  const SizedBox(height: 6),
+                  Text(
+                    selectedStop.toStringAsFixed(1),
+                    style: GoogleFonts.jetBrainsMono(
+                        fontSize: 56, fontWeight: FontWeight.w700,
+                        color: AppColors.accent, height: 1.0),
+                  ),
+                  Text('pts', style: AppText.label(color: AppColors.muted)),
+                ]),
+                const Spacer(),
+                Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                  _StatBox(label: 'CONTRACTS', value: '$contracts',
+                      color: AppColors.accentLight, large: true),
+                  const SizedBox(height: 10),
+                  _StatBox(label: 'ACTUAL RISK',
+                      value: '\$${actualRisk.toStringAsFixed(0)}',
+                      color: AppColors.green, large: false),
+                ]),
+              ]),
+            ),
+
+            const SizedBox(height: 16),
+
+            // Column headers
+            Row(children: [
+              const SizedBox(width: 16),
+              Expanded(child: Text('POINTS', style: AppText.label(size: 9))),
+              Expanded(child: Text('CONTRACTS', textAlign: TextAlign.center,
+                  style: AppText.label(size: 9))),
+              Expanded(child: Text('RISK', textAlign: TextAlign.right,
+                  style: AppText.label(size: 9))),
+              const SizedBox(width: 16),
+            ]),
+            const SizedBox(height: 6),
           ]),
         ),
-
-        const SizedBox(height: 24),
-        Container(height: 1, color: AppColors.border,
-            margin: const EdgeInsets.symmetric(horizontal: 20)),
-        const SizedBox(height: 10),
-
-        // Column headers
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 32),
-          child: Row(children: [
-            Expanded(child: Text('POINTS', style: AppText.label(size: 10))),
-            Expanded(child: Text('CONTRACTS', textAlign: TextAlign.center,
-                style: AppText.label(size: 10))),
-            Expanded(child: Text('RISK', textAlign: TextAlign.right,
-                style: AppText.label(size: 10))),
-          ]),
-        ),
-        const SizedBox(height: 8),
 
         // ── Wheel ──────────────────────────────────────────────────────
         Expanded(
           child: Stack(children: [
+            // Selection highlight
             IgnorePointer(
               child: Center(
                 child: Container(
@@ -175,7 +168,7 @@ class _LevelsScreenState extends State<LevelsScreen> {
                   margin: const EdgeInsets.symmetric(horizontal: 16),
                   decoration: BoxDecoration(
                     color: AppColors.elevated,
-                    borderRadius: BorderRadius.circular(14),
+                    borderRadius: BorderRadius.circular(4),
                     border: Border.all(
                         color: AppColors.accent.withValues(alpha: 0.3), width: 1),
                   ),
@@ -224,7 +217,7 @@ class _LevelsScreenState extends State<LevelsScreen> {
                                       weight: isSelected
                                           ? FontWeight.w700 : FontWeight.w400,
                                       color: isSelected
-                                          ? Colors.white : AppColors.muted,
+                                          ? AppColors.text : AppColors.muted,
                                     ))),
                                 Expanded(child: Text('$c',
                                     textAlign: TextAlign.center,
@@ -252,6 +245,7 @@ class _LevelsScreenState extends State<LevelsScreen> {
                 ),
               ),
 
+            // Fade overlays
             Positioned(top: 0, left: 0, right: 0,
               child: IgnorePointer(child: Container(height: 70,
                 decoration: BoxDecoration(gradient: LinearGradient(
@@ -271,28 +265,22 @@ class _LevelsScreenState extends State<LevelsScreen> {
   }
 }
 
-class _HeroStat extends StatelessWidget {
-  final String value, label;
+class _StatBox extends StatelessWidget {
+  final String label, value;
   final Color color;
   final bool large;
-  const _HeroStat({required this.value, required this.label,
-      required this.color, this.large = false});
+  const _StatBox({required this.label, required this.value,
+      required this.color, required this.large});
 
   @override
   Widget build(BuildContext context) {
-    return Column(children: [
-      AnimatedSwitcher(
-        duration: const Duration(milliseconds: 200),
-        child: Text(value,
-          key: ValueKey(value),
-          style: AppText.mono(
-              size: large ? 28 : 20,
-              weight: FontWeight.w700,
-              color: color),
-        ),
-      ),
-      const SizedBox(height: 3),
-      Text(label, style: AppText.label(size: 10, color: AppColors.muted)),
+    return Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+      Text(label, style: AppText.label(size: 9, color: AppColors.muted)),
+      const SizedBox(height: 2),
+      Text(value, style: AppText.mono(
+          size: large ? 28 : 20,
+          weight: FontWeight.w700,
+          color: color)),
     ]);
   }
 }
