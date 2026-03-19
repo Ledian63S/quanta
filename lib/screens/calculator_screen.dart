@@ -35,8 +35,6 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
       child: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          const LogoRow(subtitle: 'Calculator'),
-          const SizedBox(height: 4),
           _ChipsRow(state: state),
           const SizedBox(height: 20),
           const _SectionLabel('Instrument'),
@@ -86,16 +84,90 @@ class LogoRow extends StatelessWidget {
   }
 }
 
-class _ChipsRow extends StatelessWidget {
+class _ChipsRow extends StatefulWidget {
   final QuantaState state;
   const _ChipsRow({required this.state});
   @override
+  State<_ChipsRow> createState() => _ChipsRowState();
+}
+
+class _ChipsRowState extends State<_ChipsRow> {
+  late TextEditingController _riskCtrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _riskCtrl = TextEditingController(
+      text: widget.state.riskAmount.toStringAsFixed(0),
+    );
+  }
+
+  @override
+  void dispose() {
+    _riskCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final state = widget.state;
     return Row(children: [
-      Expanded(child: _InfoChip(label: 'Balance', value: '\$${state.accountBalance.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}', valueColor: AppColors.text)),
+      Expanded(child: _InfoChip(
+        label: 'Balance',
+        value: '\$${state.accountBalance.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}',
+        valueColor: AppColors.text,
+      )),
       const SizedBox(width: 8),
-      Expanded(child: _InfoChip(label: 'Risk / Trade', value: '\$${state.riskAmount.toStringAsFixed(0)}', valueColor: AppColors.accentBlue)),
+      Expanded(child: _EditableRiskChip(
+        controller: _riskCtrl,
+        onChanged: (v) => state.setSessionRisk(double.tryParse(v) ?? state.riskAmount),
+      )),
     ]);
+  }
+}
+
+class _EditableRiskChip extends StatelessWidget {
+  final TextEditingController controller;
+  final ValueChanged<String> onChanged;
+  const _EditableRiskChip({required this.controller, required this.onChanged});
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.border, width: 1.5),
+      ),
+      child: Stack(children: [
+        Positioned(top: 0, left: 0, right: 0, child: Container(height: 2,
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(colors: [AppColors.accentBlue, AppColors.accent]),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(14)),
+          ),
+        )),
+        Padding(padding: const EdgeInsets.fromLTRB(12, 13, 12, 11), child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('Risk / Trade', style: AppText.label(color: AppColors.muted)),
+            const SizedBox(height: 3),
+            Row(children: [
+              Text('\$', style: AppText.mono(size: 14, weight: FontWeight.w600, color: AppColors.accentBlue)),
+              Expanded(child: TextField(
+                controller: controller,
+                onChanged: onChanged,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                style: AppText.mono(size: 14, weight: FontWeight.w600, color: AppColors.accentBlue),
+                decoration: const InputDecoration(
+                  border: InputBorder.none,
+                  isDense: true,
+                  contentPadding: EdgeInsets.zero,
+                ),
+              )),
+            ]),
+          ],
+        )),
+      ]),
+    );
   }
 }
 
@@ -106,6 +178,7 @@ class _InfoChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
+      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         color: AppColors.card,
         borderRadius: BorderRadius.circular(14),
@@ -258,7 +331,7 @@ class _ResultHeroCard extends StatelessWidget {
         Container(
           decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.04), borderRadius: BorderRadius.circular(12)),
           child: Row(children: [
-            _RiskCell(label: 'Max Risk',     value: '\$${state.riskAmount.toStringAsFixed(0)}', color: Colors.white.withValues(alpha: 0.5)),
+            _RiskCell(label: 'Max Risk',     value: '\$${state.effectiveRisk.toStringAsFixed(0)}', color: Colors.white.withValues(alpha: 0.5)),
             _RiskCell(label: 'Actual Risk',  value: '\$${state.actualRisk.toStringAsFixed(0)}', color: AppColors.green),
             _RiskCell(label: 'Unused',       value: '\$${state.unusedRisk.toStringAsFixed(0)}', color: AppColors.orange, isLast: true),
           ]),

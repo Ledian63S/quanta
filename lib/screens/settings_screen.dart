@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/quanta_state.dart';
 import '../theme/app_theme.dart';
-import 'calculator_screen.dart';
-
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
   @override
@@ -40,7 +38,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
       child: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          const LogoRow(subtitle: 'Settings'),
           _Section(title: 'Account', children: [
             _InputRow(
               label: 'Account Balance',
@@ -71,6 +68,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
             _ToggleRow(label: 'Remember Risk',       value: state.rememberRisk,       onChanged: state.setRememberRisk),
             _DividerLine(),
             _ToggleRow(label: 'Remember Instrument', value: state.rememberInstrument, onChanged: state.setRememberInstrument),
+          ]),
+          const SizedBox(height: 20),
+          _Section(title: 'Appearance', children: [
+            _AppearanceRow(current: state.themeMode, onChanged: state.setThemeMode),
           ]),
           const SizedBox(height: 20),
           _Section(title: 'About', children: [
@@ -177,5 +178,61 @@ class _DividerLine extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(height: 1, color: AppColors.border, margin: const EdgeInsets.symmetric(horizontal: 16));
+  }
+}
+
+class _AppearanceRow extends StatelessWidget {
+  final ThemeMode current;
+  final ValueChanged<ThemeMode> onChanged;
+  const _AppearanceRow({required this.current, required this.onChanged});
+
+  static const _options = [
+    (ThemeMode.system,  'Automatic'),
+    (ThemeMode.light,   'Light'),
+    (ThemeMode.dark,    'Dark'),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(12),
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppColors.bg,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.border),
+        ),
+        padding: const EdgeInsets.all(3),
+        child: Row(
+          children: _options.map((opt) {
+            final (mode, label) = opt;
+            final active = current == mode;
+            return Expanded(
+              child: GestureDetector(
+                onTap: () => onChanged(mode),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  decoration: BoxDecoration(
+                    color: active ? AppColors.card : Colors.transparent,
+                    borderRadius: BorderRadius.circular(9),
+                    boxShadow: active
+                        ? [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 6, offset: const Offset(0, 2))]
+                        : null,
+                  ),
+                  child: Text(label,
+                    textAlign: TextAlign.center,
+                    style: AppText.body(
+                      size: 13,
+                      weight: active ? FontWeight.w700 : FontWeight.w500,
+                      color: active ? AppColors.accentBlue : AppColors.muted,
+                    )),
+                ),
+              ),
+            );
+          }).toList(),
+        ),
+      ),
+    );
   }
 }

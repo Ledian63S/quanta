@@ -4,8 +4,6 @@ import 'package:provider/provider.dart';
 import '../models/quanta_state.dart';
 import '../models/instrument.dart';
 import '../theme/app_theme.dart';
-import 'calculator_screen.dart';
-
 class InstrumentsScreen extends StatelessWidget {
   const InstrumentsScreen({super.key});
 
@@ -18,7 +16,6 @@ class InstrumentsScreen extends StatelessWidget {
       child: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          const LogoRow(subtitle: 'Instruments'),
           ...groups.map((g) {
             final instruments = kAllInstruments.where((i) => i.group == g).toList();
             return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [

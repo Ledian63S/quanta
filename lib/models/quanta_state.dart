@@ -1,13 +1,19 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'instrument.dart';
 
 class QuantaState extends ChangeNotifier {
   double accountBalance = 50000;
-  double riskAmount = 300;
+  double riskAmount = 300;       // persisted setting
+  double? _sessionRisk;          // temporary override, not persisted
+  double get effectiveRisk => _sessionRisk ?? riskAmount;
   String selectedTicker = 'MNQ';
   double stopLossPoints = 0;
   Set<String> favorites = {'MNQ'};
+
+  // Appearance
+  ThemeMode themeMode = ThemeMode.light;
 
   // Settings toggles
   bool rememberBalance = true;
@@ -23,20 +29,24 @@ class QuantaState extends ChangeNotifier {
 
   // Core calculation — ALWAYS floor, never round
   int get contracts => stopLossPoints > 0
-      ? (riskAmount / (stopLossPoints * currentInstrument.pointValue)).floor()
+      ? (effectiveRisk / (stopLossPoints * currentInstrument.pointValue)).floor()
       : 0;
 
   double get actualRisk =>
       contracts * stopLossPoints * currentInstrument.pointValue;
 
-  double get unusedRisk => riskAmount - actualRisk;
+  double get unusedRisk => effectiveRisk - actualRisk;
 
-  // Nearby levels for Levels screen
+  // Nearby levels for Levels screen — ±20 pts in 0.5pt steps
   List<double> get nearbyStopLevels {
     if (stopLossPoints <= 0) return [];
     final sl = stopLossPoints;
-    final steps = [-3.0, -2.0, -1.5, -1.0, -0.5, 0, 0.5, 1.0, 1.5, 2.0, 3.0];
-    return steps.map((s) => sl + s).where((s) => s > 0).toList();
+    final levels = <double>[];
+    for (double step = -20.0; step <= 20.0; step += 0.5) {
+      final val = double.parse((sl + step).toStringAsFixed(1));
+      if (val > 0) levels.add(val);
+    }
+    return levels;
   }
 
   int contractsForStop(double sl) =>
@@ -55,6 +65,11 @@ class QuantaState extends ChangeNotifier {
     riskAmount = value;
     notifyListeners();
     _save();
+  }
+
+  void setSessionRisk(double value) {
+    _sessionRisk = value;
+    notifyListeners();
   }
 
   void setInstrument(String ticker) {
@@ -85,6 +100,7 @@ class QuantaState extends ChangeNotifier {
   void setRememberBalance(bool v) { rememberBalance = v; notifyListeners(); _save(); }
   void setRememberRisk(bool v)    { rememberRisk = v;    notifyListeners(); _save(); }
   void setRememberInstrument(bool v) { rememberInstrument = v; notifyListeners(); _save(); }
+  void setThemeMode(ThemeMode mode) { themeMode = mode; notifyListeners(); _save(); }
 
   Future<void> load() async {
     final prefs = await SharedPreferences.getInstance();
@@ -99,6 +115,9 @@ class QuantaState extends ChangeNotifier {
     if (!favorites.contains(selectedTicker)) {
       selectedTicker = favorites.first;
     }
+    final themeModeStr = prefs.getString('themeMode') ?? 'light';
+    themeMode = ThemeMode.values.firstWhere(
+        (m) => m.name == themeModeStr, orElse: () => ThemeMode.light);
     notifyListeners();
   }
 
@@ -111,5 +130,6 @@ class QuantaState extends ChangeNotifier {
     if (rememberRisk)       prefs.setDouble('risk',       riskAmount);
     if (rememberInstrument) prefs.setString('instrument', selectedTicker);
     prefs.setStringList('favorites', favorites.toList());
+    prefs.setString('themeMode', themeMode.name);
   }
 }

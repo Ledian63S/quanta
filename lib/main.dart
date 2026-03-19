@@ -21,12 +21,13 @@ class QuantaApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final themeMode = context.watch<QuantaState>().themeMode;
     return MaterialApp(
       title: 'Quanta',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light(),
       darkTheme: AppTheme.dark(),
-      themeMode: ThemeMode.light,
+      themeMode: themeMode,
       home: const MainShell(),
     );
   }
