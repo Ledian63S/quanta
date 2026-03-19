@@ -30,36 +30,41 @@ class _MainShellState extends State<MainShell> {
         onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
         behavior: HitTestBehavior.translucent,
         child: SafeArea(
-          child: Stack(
-            children: [
-              Positioned.fill(
-                child: Stack(
-                  children: List.generate(_screens.length, (i) {
-                    return AnimatedOpacity(
-                      duration: const Duration(milliseconds: 220),
-                      curve: Curves.easeInOut,
-                      opacity: _currentIndex == i ? 1.0 : 0.0,
-                      child: IgnorePointer(
-                        ignoring: _currentIndex != i,
-                        child: _screens[i],
-                      ),
-                    );
-                  }),
-                ),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 430),
+              child: Stack(
+                children: [
+                  Positioned.fill(
+                    child: Stack(
+                      children: List.generate(_screens.length, (i) {
+                        return AnimatedOpacity(
+                          duration: const Duration(milliseconds: 220),
+                          curve: Curves.easeInOut,
+                          opacity: _currentIndex == i ? 1.0 : 0.0,
+                          child: IgnorePointer(
+                            ignoring: _currentIndex != i,
+                            child: _screens[i],
+                          ),
+                        );
+                      }),
+                    ),
+                  ),
+                  Positioned(
+                    bottom: 8,
+                    left: 0,
+                    right: 0,
+                    child: _FloatingPillNav(
+                      currentIndex: _currentIndex,
+                      onTap: (i) {
+                        HapticFeedback.selectionClick();
+                        setState(() => _currentIndex = i);
+                      },
+                    ),
+                  ),
+                ],
               ),
-              Positioned(
-                bottom: 8,
-                left: 0,
-                right: 0,
-                child: _FloatingPillNav(
-                  currentIndex: _currentIndex,
-                  onTap: (i) {
-                    HapticFeedback.selectionClick();
-                    setState(() => _currentIndex = i);
-                  },
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),
