@@ -14,27 +14,33 @@ class CalculatorScreen extends StatefulWidget {
 class _CalculatorScreenState extends State<CalculatorScreen> {
   final _slController = TextEditingController();
   late final TextEditingController _riskController;
+  late final TextEditingController _balanceController;
   final _slFocus = FocusNode();
   final _riskFocus = FocusNode();
+  final _balanceFocus = FocusNode();
   bool _slFocused = false;
   bool _riskFocused = false;
+  bool _balanceFocused = false;
 
   @override
   void initState() {
     super.initState();
-    _riskController = TextEditingController(
-      text: context.read<QuantaState>().riskAmount.toStringAsFixed(0),
-    );
+    final state = context.read<QuantaState>();
+    _riskController = TextEditingController(text: state.riskAmount.toStringAsFixed(0));
+    _balanceController = TextEditingController(text: state.accountBalance.toStringAsFixed(0));
     _slFocus.addListener(() => setState(() => _slFocused = _slFocus.hasFocus));
     _riskFocus.addListener(() => setState(() => _riskFocused = _riskFocus.hasFocus));
+    _balanceFocus.addListener(() => setState(() => _balanceFocused = _balanceFocus.hasFocus));
   }
 
   @override
   void dispose() {
     _slController.dispose();
     _riskController.dispose();
+    _balanceController.dispose();
     _slFocus.dispose();
     _riskFocus.dispose();
+    _balanceFocus.dispose();
     super.dispose();
   }
 
@@ -47,13 +53,22 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
         children: [
           Positioned.fill(
             child: SingleChildScrollView(
-            padding: EdgeInsets.fromLTRB(16, 12, 16, 100 + keyboardHeight),
+            padding: EdgeInsets.fromLTRB(16, 12, 16, 108 + keyboardHeight),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              _ChipsRow(state: state, riskFocus: _riskFocus, riskController: _riskController),
+              _ChipsRow(
+                state: state,
+                riskFocus: _riskFocus,
+                riskController: _riskController,
+                balanceFocus: _balanceFocus,
+                balanceController: _balanceController,
+              ),
               const SizedBox(height: 24),
               const _SectionLabel('Instrument'),
               const SizedBox(height: 10),
-              _InstrumentScrollRow(state: state),
+              _InstrumentScrollRow(
+                state: state,
+                onInstrumentChanged: () => _slController.clear(),
+              ),
               const SizedBox(height: 24),
               const _SectionLabel('Stop Loss'),
               const SizedBox(height: 10),
@@ -64,29 +79,35 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                 onChanged: (v) => state.setStopLoss(double.tryParse(v) ?? 0),
               ),
               const SizedBox(height: 16),
-              if (state.contracts > 0 || state.stopLossPoints > 0)
-                _ResultHeroCard(state: state),
+              _ResultHeroCard(state: state),
             ]),
           )),
-          if ((_slFocused || _riskFocused) && keyboardHeight > 0)
+          if (keyboardHeight > 0)
             Positioned(
               bottom: keyboardHeight + 12,
               right: 16,
-              child: GestureDetector(
-                onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
-                child: Builder(builder: (context) {
-                  final isDark = Theme.of(context).brightness == Brightness.dark;
-                  return Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                    decoration: BoxDecoration(
-                      color: isDark ? AppColors.darkCard : AppColors.card,
-                      borderRadius: BorderRadius.circular(22),
-                      border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.border, width: 1.5),
-                      boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.12), blurRadius: 14, offset: const Offset(0, 4))],
-                    ),
-                    child: Text('Done', style: AppText.label(color: isDark ? AppColors.accent : AppColors.accentBlue)),
-                  );
-                }),
+              child: AnimatedOpacity(
+                duration: const Duration(milliseconds: 180),
+                opacity: (_slFocused || _riskFocused || _balanceFocused) ? 1.0 : 0.0,
+                child: IgnorePointer(
+                  ignoring: !(_slFocused || _riskFocused || _balanceFocused),
+                  child: GestureDetector(
+                    onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+                    child: Builder(builder: (context) {
+                      final isDark = Theme.of(context).brightness == Brightness.dark;
+                      return Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: isDark ? AppColors.darkCard : AppColors.card,
+                          borderRadius: BorderRadius.circular(22),
+                          border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.border, width: 1.5),
+                          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.12), blurRadius: 14, offset: const Offset(0, 4))],
+                        ),
+                        child: Text('Done', style: AppText.label(color: isDark ? AppColors.accent : AppColors.accentBlue)),
+                      );
+                    }),
+                  ),
+                ),
               ),
             ),
         ],
@@ -95,45 +116,32 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
   }
 }
 
-class LogoRow extends StatelessWidget {
-  final String subtitle;
-  const LogoRow({super.key, required this.subtitle});
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 20, top: 8),
-      child: Row(children: [
-        Container(
-          width: 32, height: 32,
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(colors: [AppColors.accentBlue, AppColors.accent], begin: Alignment.topLeft, end: Alignment.bottomRight),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: const Icon(Icons.blur_circular, color: Colors.white, size: 16),
-        ),
-        const SizedBox(width: 9),
-        Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('Quanta', style: GoogleFonts.manrope(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.text, letterSpacing: -0.4)),
-          Text(subtitle, style: GoogleFonts.manrope(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.muted, letterSpacing: 0.5)),
-        ]),
-      ]),
-    );
-  }
-}
 
 class _ChipsRow extends StatelessWidget {
   final QuantaState state;
   final FocusNode riskFocus;
   final TextEditingController riskController;
-  const _ChipsRow({required this.state, required this.riskFocus, required this.riskController});
+  final FocusNode balanceFocus;
+  final TextEditingController balanceController;
+  const _ChipsRow({
+    required this.state,
+    required this.riskFocus,
+    required this.riskController,
+    required this.balanceFocus,
+    required this.balanceController,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDark ? AppColors.darkCard : AppColors.card;
+    final borderColor = isDark ? AppColors.darkBorder : AppColors.border;
+    final mutedColor = isDark ? AppColors.darkMuted : AppColors.muted;
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.card,
+        color: cardColor,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.border, width: 1.5),
+        border: Border.all(color: borderColor, width: 1.5),
       ),
       child: IntrinsicHeight(
         child: Row(
@@ -142,21 +150,36 @@ class _ChipsRow extends StatelessWidget {
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(14, 16, 14, 14),
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text('Balance', style: AppText.label(color: AppColors.muted)),
+                  Text('Balance', style: AppText.label(color: mutedColor)),
                   const SizedBox(height: 5),
-                  Text(
-                    '\$${state.accountBalance.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}',
-                    style: AppText.mono(size: 18, weight: FontWeight.w600, color: AppColors.accentBlue),
-                  ),
+                  Row(children: [
+                    Text('\$', style: AppText.mono(size: 18, weight: FontWeight.w600, color: AppColors.accentBlue)),
+                    IntrinsicWidth(
+                      child: TextField(
+                        controller: balanceController,
+                        focusNode: balanceFocus,
+                        onChanged: (v) => state.setBalance(double.tryParse(v) ?? state.accountBalance),
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[\d.]'))],
+                        enableInteractiveSelection: false,
+                        style: AppText.mono(size: 18, weight: FontWeight.w600, color: AppColors.accentBlue),
+                        decoration: const InputDecoration(
+                          border: InputBorder.none,
+                          isDense: true,
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                      ),
+                    ),
+                  ]),
                 ]),
               ),
             ),
-            VerticalDivider(width: 1, thickness: 1, color: AppColors.border),
+            VerticalDivider(width: 1, thickness: 1, color: borderColor),
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(14, 16, 14, 14),
                 child: Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                  Text('Risk / Trade', style: AppText.label(color: AppColors.muted)),
+                  Text('Risk / Trade', style: AppText.label(color: mutedColor)),
                   const SizedBox(height: 5),
                   Row(mainAxisAlignment: MainAxisAlignment.end, children: [
                     Text('\$', style: AppText.mono(size: 18, weight: FontWeight.w600, color: AppColors.accentBlue)),
@@ -167,6 +190,7 @@ class _ChipsRow extends StatelessWidget {
                         onChanged: (v) => state.setSessionRisk(double.tryParse(v) ?? state.riskAmount),
                         keyboardType: const TextInputType.numberWithOptions(decimal: true),
                         inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[\d.]'))],
+                        enableInteractiveSelection: false,
                         textAlign: TextAlign.right,
                         style: AppText.mono(size: 18, weight: FontWeight.w600, color: AppColors.accentBlue),
                         decoration: const InputDecoration(
@@ -191,20 +215,29 @@ class _SectionLabel extends StatelessWidget {
   final String text;
   const _SectionLabel(this.text);
   @override
-  Widget build(BuildContext context) => Text(text, style: AppText.label(color: AppColors.muted));
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Text(text, style: AppText.label(color: isDark ? AppColors.darkMuted : AppColors.muted));
+  }
 }
 
 class _InstrumentScrollRow extends StatelessWidget {
   final QuantaState state;
-  const _InstrumentScrollRow({required this.state});
+  final VoidCallback onInstrumentChanged;
+  const _InstrumentScrollRow({required this.state, required this.onInstrumentChanged});
   @override
   Widget build(BuildContext context) {
     final favs = state.favoriteInstruments;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     if (favs.isEmpty) {
       return Container(
         padding: const EdgeInsets.all(14),
-        decoration: AppDecor.whiteCard(radius: 14),
-        child: Text('★ Star instruments to add here', style: AppText.body(color: AppColors.muted)),
+        decoration: BoxDecoration(
+          color: isDark ? AppColors.darkCard : AppColors.card,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.border, width: 1.5),
+        ),
+        child: Text('★ Star instruments to add here', style: AppText.body(color: isDark ? AppColors.darkMuted : AppColors.muted)),
       );
     }
     return SingleChildScrollView(
@@ -215,16 +248,21 @@ class _InstrumentScrollRow extends StatelessWidget {
           onTap: () {
                 HapticFeedback.selectionClick();
                 state.setInstrument(inst.ticker);
+                onInstrumentChanged();
               },
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
             margin: const EdgeInsets.only(right: 8),
             padding: const EdgeInsets.fromLTRB(18, 14, 18, 12),
-            decoration: isActive ? AppDecor.activeInstrument() : AppDecor.inactiveInstrument(),
+            decoration: isActive ? AppDecor.activeInstrument() : BoxDecoration(
+              color: isDark ? AppColors.darkCard : AppColors.card,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.border, width: 1.5),
+            ),
             child: Column(children: [
-              Text(inst.ticker, style: GoogleFonts.manrope(fontSize: 15, fontWeight: FontWeight.w800, color: isActive ? Colors.white : AppColors.text)),
+              Text(inst.ticker, style: GoogleFonts.manrope(fontSize: 15, fontWeight: FontWeight.w800, color: isActive ? Colors.white : (isDark ? AppColors.darkText : AppColors.text))),
               const SizedBox(height: 4),
-              Text('\$${inst.pointValue}/pt', style: GoogleFonts.manrope(fontSize: 11, fontWeight: FontWeight.w500, color: isActive ? Colors.white.withValues(alpha: 0.55) : AppColors.muted)),
+              Text('\$${inst.pointValue}/pt', style: GoogleFonts.manrope(fontSize: 11, fontWeight: FontWeight.w500, color: isActive ? Colors.white.withValues(alpha: 0.55) : (isDark ? AppColors.darkMuted : AppColors.muted))),
             ]),
           ),
         );
@@ -241,27 +279,33 @@ class _StopLossCard extends StatelessWidget {
   const _StopLossCard({required this.controller, required this.focusNode, required this.focused, required this.onChanged});
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final unfocusedCard = isDark ? AppColors.darkCard : AppColors.card;
+    final unfocusedBorder = isDark ? AppColors.darkBorder : AppColors.border;
+    final unfocusedMuted = isDark ? AppColors.darkMuted : AppColors.muted;
+    final unfocusedText = isDark ? AppColors.darkText : AppColors.text;
+    final unfocusedBg = isDark ? AppColors.darkBg : AppColors.bg;
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
       decoration: BoxDecoration(
         gradient: focused ? const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [AppColors.navyCard1, AppColors.navyCard2]) : null,
-        color: focused ? null : AppColors.card,
+        color: focused ? null : unfocusedCard,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: focused ? AppColors.accent.withValues(alpha: 0.4) : AppColors.border, width: 1.5),
+        border: Border.all(color: focused ? AppColors.accent.withValues(alpha: 0.4) : unfocusedBorder, width: 1.5),
         boxShadow: focused ? [BoxShadow(color: AppColors.accent.withValues(alpha: 0.12), blurRadius: 28, offset: const Offset(0, 8))] : null,
       ),
       padding: const EdgeInsets.fromLTRB(22, 22, 22, 0),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-          Text('Enter Points', style: AppText.label(color: focused ? AppColors.accent.withValues(alpha: 0.5) : AppColors.muted)),
+          Text('Enter Points', style: AppText.label(color: focused ? AppColors.accent.withValues(alpha: 0.5) : unfocusedMuted)),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 4),
             decoration: BoxDecoration(
-              color: focused ? AppColors.accent.withValues(alpha: 0.1) : AppColors.bg,
+              color: focused ? AppColors.accent.withValues(alpha: 0.1) : unfocusedBg,
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: focused ? AppColors.accent.withValues(alpha: 0.2) : AppColors.border),
+              border: Border.all(color: focused ? AppColors.accent.withValues(alpha: 0.2) : unfocusedBorder),
             ),
-            child: Text('pts', style: AppText.label(color: focused ? AppColors.accent : AppColors.muted)),
+            child: Text('pts', style: AppText.label(color: focused ? AppColors.accent : unfocusedMuted)),
           ),
         ]),
         const SizedBox(height: 12),
@@ -271,11 +315,12 @@ class _StopLossCard extends StatelessWidget {
           onChanged: onChanged,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
           inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[\d.]'))],
-          style: AppText.mono(size: 44, weight: FontWeight.w600, color: focused ? Colors.white : AppColors.text),
+          enableInteractiveSelection: false,
+          style: AppText.mono(size: 44, weight: FontWeight.w600, color: focused ? Colors.white : unfocusedText),
           decoration: InputDecoration(
             border: InputBorder.none,
             hintText: '0.00',
-            hintStyle: AppText.mono(size: 36, weight: FontWeight.w300, color: focused ? Colors.white.withValues(alpha: 0.12) : AppColors.muted.withValues(alpha: 0.3)),
+            hintStyle: AppText.mono(size: 36, weight: FontWeight.w300, color: focused ? Colors.white.withValues(alpha: 0.12) : unfocusedMuted.withValues(alpha: 0.3)),
             isDense: true,
             contentPadding: EdgeInsets.zero,
           ),
@@ -298,7 +343,7 @@ class _StopLossCard extends StatelessWidget {
 
 class _ResultHeroCard extends StatelessWidget {
   final QuantaState state;
-  const _ResultHeroCard({required this.state});
+  const _ResultHeroCard({super.key, required this.state});
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -311,7 +356,19 @@ class _ResultHeroCard extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
-          Text('${state.contracts}', style: AppText.mono(size: 68, weight: FontWeight.w600, color: Colors.white)),
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 200),
+            transitionBuilder: (child, animation) => ScaleTransition(
+              scale: Tween<double>(begin: 0.8, end: 1.0)
+                  .animate(CurvedAnimation(parent: animation, curve: Curves.easeOut)),
+              child: FadeTransition(opacity: animation, child: child),
+            ),
+            child: Text(
+              state.stopLossPoints > 0 ? '${state.contracts}' : '--',
+              key: ValueKey(state.stopLossPoints > 0 ? state.contracts : -1),
+              style: AppText.mono(size: 68, weight: FontWeight.w600, color: state.stopLossPoints > 0 ? Colors.white : Colors.white.withValues(alpha: 0.2)),
+            ),
+          ),
           const SizedBox(width: 10),
           Padding(padding: const EdgeInsets.only(bottom: 12), child: Text('contracts', style: GoogleFonts.manrope(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white.withValues(alpha: 0.3)))),
         ]),
@@ -344,7 +401,14 @@ class _RiskCell extends StatelessWidget {
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text(label, style: AppText.label(size: 10, color: Colors.white.withValues(alpha: 0.28))),
         const SizedBox(height: 3),
-        Text(value, style: AppText.mono(size: 16, weight: FontWeight.w600, color: color)),
+        AnimatedSwitcher(
+          duration: const Duration(milliseconds: 200),
+          child: Text(
+            value,
+            key: ValueKey(value),
+            style: AppText.mono(size: 16, weight: FontWeight.w600, color: color),
+          ),
+        ),
       ]),
     ));
   }

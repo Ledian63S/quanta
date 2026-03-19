@@ -50,7 +50,7 @@ class QuantaState extends ChangeNotifier {
   }
 
   int contractsForStop(double sl) =>
-      sl > 0 ? (riskAmount / (sl * currentInstrument.pointValue)).floor() : 0;
+      sl > 0 ? (effectiveRisk / (sl * currentInstrument.pointValue)).floor() : 0;
 
   double actualRiskForStop(double sl) =>
       contractsForStop(sl) * sl * currentInstrument.pointValue;
@@ -74,6 +74,7 @@ class QuantaState extends ChangeNotifier {
 
   void setInstrument(String ticker) {
     selectedTicker = ticker;
+    stopLossPoints = 0;
     notifyListeners();
     _save();
   }

@@ -129,6 +129,7 @@ class _InputRow extends StatelessWidget {
             textAlign: TextAlign.right,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[\d.]'))],
+            enableInteractiveSelection: false,
             style: AppText.mono(size: 15, weight: FontWeight.w600, color: AppColors.accentBlue),
             decoration: const InputDecoration(border: InputBorder.none, isDense: true, contentPadding: EdgeInsets.zero),
           )),

@@ -35,6 +35,7 @@ class _LevelsScreenState extends State<LevelsScreen> {
   void _animateToStop(List<double> levels, double stop) {
     final idx = levels.indexWhere((l) => (l - stop).abs() < 0.01);
     if (idx < 0) return;
+    _selectedIndex = idx; // update immediately so build doesn't go out of bounds
     _programmaticScrollUntil = DateTime.now().add(const Duration(milliseconds: 450));
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _wheelController?.animateToItem(idx,
@@ -51,6 +52,14 @@ class _LevelsScreenState extends State<LevelsScreen> {
     final bgColor = isDark ? AppColors.darkBg : AppColors.bg;
     final mutedColor = isDark ? AppColors.darkMuted : AppColors.muted;
     final textColor = isDark ? AppColors.darkText : AppColors.text;
+
+    // Reset wheel when stop loss is cleared (e.g. instrument switch)
+    if (!hasData && _wheelController != null) {
+      _wheelController!.dispose();
+      _wheelController = null;
+      _selectedIndex = 0;
+      _prevStopLossPoints = 0;
+    }
 
     if (!hasData) {
       return SafeArea(
@@ -76,7 +85,8 @@ class _LevelsScreenState extends State<LevelsScreen> {
       }
     }
 
-    final selectedStop = levels.isNotEmpty ? levels[_selectedIndex] : state.stopLossPoints;
+    final safeIndex = _selectedIndex.clamp(0, levels.length - 1);
+    final selectedStop = levels.isNotEmpty ? levels[safeIndex] : state.stopLossPoints;
 
     return SafeArea(
       child: Padding(

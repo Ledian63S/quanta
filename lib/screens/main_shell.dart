@@ -33,18 +33,30 @@ class _MainShellState extends State<MainShell> {
           child: Stack(
             children: [
               Positioned.fill(
-                child: IndexedStack(index: _currentIndex, children: _screens),
+                child: Stack(
+                  children: List.generate(_screens.length, (i) {
+                    return AnimatedOpacity(
+                      duration: const Duration(milliseconds: 220),
+                      curve: Curves.easeInOut,
+                      opacity: _currentIndex == i ? 1.0 : 0.0,
+                      child: IgnorePointer(
+                        ignoring: _currentIndex != i,
+                        child: _screens[i],
+                      ),
+                    );
+                  }),
+                ),
               ),
               Positioned(
-                bottom: 0,
+                bottom: 8,
                 left: 0,
                 right: 0,
                 child: _FloatingPillNav(
                   currentIndex: _currentIndex,
                   onTap: (i) {
-            HapticFeedback.selectionClick();
-            setState(() => _currentIndex = i);
-          },
+                    HapticFeedback.selectionClick();
+                    setState(() => _currentIndex = i);
+                  },
                 ),
               ),
             ],
@@ -64,16 +76,23 @@ class _FloatingPillNav extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final pillColor = isDark ? AppColors.pill : Colors.white;
-    final dividerColor = isDark ? Colors.white.withValues(alpha: 0.07) : Colors.black.withValues(alpha: 0.08);
+    final dividerColor =
+        isDark ? Colors.white.withValues(alpha: 0.07) : Colors.black.withValues(alpha: 0.08);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Container(
         decoration: BoxDecoration(
           color: pillColor,
           borderRadius: BorderRadius.circular(40),
-          border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.06)),
+          border: Border.all(
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.05)
+                  : Colors.black.withValues(alpha: 0.06)),
           boxShadow: [
-            BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 32, offset: const Offset(0, 8)),
+            BoxShadow(
+                color: Colors.black.withValues(alpha: 0.2),
+                blurRadius: 32,
+                offset: const Offset(0, 8)),
           ],
         ),
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
@@ -99,11 +118,17 @@ class _PillTab extends StatelessWidget {
   final bool active;
   final VoidCallback onTap;
   final bool isDark;
-  const _PillTab({required this.icon, required this.label, required this.active, required this.onTap, required this.isDark});
+  const _PillTab(
+      {required this.icon,
+      required this.label,
+      required this.active,
+      required this.onTap,
+      required this.isDark});
 
   @override
   Widget build(BuildContext context) {
-    final inactiveColor = isDark ? Colors.white.withValues(alpha: 0.28) : Colors.black.withValues(alpha: 0.3);
+    final inactiveColor =
+        isDark ? Colors.white.withValues(alpha: 0.28) : Colors.black.withValues(alpha: 0.3);
     final activeColor = isDark ? AppColors.accent : AppColors.accentBlue;
     return GestureDetector(
       onTap: onTap,
@@ -120,13 +145,14 @@ class _PillTab extends StatelessWidget {
           children: [
             Icon(icon, size: 22, color: active ? activeColor : inactiveColor),
             const SizedBox(height: 4),
-            Text(label, style: TextStyle(
-              fontFamily: 'Manrope',
-              fontSize: 10,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0.4,
-              color: active ? activeColor : inactiveColor,
-            )),
+            Text(label,
+                style: TextStyle(
+                  fontFamily: 'Manrope',
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.4,
+                  color: active ? activeColor : inactiveColor,
+                )),
           ],
         ),
       ),
@@ -139,6 +165,7 @@ class _NavDivider extends StatelessWidget {
   const _NavDivider({required this.color});
   @override
   Widget build(BuildContext context) {
-    return Container(width: 1, height: 26, color: color, margin: const EdgeInsets.symmetric(horizontal: 1));
+    return Container(
+        width: 1, height: 26, color: color, margin: const EdgeInsets.symmetric(horizontal: 1));
   }
 }
