@@ -35,7 +35,7 @@ class _LevelsScreenState extends State<LevelsScreen> {
   void _animateToStop(List<double> levels, double stop) {
     final idx = levels.indexWhere((l) => (l - stop).abs() < 0.01);
     if (idx < 0) return;
-    _selectedIndex = idx; // update immediately so build doesn't go out of bounds
+    _selectedIndex = idx;
     _programmaticScrollUntil = DateTime.now().add(const Duration(milliseconds: 450));
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _wheelController?.animateToItem(idx,
@@ -48,12 +48,6 @@ class _LevelsScreenState extends State<LevelsScreen> {
     final state = context.watch<QuantaState>();
     final hasData = state.stopLossPoints > 0;
 
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bgColor = isDark ? AppColors.darkBg : AppColors.bg;
-    final mutedColor = isDark ? AppColors.darkMuted : AppColors.muted;
-    final textColor = isDark ? AppColors.darkText : AppColors.text;
-
-    // Reset wheel when stop loss is cleared (e.g. instrument switch)
     if (!hasData && _wheelController != null) {
       _wheelController!.dispose();
       _wheelController = null;
@@ -62,16 +56,24 @@ class _LevelsScreenState extends State<LevelsScreen> {
     }
 
     if (!hasData) {
-      return SafeArea(
-        child: Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Icon(Icons.bar_chart, size: 48, color: mutedColor.withValues(alpha: 0.4)),
-          const SizedBox(height: 12),
-          Text('Enter a stop loss in Calculator\nto see nearby levels',
-              textAlign: TextAlign.center,
-              style: GoogleFonts.manrope(fontSize: 14, color: mutedColor,
-                  fontWeight: FontWeight.w500, height: 1.6)),
-        ])),
-      );
+      return Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
+        Container(
+          width: 64, height: 64,
+          decoration: BoxDecoration(
+            color: AppColors.card,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: AppColors.border),
+          ),
+          child: Icon(Icons.bar_chart_rounded, size: 30, color: AppColors.muted),
+        ),
+        const SizedBox(height: 16),
+        Text('No stop loss set',
+            style: GoogleFonts.manrope(fontSize: 16, fontWeight: FontWeight.w700,
+                color: AppColors.text)),
+        const SizedBox(height: 6),
+        Text('Enter a value in Calculator first',
+            style: GoogleFonts.manrope(fontSize: 13, color: AppColors.muted)),
+      ]));
     }
 
     final levels = state.nearbyStopLevels;
@@ -87,207 +89,210 @@ class _LevelsScreenState extends State<LevelsScreen> {
 
     final safeIndex = _selectedIndex.clamp(0, levels.length - 1);
     final selectedStop = levels.isNotEmpty ? levels[safeIndex] : state.stopLossPoints;
+    final contracts = state.contractsForStop(selectedStop);
+    final actualRisk = state.actualRiskForStop(selectedStop);
 
     return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          _SummaryCard(state: state, selectedStop: selectedStop),
-          const SizedBox(height: 20),
-          _SectionLabel('Nearby Stop Levels', color: mutedColor),
-          const SizedBox(height: 10),
-          _TableHeader(mutedColor: mutedColor),
-          const SizedBox(height: 8),
-          Expanded(
-            child: Stack(
-              children: [
-
-                // Center highlight — fixed behind the wheel
-                IgnorePointer(
-                  child: Center(
-                    child: Container(
-                      height: _kRowHeight,
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          begin: Alignment.topLeft, end: Alignment.bottomRight,
-                          colors: [AppColors.navyCard1, AppColors.navyCard2],
-                        ),
-                        borderRadius: BorderRadius.circular(13),
-                        border: Border.all(
-                            color: AppColors.accent.withValues(alpha: 0.35), width: 1.5),
-                        boxShadow: [BoxShadow(
-                            color: AppColors.accent.withValues(alpha: 0.14),
-                            blurRadius: 16)],
-                      ),
-                    ),
-                  ),
-                ),
-
-                // Wheel picker — snaps automatically
-                if (_wheelController != null)
-                  ListWheelScrollView.useDelegate(
-                    controller: _wheelController!,
-                    itemExtent: _kRowHeight,
-                    physics: const FixedExtentScrollPhysics(),
-                    diameterRatio: 100,
-                    overAndUnderCenterOpacity: 1.0,
-                    onSelectedItemChanged: (i) {
-                      if (DateTime.now().isAfter(_programmaticScrollUntil)) HapticFeedback.selectionClick();
-                      setState(() => _selectedIndex = i);
-                    },
-                    childDelegate: ListWheelChildBuilderDelegate(
-                      childCount: levels.length,
-                      builder: (context, i) {
-                        final sl = levels[i];
-                        final c = state.contractsForStop(sl);
-                        final ar = state.actualRiskForStop(sl);
-                        return AnimatedBuilder(
-                          animation: _wheelController!,
-                          builder: (context, _) {
-                            double dist = 0;
-                            if (_wheelController!.hasClients) {
-                              final frac = _wheelController!.offset / _kRowHeight;
-                              dist = (frac - i).abs();
-                            }
-                            final isSelected = dist < 0.5;
-                            final opacity = (1.0 - dist * 0.15).clamp(0.5, 1.0);
-                            final ptSize = (17.0 - dist * 1.2).clamp(14.0, 17.0);
-                            final cSize  = (19.0 - dist * 1.4).clamp(15.0, 19.0);
-                            final rSize  = (17.0 - dist * 1.2).clamp(14.0, 17.0);
-                            return Opacity(
-                              opacity: opacity,
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 14),
-                                child: Row(children: [
-                                  Expanded(child: Text(sl.toStringAsFixed(1),
-                                      style: AppText.body(size: ptSize,
-                                          weight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                                          color: isSelected
-                                              ? Colors.white.withValues(alpha: 0.85)
-                                              : textColor))),
-                                  Expanded(child: Text('$c',
-                                      textAlign: TextAlign.center,
-                                      style: AppText.mono(size: cSize,
-                                          weight: FontWeight.w700,
-                                          color: isSelected ? Colors.white : textColor))),
-                                  Expanded(child: Text('\$${ar.toStringAsFixed(0)}',
-                                      textAlign: TextAlign.right,
-                                      style: AppText.mono(size: rSize,
-                                          weight: FontWeight.w500,
-                                          color: isSelected ? AppColors.green : textColor))),
-                                ]),
-                              ),
-                            );
-                          },
-                        );
-                      },
-                    ),
-                  ),
-
-                // Top fade
-                Positioned(
-                  top: 0, left: 0, right: 0,
-                  child: IgnorePointer(
-                    child: Container(
-                      height: 100,
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter, end: Alignment.bottomCenter,
-                          colors: [bgColor, bgColor.withValues(alpha: 0)],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-
-                // Bottom fade
-                Positioned(
-                  bottom: 0, left: 0, right: 0,
-                  child: IgnorePointer(
-                    child: Container(
-                      height: 100,
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter, end: Alignment.bottomCenter,
-                          colors: [bgColor.withValues(alpha: 0), bgColor],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
+      child: Column(children: [
+        // ── Hero: selected stop ────────────────────────────────────────
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+          child: Column(children: [
+            // Ticker chip
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+              decoration: BoxDecoration(
+                color: AppColors.accent.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: AppColors.accent.withValues(alpha: 0.25)),
+              ),
+              child: Text(
+                '${state.currentInstrument.ticker}  ·  \$${state.currentInstrument.pointValue}/pt',
+                style: AppText.label(color: AppColors.accentLight),
+              ),
             ),
-          ),
-        ]),
+            const SizedBox(height: 24),
+
+            // Big stop number
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 200),
+              child: Text(
+                selectedStop.toStringAsFixed(1),
+                key: ValueKey(selectedStop),
+                style: AppText.mono(size: 72, weight: FontWeight.w700, color: Colors.white),
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text('pts', style: AppText.label(color: AppColors.muted)),
+
+            const SizedBox(height: 24),
+
+            // Contracts + risk inline
+            Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+              _HeroStat(
+                value: '$contracts',
+                label: 'contracts',
+                color: AppColors.accentLight,
+                large: true,
+              ),
+              Container(width: 1, height: 36, color: AppColors.border,
+                  margin: const EdgeInsets.symmetric(horizontal: 20)),
+              _HeroStat(
+                value: '\$${actualRisk.toStringAsFixed(0)}',
+                label: 'actual risk',
+                color: AppColors.green,
+                large: true,
+              ),
+            ]),
+          ]),
+        ),
+
+        const SizedBox(height: 24),
+        Container(height: 1, color: AppColors.border,
+            margin: const EdgeInsets.symmetric(horizontal: 20)),
+        const SizedBox(height: 10),
+
+        // Column headers
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 32),
+          child: Row(children: [
+            Expanded(child: Text('POINTS', style: AppText.label(size: 10))),
+            Expanded(child: Text('CONTRACTS', textAlign: TextAlign.center,
+                style: AppText.label(size: 10))),
+            Expanded(child: Text('RISK', textAlign: TextAlign.right,
+                style: AppText.label(size: 10))),
+          ]),
+        ),
+        const SizedBox(height: 8),
+
+        // ── Wheel ──────────────────────────────────────────────────────
+        Expanded(
+          child: Stack(children: [
+            IgnorePointer(
+              child: Center(
+                child: Container(
+                  height: _kRowHeight,
+                  margin: const EdgeInsets.symmetric(horizontal: 16),
+                  decoration: BoxDecoration(
+                    color: AppColors.elevated,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                        color: AppColors.accent.withValues(alpha: 0.3), width: 1),
+                  ),
+                ),
+              ),
+            ),
+
+            if (_wheelController != null)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: ListWheelScrollView.useDelegate(
+                  controller: _wheelController!,
+                  itemExtent: _kRowHeight,
+                  physics: const FixedExtentScrollPhysics(),
+                  diameterRatio: 100,
+                  overAndUnderCenterOpacity: 1.0,
+                  onSelectedItemChanged: (i) {
+                    if (DateTime.now().isAfter(_programmaticScrollUntil))
+                      HapticFeedback.selectionClick();
+                    setState(() => _selectedIndex = i);
+                  },
+                  childDelegate: ListWheelChildBuilderDelegate(
+                    childCount: levels.length,
+                    builder: (context, i) {
+                      final sl = levels[i];
+                      final c = state.contractsForStop(sl);
+                      final ar = state.actualRiskForStop(sl);
+                      return AnimatedBuilder(
+                        animation: _wheelController!,
+                        builder: (context, _) {
+                          double dist = 0;
+                          if (_wheelController!.hasClients) {
+                            final frac = _wheelController!.offset / _kRowHeight;
+                            dist = (frac - i).abs();
+                          }
+                          final isSelected = dist < 0.5;
+                          final opacity = (1.0 - dist * 0.18).clamp(0.4, 1.0);
+                          return Opacity(
+                            opacity: opacity,
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                              child: Row(children: [
+                                Expanded(child: Text(sl.toStringAsFixed(1),
+                                    style: AppText.mono(
+                                      size: isSelected ? 16 : 14,
+                                      weight: isSelected
+                                          ? FontWeight.w700 : FontWeight.w400,
+                                      color: isSelected
+                                          ? Colors.white : AppColors.muted,
+                                    ))),
+                                Expanded(child: Text('$c',
+                                    textAlign: TextAlign.center,
+                                    style: AppText.mono(
+                                      size: isSelected ? 18 : 15,
+                                      weight: FontWeight.w700,
+                                      color: isSelected
+                                          ? AppColors.accentLight : AppColors.subtle,
+                                    ))),
+                                Expanded(child: Text('\$${ar.toStringAsFixed(0)}',
+                                    textAlign: TextAlign.right,
+                                    style: AppText.mono(
+                                      size: isSelected ? 16 : 14,
+                                      weight: FontWeight.w500,
+                                      color: isSelected
+                                          ? AppColors.green : AppColors.subtle,
+                                    ))),
+                              ]),
+                            ),
+                          );
+                        },
+                      );
+                    },
+                  ),
+                ),
+              ),
+
+            Positioned(top: 0, left: 0, right: 0,
+              child: IgnorePointer(child: Container(height: 70,
+                decoration: BoxDecoration(gradient: LinearGradient(
+                  begin: Alignment.topCenter, end: Alignment.bottomCenter,
+                  colors: [AppColors.bg, AppColors.bg.withValues(alpha: 0)],
+                ))))),
+            Positioned(bottom: 0, left: 0, right: 0,
+              child: IgnorePointer(child: Container(height: 70,
+                decoration: BoxDecoration(gradient: LinearGradient(
+                  begin: Alignment.topCenter, end: Alignment.bottomCenter,
+                  colors: [AppColors.bg.withValues(alpha: 0), AppColors.bg],
+                ))))),
+          ]),
+        ),
+      ]),
+    );
+  }
+}
+
+class _HeroStat extends StatelessWidget {
+  final String value, label;
+  final Color color;
+  final bool large;
+  const _HeroStat({required this.value, required this.label,
+      required this.color, this.large = false});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(children: [
+      AnimatedSwitcher(
+        duration: const Duration(milliseconds: 200),
+        child: Text(value,
+          key: ValueKey(value),
+          style: AppText.mono(
+              size: large ? 28 : 20,
+              weight: FontWeight.w700,
+              color: color),
+        ),
       ),
-    );
+      const SizedBox(height: 3),
+      Text(label, style: AppText.label(size: 10, color: AppColors.muted)),
+    ]);
   }
-}
-
-class _SummaryCard extends StatelessWidget {
-  final QuantaState state;
-  final double selectedStop;
-  const _SummaryCard({required this.state, required this.selectedStop});
-  @override
-  Widget build(BuildContext context) {
-    final c = state.contractsForStop(selectedStop);
-    final ar = state.actualRiskForStop(selectedStop);
-    return Container(
-      decoration: AppDecor.navyGradientCard(),
-      padding: const EdgeInsets.all(22),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text('${state.currentInstrument.ticker} · \$${state.currentInstrument.pointValue}/pt',
-            style: AppText.label(color: AppColors.accent.withValues(alpha: 0.45))),
-        const SizedBox(height: 12),
-        Row(children: [
-          _SumItem(label: 'Contracts', value: '$c', color: AppColors.accent),
-          _SumItem(label: 'Stop Loss',
-              value: '${selectedStop.toStringAsFixed(1)} pts', color: Colors.white),
-          _SumItem(label: 'Actual Risk',
-              value: '\$${ar.toStringAsFixed(0)}', color: Colors.white),
-        ]),
-      ]),
-    );
-  }
-}
-
-class _SumItem extends StatelessWidget {
-  final String label, value;
-  final Color color;
-  const _SumItem({required this.label, required this.value, required this.color});
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text(label, style: AppText.label(size: 11, color: Colors.white.withValues(alpha: 0.3))),
-      const SizedBox(height: 5),
-      Text(value, style: AppText.mono(size: 20, weight: FontWeight.w600, color: color)),
-    ]));
-  }
-}
-
-class _TableHeader extends StatelessWidget {
-  final Color mutedColor;
-  const _TableHeader({required this.mutedColor});
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 14),
-      child: Row(children: [
-        Expanded(child: Text('POINTS', style: AppText.label(size: 11, color: mutedColor))),
-        Expanded(child: Text('CONTRACTS', textAlign: TextAlign.center,
-            style: AppText.label(size: 11, color: mutedColor))),
-        Expanded(child: Text('ACTUAL RISK', textAlign: TextAlign.right,
-            style: AppText.label(size: 11, color: mutedColor))),
-      ]),
-    );
-  }
-}
-
-class _SectionLabel extends StatelessWidget {
-  final String text;
-  final Color color;
-  const _SectionLabel(this.text, {required this.color});
-  @override
-  Widget build(BuildContext context) =>
-      Text(text, style: AppText.label(color: color));
 }

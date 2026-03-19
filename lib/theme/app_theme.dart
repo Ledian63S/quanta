@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-/// Drop-in replacement for GestureDetector that adds pointer cursor + subtle
-/// hover opacity on desktop. Falls back to plain tap behaviour on mobile.
+/// Pointer cursor + hover opacity for desktop.
 class Clickable extends StatefulWidget {
   final Widget child;
   final VoidCallback? onTap;
@@ -10,7 +9,6 @@ class Clickable extends StatefulWidget {
   @override
   State<Clickable> createState() => _ClickableState();
 }
-
 class _ClickableState extends State<Clickable> {
   bool _hovered = false;
   @override
@@ -23,7 +21,7 @@ class _ClickableState extends State<Clickable> {
         onTap: widget.onTap,
         child: AnimatedOpacity(
           duration: const Duration(milliseconds: 120),
-          opacity: _hovered ? 0.72 : 1.0,
+          opacity: _hovered ? 0.70 : 1.0,
           child: widget.child,
         ),
       ),
@@ -32,114 +30,128 @@ class _ClickableState extends State<Clickable> {
 }
 
 class AppColors {
-  static const bg          = Color(0xFFF4F6FB);
-  static const card        = Color(0xFFFFFFFF);
-  static const border      = Color(0xFFE2E8F2);
-  static const text        = Color(0xFF0A1020);
-  static const muted       = Color(0xFF8A9CBA);
-  static const accent      = Color(0xFF00C2E0);
-  static const accentBlue  = Color(0xFF2563EB);
-  static const navyDark    = Color(0xFF06101E);
-  static const navyMid     = Color(0xFF0C1E3A);
-  static const navyCard1   = Color(0xFF060E1E);
-  static const navyCard2   = Color(0xFF0B1E3C);
-  static const green       = Color(0xFF00D48A);
-  static const orange      = Color(0xFFF59E0B);
-  static const pill        = Color(0xFF0A1428);
+  // ── Surfaces ────────────────────────────────────────────────────────────
+  static const bg       = Color(0xFF07080F); // deep space
+  static const card     = Color(0xFF0E1020); // surface 1
+  static const elevated = Color(0xFF151829); // surface 2
+  static const high     = Color(0xFF1C2038); // surface 3
 
-  // Dark mode
-  static const darkBg      = Color(0xFF0E1018);
-  static const darkCard    = Color(0xFF131A2E);
-  static const darkBorder  = Color(0xFF1E2A40);
-  static const darkText    = Color(0xFFE8F0FF);
-  static const darkMuted   = Color(0xFF4A5580);
+  // ── Text ────────────────────────────────────────────────────────────────
+  static const text     = Color(0xFFFFFFFF);
+  static const muted    = Color(0xFF64748B);
+  static const subtle   = Color(0xFF334155);
+
+  // ── Accent (indigo → violet gradient) ───────────────────────────────────
+  static const accent      = Color(0xFF6366F1); // indigo
+  static const accentLight = Color(0xFF818CF8); // lighter indigo
+  static const accentBlue  = Color(0xFF6366F1); // alias
+
+  // ── Semantic ────────────────────────────────────────────────────────────
+  static const green  = Color(0xFF10B981); // emerald
+  static const orange = Color(0xFFF59E0B); // amber
+
+  // ── Structural ──────────────────────────────────────────────────────────
+  static const border = Color(0x12FFFFFF); // 7% white
+  static const glow   = Color(0x1A6366F1); // indigo glow
+
+  // ── Legacy aliases (keep screens compiling) ─────────────────────────────
+  static const darkBg     = bg;
+  static const darkCard   = card;
+  static const darkBorder = border;
+  static const darkText   = text;
+  static const darkMuted  = muted;
+  static const navyDark   = card;
+  static const navyMid    = elevated;
+  static const navyCard1  = elevated;
+  static const navyCard2  = high;
+  static const pill       = card;
 }
 
 class AppTheme {
-  static ThemeData light() {
-    return ThemeData(
-      brightness: Brightness.light,
-      scaffoldBackgroundColor: AppColors.bg,
-      colorScheme: const ColorScheme.light(
-        primary: AppColors.accentBlue,
-        secondary: AppColors.accent,
-        surface: AppColors.card,
-      ),
-      textTheme: GoogleFonts.manropeTextTheme().apply(
-        bodyColor: AppColors.text,
-        displayColor: AppColors.text,
-      ),
-      inputDecorationTheme: const InputDecorationTheme(
-        border: InputBorder.none,
-        filled: false,
-      ),
-    );
-  }
+  static ThemeData light() => _build();
+  static ThemeData dark() => _build();
 
-  static ThemeData dark() {
-    return ThemeData(
-      brightness: Brightness.dark,
-      scaffoldBackgroundColor: AppColors.darkBg,
-      colorScheme: const ColorScheme.dark(
-        primary: AppColors.accentBlue,
-        secondary: AppColors.accent,
-        surface: AppColors.darkCard,
-      ),
-      textTheme: GoogleFonts.manropeTextTheme(ThemeData.dark().textTheme).apply(
-        bodyColor: AppColors.darkText,
-        displayColor: AppColors.darkText,
-      ),
-      inputDecorationTheme: const InputDecorationTheme(
-        border: InputBorder.none,
-        filled: false,
-      ),
-    );
-  }
+  static ThemeData _build() => ThemeData(
+    brightness: Brightness.dark,
+    scaffoldBackgroundColor: AppColors.bg,
+    colorScheme: const ColorScheme.dark(
+      primary: AppColors.accent,
+      secondary: AppColors.accentLight,
+      surface: AppColors.card,
+    ),
+    textTheme: GoogleFonts.manropeTextTheme(ThemeData.dark().textTheme).apply(
+      bodyColor: AppColors.text,
+      displayColor: AppColors.text,
+    ),
+    inputDecorationTheme: const InputDecorationTheme(
+      border: InputBorder.none,
+      filled: false,
+    ),
+  );
 }
 
-// Shared text styles
 class AppText {
   static TextStyle mono({double size = 16, FontWeight weight = FontWeight.w500, Color? color}) =>
     GoogleFonts.jetBrainsMono(fontSize: size, fontWeight: weight, color: color);
 
   static TextStyle label({double size = 11, Color? color}) =>
-    GoogleFonts.manrope(fontSize: size, fontWeight: FontWeight.w700,
-      letterSpacing: 1.1, color: color);
+    GoogleFonts.manrope(
+      fontSize: size,
+      fontWeight: FontWeight.w600,
+      letterSpacing: 0.6,
+      color: color ?? AppColors.muted,
+    );
 
   static TextStyle body({double size = 14, FontWeight weight = FontWeight.w500, Color? color}) =>
     GoogleFonts.manrope(fontSize: size, fontWeight: weight, color: color);
 }
 
-// Shared decorations
 class AppDecor {
-  static BoxDecoration navyGradientCard({double radius = 20}) => BoxDecoration(
-    gradient: const LinearGradient(
-      begin: Alignment.topLeft, end: Alignment.bottomRight,
-      colors: [AppColors.navyCard1, AppColors.navyCard2],
-    ),
+  // Standard glass card
+  static BoxDecoration card({double radius = 16, Color? color}) => BoxDecoration(
+    color: color ?? AppColors.card,
     borderRadius: BorderRadius.circular(radius),
-    border: Border.all(color: AppColors.accent.withValues(alpha: 0.15)),
+    border: Border.all(color: AppColors.border, width: 1),
   );
 
-  static BoxDecoration whiteCard({double radius = 20}) => BoxDecoration(
-    color: AppColors.card,
+  // Glowing accent card (result, levels summary)
+  static BoxDecoration glowCard({double radius = 20, Color? glowColor}) {
+    final c = glowColor ?? AppColors.accent;
+    return BoxDecoration(
+      color: AppColors.elevated,
+      borderRadius: BorderRadius.circular(radius),
+      border: Border.all(color: c.withValues(alpha: 0.25), width: 1),
+      boxShadow: [
+        BoxShadow(color: c.withValues(alpha: 0.14), blurRadius: 40, offset: const Offset(0, 8)),
+        BoxShadow(color: c.withValues(alpha: 0.06), blurRadius: 80, offset: const Offset(0, 16)),
+      ],
+    );
+  }
+
+  // Focused stop loss card
+  static BoxDecoration focusCard({double radius = 24}) => BoxDecoration(
+    color: AppColors.elevated,
     borderRadius: BorderRadius.circular(radius),
-    border: Border.all(color: AppColors.border, width: 1.5),
+    border: Border.all(color: AppColors.accent.withValues(alpha: 0.5), width: 1),
+    boxShadow: [
+      BoxShadow(color: AppColors.accent.withValues(alpha: 0.16), blurRadius: 40, offset: const Offset(0, 8)),
+    ],
   );
+
+  // Legacy aliases
+  static BoxDecoration navyGradientCard({double radius = 20}) => glowCard(radius: radius);
+  static BoxDecoration whiteCard({double radius = 20}) => card(radius: radius);
 
   static BoxDecoration activeInstrument() => BoxDecoration(
-    gradient: const LinearGradient(
-      begin: Alignment.topLeft, end: Alignment.bottomRight,
-      colors: [AppColors.navyCard1, AppColors.navyCard2],
-    ),
-    borderRadius: BorderRadius.circular(14),
-    border: Border.all(color: AppColors.accent.withValues(alpha: 0.3), width: 1.5),
-    boxShadow: [BoxShadow(color: AppColors.accent.withValues(alpha: 0.12), blurRadius: 14, offset: const Offset(0, 4))],
+    color: AppColors.accent.withValues(alpha: 0.12),
+    borderRadius: BorderRadius.circular(12),
+    border: Border.all(color: AppColors.accent.withValues(alpha: 0.45), width: 1),
+    boxShadow: [BoxShadow(color: AppColors.accent.withValues(alpha: 0.1), blurRadius: 12)],
   );
 
   static BoxDecoration inactiveInstrument() => BoxDecoration(
     color: AppColors.card,
-    borderRadius: BorderRadius.circular(14),
-    border: Border.all(color: AppColors.border, width: 1.5),
+    borderRadius: BorderRadius.circular(12),
+    border: Border.all(color: AppColors.border, width: 1),
   );
 }

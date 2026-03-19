@@ -12,7 +12,7 @@ class QuantaState extends ChangeNotifier {
   Set<String> favorites = {'MNQ'};
 
   // Appearance
-  ThemeMode themeMode = ThemeMode.light;
+  ThemeMode themeMode = ThemeMode.system;
 
   // Settings toggles
   bool rememberBalance = true;
@@ -137,7 +137,7 @@ class QuantaState extends ChangeNotifier {
     if (!favorites.contains(selectedTicker)) {
       selectedTicker = favorites.first;
     }
-    final themeModeStr = prefs.getString('themeMode') ?? 'light';
+    final themeModeStr = prefs.getString('themeMode') ?? 'system';
     themeMode = ThemeMode.values.firstWhere((m) => m.name == themeModeStr,
         orElse: () => ThemeMode.light);
     notifyListeners();
