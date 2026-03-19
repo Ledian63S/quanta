@@ -151,6 +151,9 @@ class _PillTab extends StatelessWidget {
             Icon(icon, size: 22, color: active ? activeColor : inactiveColor),
             const SizedBox(height: 4),
             Text(label,
+                maxLines: 1,
+                softWrap: false,
+                overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   fontFamily: 'Manrope',
                   fontSize: 10,
