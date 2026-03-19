@@ -23,10 +23,10 @@ class _LevelsScreenState extends State<LevelsScreen> {
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          LogoRow(subtitle: 'Levels'),
+          const LogoRow(subtitle: 'Levels'),
           if (!hasData)
             Expanded(child: Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-              Icon(Icons.bar_chart, size: 48, color: AppColors.muted.withOpacity(0.4)),
+              Icon(Icons.bar_chart, size: 48, color: AppColors.muted.withValues(alpha: 0.4)),
               const SizedBox(height: 12),
               Text('Enter a stop loss in Calculator\nto see nearby levels', textAlign: TextAlign.center,
                 style: GoogleFonts.manrope(fontSize: 14, color: AppColors.muted, fontWeight: FontWeight.w500, height: 1.6)),
@@ -34,9 +34,9 @@ class _LevelsScreenState extends State<LevelsScreen> {
           else ...[
             _SummaryCard(state: state),
             const SizedBox(height: 16),
-            _SectionLabel('Nearby Stop Levels'),
+            const _SectionLabel('Nearby Stop Levels'),
             const SizedBox(height: 8),
-            _TableHeader(),
+            const _TableHeader(),
             const SizedBox(height: 6),
             Expanded(child: _LevelsTable(state: state, selectedStop: _selectedStop ?? state.stopLossPoints,
               onSelectStop: (s) => setState(() => _selectedStop = s))),
@@ -57,7 +57,7 @@ class _SummaryCard extends StatelessWidget {
       padding: const EdgeInsets.all(18),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text('${state.currentInstrument.ticker} · \$${state.currentInstrument.pointValue}/pt',
-          style: AppText.label(color: AppColors.accent.withOpacity(0.45))),
+          style: AppText.label(color: AppColors.accent.withValues(alpha: 0.45))),
         const SizedBox(height: 8),
         Row(children: [
           _SumItem(label: 'Contracts', value: '${state.contracts}', color: AppColors.accent),
@@ -76,7 +76,7 @@ class _SumItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text(label, style: AppText.label(size: 8.5, color: Colors.white.withOpacity(0.3))),
+      Text(label, style: AppText.label(size: 8.5, color: Colors.white.withValues(alpha: 0.3))),
       const SizedBox(height: 3),
       Text(value, style: AppText.mono(size: 15, weight: FontWeight.w600, color: color)),
     ]));
@@ -84,6 +84,7 @@ class _SumItem extends StatelessWidget {
 }
 
 class _TableHeader extends StatelessWidget {
+  const _TableHeader();
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -122,10 +123,10 @@ class _LevelsTable extends StatelessWidget {
             decoration: BoxDecoration(
               gradient: isSelected ? const LinearGradient(colors: [AppColors.navyCard1, AppColors.navyCard2]) : null,
               borderRadius: BorderRadius.circular(13),
-              boxShadow: isSelected ? [BoxShadow(color: AppColors.accent.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, 3))] : null,
+              boxShadow: isSelected ? [BoxShadow(color: AppColors.accent.withValues(alpha: 0.1), blurRadius: 10, offset: const Offset(0, 3))] : null,
             ),
             child: Row(children: [
-              Expanded(child: Text(sl.toStringAsFixed(1), style: AppText.body(size: 13, color: isSelected ? Colors.white.withOpacity(0.4) : AppColors.muted))),
+              Expanded(child: Text(sl.toStringAsFixed(1), style: AppText.body(size: 13, color: isSelected ? Colors.white.withValues(alpha: 0.4) : AppColors.muted))),
               Expanded(child: Text('$c', textAlign: TextAlign.center,
                 style: AppText.mono(size: isSelected ? 16 : 14, weight: FontWeight.w700, color: isSelected ? Colors.white : AppColors.text))),
               Expanded(child: Text('\$${ar.toStringAsFixed(0)}', textAlign: TextAlign.right,

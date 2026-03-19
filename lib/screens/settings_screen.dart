@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../models/quanta_state.dart';
 import '../theme/app_theme.dart';
@@ -41,7 +40,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       child: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          LogoRow(subtitle: 'Settings'),
+          const LogoRow(subtitle: 'Settings'),
           _Section(title: 'Account', children: [
             _InputRow(
               label: 'Account Balance',
@@ -52,7 +51,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               onChanged: (v) => state.setBalance(double.tryParse(v) ?? state.accountBalance),
             ),
             _DividerLine(),
-            _LabelRow(label: 'Currency', value: 'USD ›'),
+            const _LabelRow(label: 'Currency', value: 'USD ›'),
           ]),
           const SizedBox(height: 20),
           _Section(title: 'Risk', children: [
@@ -75,9 +74,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ]),
           const SizedBox(height: 20),
           _Section(title: 'About', children: [
-            _LabelRow(label: 'Version', value: '1.0.0'),
+            const _LabelRow(label: 'Version', value: '1.0.0'),
             _DividerLine(),
-            _LabelRow(label: 'Built for Quantower', value: '✦', valueColor: AppColors.accent),
+            const _LabelRow(label: 'Built for Quantower', value: '✦', valueColor: AppColors.accent),
           ]),
         ]),
       ),
@@ -166,7 +165,7 @@ class _ToggleRow extends StatelessWidget {
         Switch.adaptive(
           value: value,
           onChanged: onChanged,
-          activeColor: AppColors.accent,
+          activeThumbColor: AppColors.accent,
           activeTrackColor: AppColors.navyMid,
         ),
       ]),

@@ -39,7 +39,7 @@ class AppTheme {
         bodyColor: AppColors.text,
         displayColor: AppColors.text,
       ),
-      inputDecorationTheme: InputDecorationTheme(
+      inputDecorationTheme: const InputDecorationTheme(
         border: InputBorder.none,
         filled: false,
       ),
@@ -59,7 +59,7 @@ class AppTheme {
         bodyColor: AppColors.darkText,
         displayColor: AppColors.darkText,
       ),
-      inputDecorationTheme: InputDecorationTheme(
+      inputDecorationTheme: const InputDecorationTheme(
         border: InputBorder.none,
         filled: false,
       ),
@@ -88,7 +88,7 @@ class AppDecor {
       colors: [AppColors.navyCard1, AppColors.navyCard2],
     ),
     borderRadius: BorderRadius.circular(radius),
-    border: Border.all(color: AppColors.accent.withOpacity(0.15)),
+    border: Border.all(color: AppColors.accent.withValues(alpha: 0.15)),
   );
 
   static BoxDecoration whiteCard({double radius = 20}) => BoxDecoration(
@@ -103,8 +103,8 @@ class AppDecor {
       colors: [AppColors.navyCard1, AppColors.navyCard2],
     ),
     borderRadius: BorderRadius.circular(14),
-    border: Border.all(color: AppColors.accent.withOpacity(0.3), width: 1.5),
-    boxShadow: [BoxShadow(color: AppColors.accent.withOpacity(0.12), blurRadius: 14, offset: const Offset(0, 4))],
+    border: Border.all(color: AppColors.accent.withValues(alpha: 0.3), width: 1.5),
+    boxShadow: [BoxShadow(color: AppColors.accent.withValues(alpha: 0.12), blurRadius: 14, offset: const Offset(0, 4))],
   );
 
   static BoxDecoration inactiveInstrument() => BoxDecoration(

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../models/quanta_state.dart';
-import '../models/instrument.dart';
 import '../theme/app_theme.dart';
 
 class CalculatorScreen extends StatefulWidget {
@@ -36,15 +35,15 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
       child: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          LogoRow(subtitle: 'Calculator'),
+          const LogoRow(subtitle: 'Calculator'),
           const SizedBox(height: 4),
           _ChipsRow(state: state),
           const SizedBox(height: 20),
-          _SectionLabel('Instrument'),
+          const _SectionLabel('Instrument'),
           const SizedBox(height: 8),
           _InstrumentScrollRow(state: state),
           const SizedBox(height: 20),
-          _SectionLabel('Stop Loss'),
+          const _SectionLabel('Stop Loss'),
           const SizedBox(height: 8),
           _StopLossCard(
             controller: _slController,
@@ -63,7 +62,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
 
 class LogoRow extends StatelessWidget {
   final String subtitle;
-  const LogoRow({required this.subtitle});
+  const LogoRow({super.key, required this.subtitle});
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -114,9 +113,9 @@ class _InfoChip extends StatelessWidget {
       ),
       child: Stack(children: [
         Positioned(top: 0, left: 0, right: 0, child: Container(height: 2,
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(colors: [AppColors.accentBlue, AppColors.accent]),
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(colors: [AppColors.accentBlue, AppColors.accent]),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(14)),
           ),
         )),
         Padding(padding: const EdgeInsets.fromLTRB(12, 13, 12, 11), child: Column(
@@ -165,7 +164,7 @@ class _InstrumentScrollRow extends StatelessWidget {
             child: Column(children: [
               Text(inst.ticker, style: GoogleFonts.manrope(fontSize: 12, fontWeight: FontWeight.w800, color: isActive ? Colors.white : AppColors.text)),
               const SizedBox(height: 3),
-              Text('\$${inst.pointValue}/pt', style: GoogleFonts.manrope(fontSize: 8, fontWeight: FontWeight.w500, color: isActive ? Colors.white.withOpacity(0.55) : AppColors.muted)),
+              Text('\$${inst.pointValue}/pt', style: GoogleFonts.manrope(fontSize: 8, fontWeight: FontWeight.w500, color: isActive ? Colors.white.withValues(alpha: 0.55) : AppColors.muted)),
             ]),
           ),
         );
@@ -188,19 +187,19 @@ class _StopLossCard extends StatelessWidget {
         gradient: focused ? const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [AppColors.navyCard1, AppColors.navyCard2]) : null,
         color: focused ? null : AppColors.card,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: focused ? AppColors.accent.withOpacity(0.4) : AppColors.border, width: 1.5),
-        boxShadow: focused ? [BoxShadow(color: AppColors.accent.withOpacity(0.12), blurRadius: 28, offset: const Offset(0, 8))] : null,
+        border: Border.all(color: focused ? AppColors.accent.withValues(alpha: 0.4) : AppColors.border, width: 1.5),
+        boxShadow: focused ? [BoxShadow(color: AppColors.accent.withValues(alpha: 0.12), blurRadius: 28, offset: const Offset(0, 8))] : null,
       ),
       padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-          Text('Enter Points', style: AppText.label(color: focused ? AppColors.accent.withOpacity(0.5) : AppColors.muted)),
+          Text('Enter Points', style: AppText.label(color: focused ? AppColors.accent.withValues(alpha: 0.5) : AppColors.muted)),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 4),
             decoration: BoxDecoration(
-              color: focused ? AppColors.accent.withOpacity(0.1) : AppColors.bg,
+              color: focused ? AppColors.accent.withValues(alpha: 0.1) : AppColors.bg,
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: focused ? AppColors.accent.withOpacity(0.2) : AppColors.border),
+              border: Border.all(color: focused ? AppColors.accent.withValues(alpha: 0.2) : AppColors.border),
             ),
             child: Text('pts', style: AppText.label(color: focused ? AppColors.accent : AppColors.muted)),
           ),
@@ -215,7 +214,7 @@ class _StopLossCard extends StatelessWidget {
           decoration: InputDecoration(
             border: InputBorder.none,
             hintText: '0.00',
-            hintStyle: AppText.mono(size: 28, weight: FontWeight.w300, color: focused ? Colors.white.withOpacity(0.12) : AppColors.muted.withOpacity(0.3)),
+            hintStyle: AppText.mono(size: 28, weight: FontWeight.w300, color: focused ? Colors.white.withValues(alpha: 0.12) : AppColors.muted.withValues(alpha: 0.3)),
             isDense: true,
             contentPadding: EdgeInsets.zero,
           ),
@@ -247,19 +246,19 @@ class _ResultHeroCard extends StatelessWidget {
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text(
           '${state.currentInstrument.ticker} — ${state.currentInstrument.name} · \$${state.currentInstrument.pointValue}/pt',
-          style: AppText.label(color: AppColors.accent.withOpacity(0.45)),
+          style: AppText.label(color: AppColors.accent.withValues(alpha: 0.45)),
         ),
         const SizedBox(height: 10),
         Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
           Text('${state.contracts}', style: AppText.mono(size: 56, weight: FontWeight.w600, color: Colors.white)),
           const SizedBox(width: 8),
-          Padding(padding: const EdgeInsets.only(bottom: 10), child: Text('contracts', style: GoogleFonts.manrope(fontSize: 13, fontWeight: FontWeight.w700, color: Colors.white.withOpacity(0.3)))),
+          Padding(padding: const EdgeInsets.only(bottom: 10), child: Text('contracts', style: GoogleFonts.manrope(fontSize: 13, fontWeight: FontWeight.w700, color: Colors.white.withValues(alpha: 0.3)))),
         ]),
         const SizedBox(height: 12),
         Container(
-          decoration: BoxDecoration(color: Colors.white.withOpacity(0.04), borderRadius: BorderRadius.circular(12)),
+          decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.04), borderRadius: BorderRadius.circular(12)),
           child: Row(children: [
-            _RiskCell(label: 'Max Risk',     value: '\$${state.riskAmount.toStringAsFixed(0)}', color: Colors.white.withOpacity(0.5)),
+            _RiskCell(label: 'Max Risk',     value: '\$${state.riskAmount.toStringAsFixed(0)}', color: Colors.white.withValues(alpha: 0.5)),
             _RiskCell(label: 'Actual Risk',  value: '\$${state.actualRisk.toStringAsFixed(0)}', color: AppColors.green),
             _RiskCell(label: 'Unused',       value: '\$${state.unusedRisk.toStringAsFixed(0)}', color: AppColors.orange, isLast: true),
           ]),
@@ -279,10 +278,10 @@ class _RiskCell extends StatelessWidget {
     return Expanded(child: Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        border: isLast ? null : Border(right: BorderSide(color: Colors.white.withOpacity(0.06))),
+        border: isLast ? null : Border(right: BorderSide(color: Colors.white.withValues(alpha: 0.06))),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(label, style: AppText.label(size: 8.5, color: Colors.white.withOpacity(0.28))),
+        Text(label, style: AppText.label(size: 8.5, color: Colors.white.withValues(alpha: 0.28))),
         const SizedBox(height: 2),
         Text(value, style: AppText.mono(size: 13, weight: FontWeight.w600, color: color)),
       ]),

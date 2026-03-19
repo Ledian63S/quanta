@@ -18,7 +18,7 @@ class InstrumentsScreen extends StatelessWidget {
       child: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          LogoRow(subtitle: 'Instruments'),
+          const LogoRow(subtitle: 'Instruments'),
           ...groups.map((g) {
             final instruments = kAllInstruments.where((i) => i.group == g).toList();
             return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -65,7 +65,7 @@ class _InstrumentRow extends StatelessWidget {
         color: AppColors.card,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isFav ? AppColors.orange.withOpacity(0.2) : AppColors.border,
+          color: isFav ? AppColors.orange.withValues(alpha: 0.2) : AppColors.border,
           width: 1.5,
         ),
       ),
