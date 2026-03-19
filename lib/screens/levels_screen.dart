@@ -133,14 +133,10 @@ class _LevelsScreenState extends State<LevelsScreen> {
                   children: [
                 Text('CONTRACTS', style: AppText.label(size: 9)),
                 const SizedBox(height: 4),
-                AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 150),
-                  child: Text('$contracts',
-                    key: ValueKey(contracts),
+                Text('$contracts',
                     textAlign: TextAlign.center,
                     style: AppText.mono(size: 32, weight: FontWeight.w700,
                         color: AppColors.accentLight)),
-                ),
               ])),
 
               // ACTUAL RISK (right column)
@@ -148,13 +144,9 @@ class _LevelsScreenState extends State<LevelsScreen> {
                   children: [
                 Text('ACTUAL RISK', style: AppText.label(size: 9)),
                 const SizedBox(height: 4),
-                AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 150),
-                  child: Text('\$${actualRisk.toStringAsFixed(0)}',
-                    key: ValueKey(actualRisk),
+                Text('\$${actualRisk.toStringAsFixed(0)}',
                     style: AppText.mono(size: 22, weight: FontWeight.w700,
                         color: AppColors.green)),
-                ),
               ])),
             ]),
 
@@ -218,83 +210,72 @@ class _LevelsScreenState extends State<LevelsScreen> {
                       final c = state.contractsForStop(sl);
                       final ar = state.actualRiskForStop(sl);
                       final barFraction = maxC > 0 ? c / maxC : 0.0;
-                      return AnimatedBuilder(
-                        animation: _wheelController!,
-                        builder: (context, _) {
-                          double dist = 0;
-                          if (_wheelController!.hasClients) {
-                            final frac = _wheelController!.offset / _kRowHeight;
-                            dist = (frac - i).abs();
-                          }
-                          final isSelected = dist < 0.5;
-                          final opacity = (1.0 - dist * 0.18).clamp(0.4, 1.0);
-                          return Opacity(
-                            opacity: opacity,
-                            child: LayoutBuilder(
-                              builder: (context, constraints) => Stack(
-                                alignment: Alignment.center,
-                                children: [
-                                  // Background bar
-                                  Positioned(
-                                    left: 0, top: 8, bottom: 8,
-                                    child: AnimatedContainer(
-                                      duration: const Duration(milliseconds: 300),
-                                      width: constraints.maxWidth * barFraction * 0.55,
-                                      decoration: BoxDecoration(
-                                        color: AppColors.accent.withValues(
-                                            alpha: isSelected ? 0.08 : 0.04),
-                                        borderRadius: const BorderRadius.only(
-                                          topRight: Radius.circular(2),
-                                          bottomRight: Radius.circular(2),
-                                        ),
-                                      ),
+                      final isSelected = i == _selectedIndex;
+                      return Opacity(
+                        opacity: isSelected ? 1.0 : 0.55,
+                        child: LayoutBuilder(
+                          builder: (context, constraints) => Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              // Background bar
+                              Positioned(
+                                left: 0, top: 8, bottom: 8,
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 300),
+                                  width: constraints.maxWidth * barFraction * 0.55,
+                                  decoration: BoxDecoration(
+                                    color: AppColors.accent.withValues(
+                                        alpha: isSelected ? 0.08 : 0.04),
+                                    borderRadius: const BorderRadius.only(
+                                      topRight: Radius.circular(2),
+                                      bottomRight: Radius.circular(2),
                                     ),
                                   ),
-                                  // Left cursor
-                                  Positioned(
-                                    left: 0, top: 12, bottom: 12,
-                                    child: AnimatedContainer(
-                                      duration: const Duration(milliseconds: 150),
-                                      width: 2,
-                                      color: isSelected
-                                          ? AppColors.accent : Colors.transparent,
-                                    ),
-                                  ),
-                                  // Row content — centered by Stack alignment
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(horizontal: _kH),
-                                    child: Row(children: [
-                                      Expanded(child: Text(sl.toStringAsFixed(1),
-                                          style: AppText.mono(
-                                            size: isSelected ? 15 : 13,
-                                            weight: isSelected
-                                                ? FontWeight.w700 : FontWeight.w400,
-                                            color: isSelected
-                                                ? AppColors.text : AppColors.muted,
-                                          ))),
-                                      Expanded(child: Text('$c',
-                                          textAlign: TextAlign.center,
-                                          style: AppText.mono(
-                                            size: isSelected ? 17 : 14,
-                                            weight: FontWeight.w700,
-                                            color: isSelected
-                                                ? AppColors.accentLight : AppColors.subtle,
-                                          ))),
-                                      Expanded(child: Text('\$${ar.toStringAsFixed(0)}',
-                                          textAlign: TextAlign.right,
-                                          style: AppText.mono(
-                                            size: isSelected ? 15 : 13,
-                                            weight: FontWeight.w500,
-                                            color: isSelected
-                                                ? AppColors.green : AppColors.subtle,
-                                          ))),
-                                    ]),
-                                  ),
-                                ],
+                                ),
                               ),
-                            ),
-                          );
-                        },
+                              // Left cursor
+                              Positioned(
+                                left: 0, top: 12, bottom: 12,
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 150),
+                                  width: 2,
+                                  color: isSelected
+                                      ? AppColors.accent : Colors.transparent,
+                                ),
+                              ),
+                              // Row content — centered by Stack alignment
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: _kH),
+                                child: Row(children: [
+                                  Expanded(child: Text(sl.toStringAsFixed(1),
+                                      style: AppText.mono(
+                                        size: isSelected ? 15 : 13,
+                                        weight: isSelected
+                                            ? FontWeight.w700 : FontWeight.w400,
+                                        color: isSelected
+                                            ? AppColors.text : AppColors.muted,
+                                      ))),
+                                  Expanded(child: Text('$c',
+                                      textAlign: TextAlign.center,
+                                      style: AppText.mono(
+                                        size: isSelected ? 17 : 14,
+                                        weight: FontWeight.w700,
+                                        color: isSelected
+                                            ? AppColors.accentLight : AppColors.subtle,
+                                      ))),
+                                  Expanded(child: Text('\$${ar.toStringAsFixed(0)}',
+                                      textAlign: TextAlign.right,
+                                      style: AppText.mono(
+                                        size: isSelected ? 15 : 13,
+                                        weight: FontWeight.w500,
+                                        color: isSelected
+                                            ? AppColors.green : AppColors.subtle,
+                                      ))),
+                                ]),
+                              ),
+                            ],
+                          ),
+                        ),
                       );
                     },
                   ),

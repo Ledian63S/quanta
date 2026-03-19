@@ -78,8 +78,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
             Row(children: [
               Text('STOP LOSS', style: AppText.label()),
               const SizedBox(width: 8),
-              Expanded(child: Container(height: 1,
-                  color: AppColors.border)),
+              Expanded(child: Container(height: 1, color: AppColors.border)),
             ]),
             const SizedBox(height: 8),
             _StopLossPanel(
@@ -87,7 +86,8 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
               focusNode: _slFocus,
               focused: _slFocused,
               ticker: state.currentInstrument.ticker,
-              onChanged: (v) => state.setStopLoss(double.tryParse(v) ?? 0),
+              onChanged: (v) => state.setStopLoss(
+                  v.isEmpty ? 0 : (double.tryParse(v) ?? state.stopLossPoints)),
             ),
             const SizedBox(height: 20),
 
@@ -147,25 +147,23 @@ class _AccountStrip extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: AppDecor.card(),
-      child: Row(children: [
-        _AccountField(
+      child: Column(children: [
+        _AccountRow(
           label: 'BALANCE',
           prefix: '\$',
           controller: balanceController,
           focusNode: balanceFocus,
           focused: balanceFocused,
-          align: TextAlign.left,
           onChanged: (v) => state.setBalance(double.tryParse(v) ?? state.accountBalance),
           onSubmitted: (_) => riskFocus.requestFocus(),
         ),
-        Container(width: 1, height: 52, color: AppColors.border),
-        _AccountField(
-          label: 'RISK/TRADE',
+        Container(height: 1, color: AppColors.border),
+        _AccountRow(
+          label: 'RISK / TRADE',
           prefix: '\$',
           controller: riskController,
           focusNode: riskFocus,
           focused: riskFocused,
-          align: TextAlign.right,
           onChanged: (v) => state.setSessionRisk(double.tryParse(v) ?? state.riskAmount),
           onSubmitted: (_) => slFocus.requestFocus(),
         ),
@@ -174,57 +172,51 @@ class _AccountStrip extends StatelessWidget {
   }
 }
 
-class _AccountField extends StatelessWidget {
+class _AccountRow extends StatelessWidget {
   final String label, prefix;
   final TextEditingController controller;
   final FocusNode focusNode;
   final bool focused;
-  final TextAlign align;
   final ValueChanged<String> onChanged, onSubmitted;
-  const _AccountField({
+  const _AccountRow({
     required this.label, required this.prefix, required this.controller,
-    required this.focusNode, required this.focused, required this.align,
+    required this.focusNode, required this.focused,
     required this.onChanged, required this.onSubmitted,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Expanded(child: Padding(
-      padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
-      child: Column(
-        crossAxisAlignment: align == TextAlign.right
-            ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-        children: [
-          Text(label, style: AppText.label(
-              color: focused ? AppColors.accentLight : AppColors.muted)),
-          const SizedBox(height: 4),
-          Row(
-            mainAxisAlignment: align == TextAlign.right
-                ? MainAxisAlignment.end : MainAxisAlignment.start,
-            children: [
-              Text(prefix, style: AppText.mono(size: 16, weight: FontWeight.w600,
-                  color: focused ? AppColors.accent : AppColors.muted)),
-              IntrinsicWidth(child: TextField(
-                controller: controller,
-                focusNode: focusNode,
-                onChanged: onChanged,
-                onSubmitted: onSubmitted,
-                textInputAction: TextInputAction.next,
-                textAlign: align,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[\d.]'))],
-                enableInteractiveSelection: false,
-                cursorColor: AppColors.accent,
-                style: AppText.mono(size: 16, weight: FontWeight.w600,
-                    color: focused ? AppColors.accentLight : AppColors.text),
-                decoration: const InputDecoration(
-                  border: InputBorder.none, isDense: true, contentPadding: EdgeInsets.zero),
-              )),
-            ],
-          ),
-        ],
-      ),
-    ));
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      child: Row(children: [
+        // Label
+        Text('> ', style: AppText.mono(size: 11,
+            color: focused ? AppColors.accent : AppColors.subtle)),
+        Text(label, style: AppText.label(
+            size: 10,
+            color: focused ? AppColors.accentLight : AppColors.muted)),
+        const Spacer(),
+        // Value input
+        Text(prefix, style: AppText.mono(size: 20, weight: FontWeight.w600,
+            color: focused ? AppColors.accent : AppColors.muted)),
+        IntrinsicWidth(child: TextField(
+          controller: controller,
+          focusNode: focusNode,
+          onChanged: onChanged,
+          onSubmitted: onSubmitted,
+          textInputAction: TextInputAction.next,
+          textAlign: TextAlign.right,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[\d.]'))],
+          enableInteractiveSelection: false,
+          cursorColor: AppColors.accent,
+          style: AppText.mono(size: 20, weight: FontWeight.w600,
+              color: focused ? AppColors.accentLight : AppColors.text),
+          decoration: const InputDecoration(
+            border: InputBorder.none, isDense: true, contentPadding: EdgeInsets.zero),
+        )),
+      ]),
+    );
   }
 }
 
@@ -358,7 +350,6 @@ class _ResultPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     final hasData = state.stopLossPoints > 0;
     return Column(children: [
-      // Arc gauge — centered
       Center(
         child: RiskGauge(
           actual: hasData ? state.actualRisk : 0,
@@ -367,8 +358,6 @@ class _ResultPanel extends StatelessWidget {
         ),
       ),
       const SizedBox(height: 16),
-
-      // Risk readout — table style
       Container(
         decoration: AppDecor.card(),
         padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),

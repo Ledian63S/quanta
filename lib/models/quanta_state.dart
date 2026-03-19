@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'instrument.dart';
+import '../theme/app_theme.dart';
 
 class QuantaState extends ChangeNotifier {
   double accountBalance = 50000;
@@ -118,8 +119,16 @@ class QuantaState extends ChangeNotifier {
 
   void setThemeMode(ThemeMode mode) {
     themeMode = mode;
+    _syncIsDark();
     notifyListeners();
     _save();
+  }
+
+  void _syncIsDark() {
+    final platformDark = WidgetsBinding
+        .instance.platformDispatcher.platformBrightness == Brightness.dark;
+    AppColors.isDark = themeMode == ThemeMode.dark ||
+        (themeMode == ThemeMode.system && platformDark);
   }
 
   Future<void> load() async {
@@ -139,7 +148,8 @@ class QuantaState extends ChangeNotifier {
     }
     final themeModeStr = prefs.getString('themeMode') ?? 'system';
     themeMode = ThemeMode.values.firstWhere((m) => m.name == themeModeStr,
-        orElse: () => ThemeMode.light);
+        orElse: () => ThemeMode.system);
+    _syncIsDark();
     notifyListeners();
   }
 

@@ -1,5 +1,5 @@
+import 'dart:async';
 import 'dart:math';
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -46,6 +46,7 @@ class _TerminalNumberState extends State<TerminalNumber>
   late AnimationController _ctrl;
   late Animation<double> _opacity;
   int _displayed = 0;
+  Timer? _countTimer;
 
   @override
   void initState() {
@@ -60,16 +61,37 @@ class _TerminalNumberState extends State<TerminalNumber>
   @override
   void didUpdateWidget(TerminalNumber old) {
     super.didUpdateWidget(old);
-    if (old.value != widget.value) {
+    if (old.value == widget.value) return;
+    _countTimer?.cancel();
+    if (widget.value > _displayed) {
+      _countUp(_displayed, widget.value);
+    } else {
       _ctrl.forward().then((_) {
-        setState(() => _displayed = widget.value);
-        _ctrl.reverse();
+        if (mounted) {
+          setState(() => _displayed = widget.value);
+          _ctrl.reverse();
+        }
       });
     }
   }
 
+  void _countUp(int from, int to) {
+    final steps = to - from;
+    final stepMs = (450 / steps).clamp(40.0, 120.0).round();
+    int current = from;
+    _countTimer = Timer.periodic(Duration(milliseconds: stepMs), (t) {
+      current++;
+      if (mounted) setState(() => _displayed = current);
+      if (current >= to) t.cancel();
+    });
+  }
+
   @override
-  void dispose() { _ctrl.dispose(); super.dispose(); }
+  void dispose() {
+    _countTimer?.cancel();
+    _ctrl.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -93,18 +115,47 @@ class _TerminalNumberState extends State<TerminalNumber>
 }
 
 // ── Risk arc gauge ─────────────────────────────────────────────────────────
-class RiskGauge extends StatelessWidget {
+class RiskGauge extends StatefulWidget {
   final double actual;
   final double max;
   final int contracts;
   const RiskGauge({super.key, required this.actual,
       required this.max, required this.contracts});
+  @override
+  State<RiskGauge> createState() => _RiskGaugeState();
+}
+
+class _RiskGaugeState extends State<RiskGauge>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _pulseCtrl;
+  late Animation<double> _pulse;
+
+  @override
+  void initState() {
+    super.initState();
+    _pulseCtrl = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 350));
+    _pulse = Tween(begin: 0.0, end: 1.0).animate(
+        CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeOut));
+  }
+
+  @override
+  void didUpdateWidget(RiskGauge old) {
+    super.didUpdateWidget(old);
+    if (old.contracts != widget.contracts && widget.contracts > 0) {
+      _pulseCtrl.forward(from: 0).then((_) => _pulseCtrl.reverse());
+    }
+  }
+
+  @override
+  void dispose() { _pulseCtrl.dispose(); super.dispose(); }
 
   @override
   Widget build(BuildContext context) {
-    final ratio = max > 0 ? (actual / max).clamp(0.0, 1.0) : 0.0;
+    final ratio = widget.max > 0
+        ? (widget.actual / widget.max).clamp(0.0, 1.0) : 0.0;
     return SizedBox(
-      width: 200, height: 200,
+      width: 250, height: 250,
       child: Stack(
         alignment: Alignment.center,
         children: [
@@ -112,15 +163,20 @@ class RiskGauge extends StatelessWidget {
             tween: Tween(begin: 0, end: ratio),
             duration: const Duration(milliseconds: 500),
             curve: Curves.easeOut,
-            builder: (_, r, __) => CustomPaint(
-              size: const Size(200, 200),
-              painter: _GaugePainter(ratio: r),
+            builder: (_, r, __) => AnimatedBuilder(
+              animation: _pulse,
+              builder: (_, __) => CustomPaint(
+                size: const Size(250, 250),
+                painter: _GaugePainter(ratio: r, pulse: _pulse.value),
+              ),
             ),
           ),
           Column(mainAxisSize: MainAxisSize.min, children: [
-            TerminalNumber(value: contracts, size: 56, color: AppColors.accent),
-            const SizedBox(height: 2),
-            Text('CONTRACTS', style: AppText.label(size: 9, color: AppColors.muted)),
+            TerminalNumber(value: widget.contracts, size: 72,
+                color: AppColors.accent),
+            const SizedBox(height: 4),
+            Text('CONTRACTS',
+                style: AppText.label(size: 10, color: AppColors.muted)),
           ]),
         ],
       ),
@@ -130,7 +186,8 @@ class RiskGauge extends StatelessWidget {
 
 class _GaugePainter extends CustomPainter {
   final double ratio;
-  _GaugePainter({required this.ratio});
+  final double pulse;
+  _GaugePainter({required this.ratio, this.pulse = 0});
 
   static const _start = 135 * pi / 180;
   static const _sweep = 270 * pi / 180;
@@ -147,21 +204,23 @@ class _GaugePainter extends CustomPainter {
       Paint()
         ..color = AppColors.border
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 10
+        ..strokeWidth = 12
         ..strokeCap = StrokeCap.round,
     );
 
     // Glow + fill
     if (ratio > 0.01) {
+      final glowAlpha = 0.2 + pulse * 0.35;
+      final glowWidth = 26.0 + pulse * 16;
       canvas.drawArc(
         Rect.fromCircle(center: center, radius: radius),
         _start, _sweep * ratio, false,
         Paint()
-          ..color = AppColors.accent.withValues(alpha: 0.18)
+          ..color = AppColors.accent.withValues(alpha: glowAlpha)
           ..style = PaintingStyle.stroke
-          ..strokeWidth = 20
+          ..strokeWidth = glowWidth
           ..strokeCap = StrokeCap.round
-          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 10),
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 12),
       );
       canvas.drawArc(
         Rect.fromCircle(center: center, radius: radius),
@@ -169,7 +228,7 @@ class _GaugePainter extends CustomPainter {
         Paint()
           ..color = AppColors.accent
           ..style = PaintingStyle.stroke
-          ..strokeWidth = 10
+          ..strokeWidth = 12
           ..strokeCap = StrokeCap.round,
       );
     }
@@ -180,14 +239,17 @@ class _GaugePainter extends CustomPainter {
       ..strokeWidth = 1.5;
     for (int i = 0; i <= 4; i++) {
       final angle = _start + _sweep * (i / 4);
-      final inner = center + Offset(cos(angle), sin(angle)) * (radius - 10);
-      final outer = center + Offset(cos(angle), sin(angle)) * (radius + 6);
+      final inner = center + Offset(cos(angle), sin(angle)) * (radius - 12);
+      final outer = center + Offset(cos(angle), sin(angle)) * (radius + 8);
       canvas.drawLine(inner, outer, tickPaint);
     }
   }
 
   @override
-  bool shouldRepaint(_GaugePainter old) => old.ratio != ratio;
+  bool shouldRepaint(_GaugePainter old) =>
+      old.ratio != ratio || old.pulse != pulse || old._isDark != _isDark;
+
+  final bool _isDark = AppColors.isDark;
 }
 
 // ── Dot leader ─────────────────────────────────────────────────────────────
@@ -259,63 +321,77 @@ class _GrainPainter extends CustomPainter {
 
 // ── Colors ─────────────────────────────────────────────────────────────────
 class AppColors {
-  static const bg       = Color(0xFF080601); // near-black, warm tint
-  static const card     = Color(0xFF0D0A00); // dark amber-black
-  static const elevated = Color(0xFF131000);
-  static const high     = Color(0xFF1A1600);
+  static bool isDark = true;
 
-  static const text     = Color(0xFFDDD5A0); // aged amber-white
-  static const muted    = Color(0xFF5C5530); // dark amber
-  static const subtle   = Color(0xFF2E2A18);
+  // Backgrounds
+  static Color get bg       => isDark ? const Color(0xFF080601) : const Color(0xFFF5EFE0);
+  static Color get card     => isDark ? const Color(0xFF0D0A00) : const Color(0xFFFFFFFF);
+  static Color get elevated => isDark ? const Color(0xFF131000) : const Color(0xFFF0E8D0);
+  static Color get high     => isDark ? const Color(0xFF1A1600) : const Color(0xFFE8DFC0);
 
-  static const accent      = Color(0xFFE8A000); // Bloomberg amber
-  static const accentLight = Color(0xFFFFBF3C); // brighter amber
-  static const accentBlue  = Color(0xFFE8A000); // alias
+  // Text
+  static Color get text     => isDark ? const Color(0xFFDDD5A0) : const Color(0xFF1A1500);
+  static Color get muted    => isDark ? const Color(0xFF5C5530) : const Color(0xFF8A7A40);
+  static Color get subtle   => isDark ? const Color(0xFF2E2A18) : const Color(0xFFCCC5A0);
 
-  static const green  = Color(0xFF4ADE80); // terminal green
-  static const orange = Color(0xFFFF6B35); // warm orange-red for negatives
+  // Accent — same amber in both modes
+  static const accent      = Color(0xFFE8A000);
+  static const accentLight = Color(0xFFFFBF3C);
+  static const accentBlue  = Color(0xFFE8A000);
 
-  static const border = Color(0xFF2A2510); // warm dark border
+  // Status colors — darker in light mode for contrast
+  static Color get green  => isDark ? const Color(0xFF4ADE80) : const Color(0xFF1A8040);
+  static Color get orange => isDark ? const Color(0xFFFF6B35) : const Color(0xFFCC4000);
+
+  // Border
+  static Color get border => isDark ? const Color(0xFF2A2510) : const Color(0xFFDDD5B0);
 
   // Legacy aliases
-  static const darkBg     = bg;
-  static const darkCard   = card;
-  static const darkBorder = border;
-  static const darkText   = text;
-  static const darkMuted  = muted;
-  static const navyDark   = card;
-  static const navyMid    = elevated;
-  static const navyCard1  = elevated;
-  static const navyCard2  = high;
-  static const pill       = card;
+  static Color get darkBg     => bg;
+  static Color get darkCard   => card;
+  static Color get darkBorder => border;
+  static Color get darkText   => text;
+  static Color get darkMuted  => muted;
+  static Color get navyDark   => card;
+  static Color get navyMid    => elevated;
+  static Color get navyCard1  => elevated;
+  static Color get navyCard2  => high;
+  static Color get pill       => card;
 }
 
 // ── Theme ──────────────────────────────────────────────────────────────────
 class AppTheme {
-  static ThemeData light() => _build();
-  static ThemeData dark() => _build();
+  static ThemeData light() => _build(dark: false);
+  static ThemeData dark() => _build(dark: true);
 
-  static ThemeData _build() => ThemeData(
-    brightness: Brightness.dark,
-    scaffoldBackgroundColor: AppColors.bg,
-    colorScheme: const ColorScheme.dark(
-      primary: AppColors.accent,
-      secondary: AppColors.accentLight,
-      surface: AppColors.card,
-    ),
-    textSelectionTheme: const TextSelectionThemeData(
-      cursorColor: AppColors.accent,
-    ),
-    textTheme: GoogleFonts.jetBrainsMonoTextTheme(
-        ThemeData.dark().textTheme).apply(
-      bodyColor: AppColors.text,
-      displayColor: AppColors.text,
-    ),
-    inputDecorationTheme: const InputDecorationTheme(
-      border: InputBorder.none,
-      filled: false,
-    ),
-  );
+  static ThemeData _build({required bool dark}) {
+    const accent = AppColors.accent;
+    const accentLight = AppColors.accentLight;
+    final bg       = dark ? const Color(0xFF080601) : const Color(0xFFF5EFE0);
+    final card     = dark ? const Color(0xFF0D0A00) : const Color(0xFFFFFFFF);
+    final text     = dark ? const Color(0xFFDDD5A0) : const Color(0xFF1A1500);
+    final base     = dark ? ThemeData.dark() : ThemeData.light();
+    return ThemeData(
+      brightness: dark ? Brightness.dark : Brightness.light,
+      scaffoldBackgroundColor: bg,
+      colorScheme: dark
+          ? ColorScheme.dark(
+              primary: accent, secondary: accentLight, surface: card)
+          : ColorScheme.light(
+              primary: accent, secondary: accentLight, surface: card),
+      textSelectionTheme: const TextSelectionThemeData(
+        cursorColor: AppColors.accent,
+      ),
+      textTheme: GoogleFonts.jetBrainsMonoTextTheme(base.textTheme).apply(
+        bodyColor: text,
+        displayColor: text,
+      ),
+      inputDecorationTheme: const InputDecorationTheme(
+        border: InputBorder.none,
+        filled: false,
+      ),
+    );
+  }
 }
 
 // ── Text styles — monospace everything ─────────────────────────────────────

@@ -26,6 +26,9 @@ class _MainShellState extends State<MainShell> {
 
   @override
   Widget build(BuildContext context) {
+    // Set isDark before any child screen builds. Theme.of registers the
+    // InheritedWidget dependency so this rebuilds on system brightness changes too.
+    AppColors.isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
       resizeToAvoidBottomInset: false,
       backgroundColor: AppColors.bg,

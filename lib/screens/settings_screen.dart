@@ -49,7 +49,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 20),
 
           // ── ACCOUNT ──────────────────────────────────────────────────
-          _SectionHeader('ACCOUNT'),
+          const _SectionHeader('ACCOUNT'),
           const SizedBox(height: 8),
           Container(
             decoration: AppDecor.card(),
@@ -69,7 +69,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 20),
 
           // ── RISK ─────────────────────────────────────────────────────
-          _SectionHeader('RISK'),
+          const _SectionHeader('RISK'),
           const SizedBox(height: 8),
           Container(
             decoration: AppDecor.card(),
@@ -84,7 +84,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 20),
 
           // ── PREFERENCES ──────────────────────────────────────────────
-          _SectionHeader('PREFERENCES'),
+          const _SectionHeader('PREFERENCES'),
           const SizedBox(height: 8),
           Container(
             decoration: AppDecor.card(),
@@ -105,7 +105,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 20),
 
           // ── APPEARANCE ───────────────────────────────────────────────
-          _SectionHeader('APPEARANCE'),
+          const _SectionHeader('APPEARANCE'),
           const SizedBox(height: 8),
           Container(
             decoration: AppDecor.card(),
@@ -115,7 +115,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 20),
 
           // ── ABOUT ────────────────────────────────────────────────────
-          _SectionHeader('ABOUT'),
+          const _SectionHeader('ABOUT'),
           const SizedBox(height: 8),
           Container(
             decoration: AppDecor.card(),
