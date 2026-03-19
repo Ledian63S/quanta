@@ -105,7 +105,7 @@ class _FloatingPillNav extends StatelessWidget {
             _NavDivider(color: dividerColor),
             Expanded(child: _PillTab(icon: Icons.bar_chart, label: 'Levels', active: currentIndex == 1, onTap: () => onTap(1), isDark: isDark)),
             _NavDivider(color: dividerColor),
-            Expanded(child: _PillTab(icon: Icons.star_outline, label: 'Instruments', active: currentIndex == 2, onTap: () => onTap(2), isDark: isDark)),
+            Expanded(child: _PillTab(icon: Icons.star_outline, label: 'Markets', active: currentIndex == 2, onTap: () => onTap(2), isDark: isDark)),
             _NavDivider(color: dividerColor),
             Expanded(child: _PillTab(icon: Icons.settings_outlined, label: 'Settings', active: currentIndex == 3, onTap: () => onTap(3), isDark: isDark)),
           ],
