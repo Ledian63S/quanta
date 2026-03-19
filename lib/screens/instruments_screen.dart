@@ -78,7 +78,7 @@ class _InstrumentRow extends StatelessWidget {
             const SizedBox(height: 2),
             Text('\$${instrument.pointValue}/point', style: AppText.mono(size: 10, weight: FontWeight.w600, color: AppColors.accentBlue)),
           ])),
-          GestureDetector(
+          Clickable(
             onTap: () {
               HapticFeedback.lightImpact();
               onToggle();

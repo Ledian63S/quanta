@@ -212,7 +212,7 @@ class _AppearanceRow extends StatelessWidget {
             final (mode, label) = opt;
             final active = current == mode;
             return Expanded(
-              child: GestureDetector(
+              child: Clickable(
                 onTap: () {
                     HapticFeedback.selectionClick();
                     onChanged(mode);

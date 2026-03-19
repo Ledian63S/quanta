@@ -1,6 +1,36 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+/// Drop-in replacement for GestureDetector that adds pointer cursor + subtle
+/// hover opacity on desktop. Falls back to plain tap behaviour on mobile.
+class Clickable extends StatefulWidget {
+  final Widget child;
+  final VoidCallback? onTap;
+  const Clickable({super.key, required this.child, this.onTap});
+  @override
+  State<Clickable> createState() => _ClickableState();
+}
+
+class _ClickableState extends State<Clickable> {
+  bool _hovered = false;
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedOpacity(
+          duration: const Duration(milliseconds: 120),
+          opacity: _hovered ? 0.72 : 1.0,
+          child: widget.child,
+        ),
+      ),
+    );
+  }
+}
+
 class AppColors {
   static const bg          = Color(0xFFF4F6FB);
   static const card        = Color(0xFFFFFFFF);

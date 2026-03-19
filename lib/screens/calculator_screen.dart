@@ -61,6 +61,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                 riskController: _riskController,
                 balanceFocus: _balanceFocus,
                 balanceController: _balanceController,
+                slFocus: _slFocus,
               ),
               const SizedBox(height: 24),
               const _SectionLabel('Instrument'),
@@ -91,7 +92,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                 opacity: (_slFocused || _riskFocused || _balanceFocused) ? 1.0 : 0.0,
                 child: IgnorePointer(
                   ignoring: !(_slFocused || _riskFocused || _balanceFocused),
-                  child: GestureDetector(
+                  child: Clickable(
                     onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
                     child: Builder(builder: (context) {
                       final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -123,12 +124,14 @@ class _ChipsRow extends StatelessWidget {
   final TextEditingController riskController;
   final FocusNode balanceFocus;
   final TextEditingController balanceController;
+  final FocusNode slFocus;
   const _ChipsRow({
     required this.state,
     required this.riskFocus,
     required this.riskController,
     required this.balanceFocus,
     required this.balanceController,
+    required this.slFocus,
   });
 
   @override
@@ -159,6 +162,8 @@ class _ChipsRow extends StatelessWidget {
                         controller: balanceController,
                         focusNode: balanceFocus,
                         onChanged: (v) => state.setBalance(double.tryParse(v) ?? state.accountBalance),
+                        onSubmitted: (_) => riskFocus.requestFocus(),
+                        textInputAction: TextInputAction.next,
                         keyboardType: const TextInputType.numberWithOptions(decimal: true),
                         inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[\d.]'))],
                         enableInteractiveSelection: false,
@@ -188,6 +193,8 @@ class _ChipsRow extends StatelessWidget {
                         controller: riskController,
                         focusNode: riskFocus,
                         onChanged: (v) => state.setSessionRisk(double.tryParse(v) ?? state.riskAmount),
+                        onSubmitted: (_) => slFocus.requestFocus(),
+                        textInputAction: TextInputAction.next,
                         keyboardType: const TextInputType.numberWithOptions(decimal: true),
                         inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[\d.]'))],
                         enableInteractiveSelection: false,
@@ -244,7 +251,7 @@ class _InstrumentScrollRow extends StatelessWidget {
       scrollDirection: Axis.horizontal,
       child: Row(children: favs.map((inst) {
         final isActive = inst.ticker == state.selectedTicker;
-        return GestureDetector(
+        return Clickable(
           onTap: () {
                 HapticFeedback.selectionClick();
                 state.setInstrument(inst.ticker);
@@ -313,6 +320,8 @@ class _StopLossCard extends StatelessWidget {
           controller: controller,
           focusNode: focusNode,
           onChanged: onChanged,
+          onSubmitted: (_) => FocusManager.instance.primaryFocus?.unfocus(),
+          textInputAction: TextInputAction.done,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
           inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[\d.]'))],
           enableInteractiveSelection: false,

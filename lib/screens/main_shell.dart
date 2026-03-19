@@ -30,30 +30,28 @@ class _MainShellState extends State<MainShell> {
         onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
         behavior: HitTestBehavior.translucent,
         child: SafeArea(
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 430),
-              child: Stack(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final contentWidth = constraints.maxWidth.clamp(0.0, 430.0);
+              final hPad = (constraints.maxWidth - contentWidth) / 2;
+              return Stack(
                 children: [
-                  Positioned.fill(
-                    child: Stack(
-                      children: List.generate(_screens.length, (i) {
-                        return AnimatedOpacity(
-                          duration: const Duration(milliseconds: 220),
-                          curve: Curves.easeInOut,
-                          opacity: _currentIndex == i ? 1.0 : 0.0,
-                          child: IgnorePointer(
-                            ignoring: _currentIndex != i,
-                            child: _screens[i],
-                          ),
-                        );
-                      }),
+                  ...List.generate(_screens.length, (i) => Positioned(
+                    top: 0, bottom: 0,
+                    left: hPad, width: contentWidth,
+                    child: AnimatedOpacity(
+                      duration: const Duration(milliseconds: 220),
+                      curve: Curves.easeInOut,
+                      opacity: _currentIndex == i ? 1.0 : 0.0,
+                      child: IgnorePointer(
+                        ignoring: _currentIndex != i,
+                        child: _screens[i],
+                      ),
                     ),
-                  ),
+                  )),
                   Positioned(
                     bottom: 8,
-                    left: 0,
-                    right: 0,
+                    left: hPad, width: contentWidth,
                     child: _FloatingPillNav(
                       currentIndex: _currentIndex,
                       onTap: (i) {
@@ -63,8 +61,8 @@ class _MainShellState extends State<MainShell> {
                     ),
                   ),
                 ],
-              ),
-            ),
+              );
+            },
           ),
         ),
       ),
@@ -135,7 +133,9 @@ class _PillTab extends StatelessWidget {
     final inactiveColor =
         isDark ? Colors.white.withValues(alpha: 0.28) : Colors.black.withValues(alpha: 0.3);
     final activeColor = isDark ? AppColors.accent : AppColors.accentBlue;
-    return GestureDetector(
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 250),
@@ -161,7 +161,7 @@ class _PillTab extends StatelessWidget {
           ],
         ),
       ),
-    );
+    ));
   }
 }
 
