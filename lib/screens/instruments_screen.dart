@@ -113,7 +113,7 @@ class _InstrumentRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+    return IntrinsicHeight(child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       // Left accent bar
       AnimatedContainer(
         duration: const Duration(milliseconds: 200),
@@ -186,6 +186,6 @@ class _InstrumentRow extends StatelessWidget {
           ]),
         ),
       ),
-    ]);
+    ]));
   }
 }
