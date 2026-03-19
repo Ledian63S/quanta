@@ -172,8 +172,6 @@ class _ToggleRow extends StatelessWidget {
             HapticFeedback.selectionClick();
             onChanged(v);
           },
-          activeThumbColor: AppColors.accent,
-          activeTrackColor: AppColors.navyMid,
         ),
       ]),
     );
