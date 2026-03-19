@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../models/quanta_state.dart';
@@ -44,7 +45,8 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
     return SafeArea(
       child: Stack(
         children: [
-          SingleChildScrollView(
+          Positioned.fill(
+            child: SingleChildScrollView(
             padding: EdgeInsets.fromLTRB(16, 12, 16, 100 + keyboardHeight),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               _ChipsRow(state: state, riskFocus: _riskFocus, riskController: _riskController),
@@ -65,31 +67,26 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
               if (state.contracts > 0 || state.stopLossPoints > 0)
                 _ResultHeroCard(state: state),
             ]),
-          ),
+          )),
           if ((_slFocused || _riskFocused) && keyboardHeight > 0)
             Positioned(
-              bottom: keyboardHeight,
-              left: 0,
-              right: 0,
-              child: Container(
-                color: Theme.of(context).brightness == Brightness.dark
-                    ? const Color(0xFF1C2333)
-                    : const Color(0xFFD1D5DB),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                child: Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton(
-                    onPressed: () => FocusManager.instance.primaryFocus?.unfocus(),
-                    child: Text('Done', style: TextStyle(
-                      fontFamily: 'Manrope',
-                      fontWeight: FontWeight.w700,
-                      fontSize: 15,
-                      color: Theme.of(context).brightness == Brightness.dark
-                          ? AppColors.accent
-                          : AppColors.accentBlue,
-                    )),
-                  ),
-                ),
+              bottom: keyboardHeight + 12,
+              right: 16,
+              child: GestureDetector(
+                onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+                child: Builder(builder: (context) {
+                  final isDark = Theme.of(context).brightness == Brightness.dark;
+                  return Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: isDark ? AppColors.darkCard : AppColors.card,
+                      borderRadius: BorderRadius.circular(22),
+                      border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.border, width: 1.5),
+                      boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.12), blurRadius: 14, offset: const Offset(0, 4))],
+                    ),
+                    child: Text('Done', style: AppText.label(color: isDark ? AppColors.accent : AppColors.accentBlue)),
+                  );
+                }),
               ),
             ),
         ],
@@ -169,6 +166,7 @@ class _ChipsRow extends StatelessWidget {
                         focusNode: riskFocus,
                         onChanged: (v) => state.setSessionRisk(double.tryParse(v) ?? state.riskAmount),
                         keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[\d.]'))],
                         textAlign: TextAlign.right,
                         style: AppText.mono(size: 18, weight: FontWeight.w600, color: AppColors.accentBlue),
                         decoration: const InputDecoration(
@@ -214,7 +212,10 @@ class _InstrumentScrollRow extends StatelessWidget {
       child: Row(children: favs.map((inst) {
         final isActive = inst.ticker == state.selectedTicker;
         return GestureDetector(
-          onTap: () => state.setInstrument(inst.ticker),
+          onTap: () {
+                HapticFeedback.selectionClick();
+                state.setInstrument(inst.ticker);
+              },
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
             margin: const EdgeInsets.only(right: 8),
@@ -269,6 +270,7 @@ class _StopLossCard extends StatelessWidget {
           focusNode: focusNode,
           onChanged: onChanged,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[\d.]'))],
           style: AppText.mono(size: 44, weight: FontWeight.w600, color: focused ? Colors.white : AppColors.text),
           decoration: InputDecoration(
             border: InputBorder.none,

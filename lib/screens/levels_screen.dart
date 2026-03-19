@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../models/quanta_state.dart';
@@ -16,6 +17,7 @@ class _LevelsScreenState extends State<LevelsScreen> {
   FixedExtentScrollController? _wheelController;
   int _selectedIndex = 0;
   double? _prevStopLossPoints;
+  DateTime _programmaticScrollUntil = DateTime(0);
 
   @override
   void dispose() {
@@ -33,6 +35,7 @@ class _LevelsScreenState extends State<LevelsScreen> {
   void _animateToStop(List<double> levels, double stop) {
     final idx = levels.indexWhere((l) => (l - stop).abs() < 0.01);
     if (idx < 0) return;
+    _programmaticScrollUntil = DateTime.now().add(const Duration(milliseconds: 450));
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _wheelController?.animateToItem(idx,
           duration: const Duration(milliseconds: 400), curve: Curves.easeOut);
@@ -118,8 +121,10 @@ class _LevelsScreenState extends State<LevelsScreen> {
                     physics: const FixedExtentScrollPhysics(),
                     diameterRatio: 100,
                     overAndUnderCenterOpacity: 1.0,
-                    onSelectedItemChanged: (i) =>
-                        setState(() => _selectedIndex = i),
+                    onSelectedItemChanged: (i) {
+                      if (DateTime.now().isAfter(_programmaticScrollUntil)) HapticFeedback.selectionClick();
+                      setState(() => _selectedIndex = i);
+                    },
                     childDelegate: ListWheelChildBuilderDelegate(
                       childCount: levels.length,
                       builder: (context, i) {

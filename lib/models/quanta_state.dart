@@ -56,19 +56,19 @@ class QuantaState extends ChangeNotifier {
       contractsForStop(sl) * sl * currentInstrument.pointValue;
 
   void setBalance(double value) {
-    accountBalance = value;
+    accountBalance = value.clamp(0.01, 100000000);
     notifyListeners();
     _save();
   }
 
   void setRisk(double value) {
-    riskAmount = value;
+    riskAmount = value.clamp(0.01, 1000000);
     notifyListeners();
     _save();
   }
 
   void setSessionRisk(double value) {
-    _sessionRisk = value;
+    _sessionRisk = value.clamp(0.01, 1000000);
     notifyListeners();
   }
 
@@ -79,7 +79,7 @@ class QuantaState extends ChangeNotifier {
   }
 
   void setStopLoss(double value) {
-    stopLossPoints = value;
+    stopLossPoints = value.clamp(0, 100000);
     notifyListeners();
   }
 

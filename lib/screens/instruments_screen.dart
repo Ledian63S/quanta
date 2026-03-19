@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../models/quanta_state.dart';
@@ -78,7 +79,10 @@ class _InstrumentRow extends StatelessWidget {
             Text('\$${instrument.pointValue}/point', style: AppText.mono(size: 10, weight: FontWeight.w600, color: AppColors.accentBlue)),
           ])),
           GestureDetector(
-            onTap: onToggle,
+            onTap: () {
+              HapticFeedback.lightImpact();
+              onToggle();
+            },
             child: Container(
               width: 32, height: 32,
               decoration: BoxDecoration(color: Colors.transparent, borderRadius: BorderRadius.circular(10)),

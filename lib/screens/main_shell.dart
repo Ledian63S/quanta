@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../theme/app_theme.dart';
 import 'calculator_screen.dart';
 import 'levels_screen.dart';
@@ -40,7 +41,10 @@ class _MainShellState extends State<MainShell> {
                 right: 0,
                 child: _FloatingPillNav(
                   currentIndex: _currentIndex,
-                  onTap: (i) => setState(() => _currentIndex = i),
+                  onTap: (i) {
+            HapticFeedback.selectionClick();
+            setState(() => _currentIndex = i);
+          },
                 ),
               ),
             ],

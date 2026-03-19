@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../models/quanta_state.dart';
 import '../theme/app_theme.dart';
@@ -127,6 +128,7 @@ class _InputRow extends StatelessWidget {
             onChanged: onChanged,
             textAlign: TextAlign.right,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[\d.]'))],
             style: AppText.mono(size: 15, weight: FontWeight.w600, color: AppColors.accentBlue),
             decoration: const InputDecoration(border: InputBorder.none, isDense: true, contentPadding: EdgeInsets.zero),
           )),
@@ -165,7 +167,10 @@ class _ToggleRow extends StatelessWidget {
         Text(label, style: AppText.body(size: 13, weight: FontWeight.w600, color: AppColors.text)),
         Switch.adaptive(
           value: value,
-          onChanged: onChanged,
+          onChanged: (v) {
+            HapticFeedback.selectionClick();
+            onChanged(v);
+          },
           activeThumbColor: AppColors.accent,
           activeTrackColor: AppColors.navyMid,
         ),
@@ -209,7 +214,10 @@ class _AppearanceRow extends StatelessWidget {
             final active = current == mode;
             return Expanded(
               child: GestureDetector(
-                onTap: () => onChanged(mode),
+                onTap: () {
+                    HapticFeedback.selectionClick();
+                    onChanged(mode);
+                  },
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
                   padding: const EdgeInsets.symmetric(vertical: 8),
