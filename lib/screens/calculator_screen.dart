@@ -258,19 +258,18 @@ class _InstrumentRow extends StatelessWidget {
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 150),
             margin: const EdgeInsets.only(right: 8),
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             decoration: isActive
-                ? AppDecor.activeInstrument()
-                : AppDecor.inactiveInstrument(),
-            child: Column(mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+                ? AppDecor.activeInstrumentPill()
+                : AppDecor.inactiveInstrumentPill(),
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
               Text(inst.ticker, style: AppText.mono(
-                size: 14, weight: FontWeight.w700,
+                size: 13, weight: FontWeight.w700,
                 color: isActive ? AppColors.accent : AppColors.text,
               )),
-              const SizedBox(height: 2),
-              Text('\$${inst.pointValue}/PT', style: AppText.label(
+              const SizedBox(width: 6),
+              Text('\$${inst.pointValue}', style: AppText.label(
+                size: 9,
                 color: isActive ? AppColors.accent.withValues(alpha: 0.6)
                     : AppColors.muted,
               )),
@@ -358,44 +357,33 @@ class _ResultPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final hasData = state.stopLossPoints > 0;
-    return Container(
-      decoration: AppDecor.glowCard(
-          glowColor: hasData ? AppColors.accent : AppColors.border),
-      padding: const EdgeInsets.all(14),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-
-        // Readout header
-        Row(children: [
-          Text('CONTRACTS', style: AppText.label(
-              color: hasData ? AppColors.accent : AppColors.muted)),
-          const Spacer(),
-          Text(state.currentInstrument.ticker, style: AppText.label(
-              color: AppColors.muted)),
-        ]),
-        const SizedBox(height: 8),
-
-        // Giant contract number
-        TerminalNumber(
-          value: hasData ? state.contracts : 0,
-          size: 80,
-          color: AppColors.accent,
+    return Column(children: [
+      // Arc gauge — centered
+      Center(
+        child: RiskGauge(
+          actual: hasData ? state.actualRisk : 0,
+          max: hasData ? state.effectiveRisk : 0,
+          contracts: hasData ? state.contracts : 0,
         ),
+      ),
+      const SizedBox(height: 16),
 
-        const SizedBox(height: 16),
-        Container(height: 1, color: AppColors.border),
-        const SizedBox(height: 12),
-
-        // Risk readout — table style
-        _ReadoutRow('MAX RISK ',
-            '\$${state.effectiveRisk.toStringAsFixed(0)}', AppColors.muted),
-        const SizedBox(height: 6),
-        _ReadoutRow('ACTUAL   ',
-            '\$${state.actualRisk.toStringAsFixed(0)}', AppColors.green),
-        const SizedBox(height: 6),
-        _ReadoutRow('UNUSED   ',
-            '\$${state.unusedRisk.toStringAsFixed(0)}', AppColors.orange),
-      ]),
-    );
+      // Risk readout — table style
+      Container(
+        decoration: AppDecor.card(),
+        padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+        child: Column(children: [
+          _ReadoutRow('MAX RISK',
+              '\$${state.effectiveRisk.toStringAsFixed(0)}', AppColors.muted),
+          const SizedBox(height: 8),
+          _ReadoutRow('ACTUAL  ',
+              '\$${state.actualRisk.toStringAsFixed(0)}', AppColors.green),
+          const SizedBox(height: 8),
+          _ReadoutRow('UNUSED  ',
+              '\$${state.unusedRisk.toStringAsFixed(0)}', AppColors.orange),
+        ]),
+      ),
+    ]);
   }
 }
 
@@ -408,9 +396,9 @@ class _ReadoutRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(children: [
       Text(label, style: AppText.mono(size: 11, color: AppColors.muted)),
-      Text('..', style: AppText.mono(size: 11,
-          color: AppColors.muted.withValues(alpha: 0.3))),
-      const Spacer(),
+      const SizedBox(width: 4),
+      const DotLeader(),
+      const SizedBox(width: 4),
       AnimatedSwitcher(
         duration: const Duration(milliseconds: 150),
         child: Text(value,

@@ -92,6 +92,126 @@ class _TerminalNumberState extends State<TerminalNumber>
   }
 }
 
+// ── Risk arc gauge ─────────────────────────────────────────────────────────
+class RiskGauge extends StatelessWidget {
+  final double actual;
+  final double max;
+  final int contracts;
+  const RiskGauge({super.key, required this.actual,
+      required this.max, required this.contracts});
+
+  @override
+  Widget build(BuildContext context) {
+    final ratio = max > 0 ? (actual / max).clamp(0.0, 1.0) : 0.0;
+    return SizedBox(
+      width: 200, height: 200,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0, end: ratio),
+            duration: const Duration(milliseconds: 500),
+            curve: Curves.easeOut,
+            builder: (_, r, __) => CustomPaint(
+              size: const Size(200, 200),
+              painter: _GaugePainter(ratio: r),
+            ),
+          ),
+          Column(mainAxisSize: MainAxisSize.min, children: [
+            TerminalNumber(value: contracts, size: 56, color: AppColors.accent),
+            const SizedBox(height: 2),
+            Text('CONTRACTS', style: AppText.label(size: 9, color: AppColors.muted)),
+          ]),
+        ],
+      ),
+    );
+  }
+}
+
+class _GaugePainter extends CustomPainter {
+  final double ratio;
+  _GaugePainter({required this.ratio});
+
+  static const _start = 135 * pi / 180;
+  static const _sweep = 270 * pi / 180;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = size.width * 0.42;
+
+    // Track
+    canvas.drawArc(
+      Rect.fromCircle(center: center, radius: radius),
+      _start, _sweep, false,
+      Paint()
+        ..color = AppColors.border
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 10
+        ..strokeCap = StrokeCap.round,
+    );
+
+    // Glow + fill
+    if (ratio > 0.01) {
+      canvas.drawArc(
+        Rect.fromCircle(center: center, radius: radius),
+        _start, _sweep * ratio, false,
+        Paint()
+          ..color = AppColors.accent.withValues(alpha: 0.18)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 20
+          ..strokeCap = StrokeCap.round
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 10),
+      );
+      canvas.drawArc(
+        Rect.fromCircle(center: center, radius: radius),
+        _start, _sweep * ratio, false,
+        Paint()
+          ..color = AppColors.accent
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 10
+          ..strokeCap = StrokeCap.round,
+      );
+    }
+
+    // Tick marks at 0%, 25%, 50%, 75%, 100%
+    final tickPaint = Paint()
+      ..color = AppColors.border
+      ..strokeWidth = 1.5;
+    for (int i = 0; i <= 4; i++) {
+      final angle = _start + _sweep * (i / 4);
+      final inner = center + Offset(cos(angle), sin(angle)) * (radius - 10);
+      final outer = center + Offset(cos(angle), sin(angle)) * (radius + 6);
+      canvas.drawLine(inner, outer, tickPaint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_GaugePainter old) => old.ratio != ratio;
+}
+
+// ── Dot leader ─────────────────────────────────────────────────────────────
+class DotLeader extends StatelessWidget {
+  const DotLeader({super.key});
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final count = (constraints.maxWidth / 5.5).floor();
+          return Text(
+            '.' * count,
+            maxLines: 1,
+            overflow: TextOverflow.clip,
+            style: AppText.mono(size: 11,
+                color: AppColors.muted.withValues(alpha: 0.25)),
+          );
+        },
+      ),
+    );
+  }
+}
+
 // ── Scanline overlay ───────────────────────────────────────────────────────
 class ScanlineOverlay extends StatelessWidget {
   const ScanlineOverlay({super.key});
@@ -253,6 +373,20 @@ class AppDecor {
     boxShadow: [
       BoxShadow(color: AppColors.accent.withValues(alpha: 0.1), blurRadius: 20),
     ],
+  );
+
+  // Pill-shaped instrument chip — active
+  static BoxDecoration activeInstrumentPill() => BoxDecoration(
+    color: AppColors.accent.withValues(alpha: 0.1),
+    borderRadius: BorderRadius.circular(50),
+    border: Border.all(color: AppColors.accent.withValues(alpha: 0.6), width: 1),
+  );
+
+  // Pill-shaped instrument chip — inactive
+  static BoxDecoration inactiveInstrumentPill() => BoxDecoration(
+    color: AppColors.card,
+    borderRadius: BorderRadius.circular(50),
+    border: Border.all(color: AppColors.border, width: 1),
   );
 
   // Legacy

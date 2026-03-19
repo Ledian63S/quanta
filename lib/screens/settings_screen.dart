@@ -169,8 +169,11 @@ class _InputRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
       child: Row(children: [
         Text('> ', style: AppText.mono(size: 11, color: AppColors.muted)),
-        Expanded(child: Text(label, style: AppText.mono(
-            size: 13, weight: FontWeight.w500, color: AppColors.text))),
+        Text(label, style: AppText.mono(
+            size: 13, weight: FontWeight.w500, color: AppColors.text)),
+        const SizedBox(width: 4),
+        const DotLeader(),
+        const SizedBox(width: 4),
         Text(prefix, style: AppText.mono(size: 13,
             weight: FontWeight.w600, color: AppColors.muted)),
         SizedBox(width: 80, child: TextField(
@@ -203,8 +206,11 @@ class _LabelRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
       child: Row(children: [
         Text('> ', style: AppText.mono(size: 11, color: AppColors.subtle)),
-        Expanded(child: Text(label, style: AppText.mono(
-            size: 12, weight: FontWeight.w500, color: AppColors.muted))),
+        Text(label, style: AppText.mono(
+            size: 12, weight: FontWeight.w500, color: AppColors.muted)),
+        const SizedBox(width: 4),
+        const DotLeader(),
+        const SizedBox(width: 4),
         Text(value, style: AppText.mono(size: 12, weight: FontWeight.w700,
             color: valueColor ?? AppColors.text)),
       ]),

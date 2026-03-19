@@ -113,66 +113,79 @@ class _InstrumentRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
-      child: Row(children: [
-        // Ticker prefix
-        Text('> ', style: AppText.mono(size: 11,
-            color: isFav ? AppColors.accent : AppColors.subtle)),
-
-        // Ticker + name
-        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(instrument.ticker, style: AppText.mono(
-              size: 14, weight: FontWeight.w700,
-              color: isFav ? AppColors.accentLight : AppColors.text)),
-          const SizedBox(height: 2),
-          Text(instrument.name, style: AppText.mono(
-              size: 10, color: AppColors.muted)),
-        ])),
-
-        // Point value
-        Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-          Text('\$${instrument.pointValue}',
-              style: AppText.mono(size: 13, weight: FontWeight.w700,
-                  color: isFav ? AppColors.accent : AppColors.muted)),
-          Text('per pt', style: AppText.label(size: 9)),
-        ]),
-
-        const SizedBox(width: 14),
-
-        // Star toggle
-        Clickable(
-          onTap: () {
-            HapticFeedback.lightImpact();
-            onToggle();
-          },
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            width: 34, height: 34,
-            decoration: BoxDecoration(
-              color: isFav
-                  ? AppColors.accent.withValues(alpha: 0.12)
-                  : Colors.transparent,
-              borderRadius: BorderRadius.circular(4),
-              border: Border.all(
-                color: isFav
-                    ? AppColors.accent.withValues(alpha: 0.4)
-                    : AppColors.border,
-              ),
-            ),
-            child: Center(child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 150),
-              child: Text(
-                isFav ? '★' : '☆',
-                key: ValueKey(isFav),
-                style: TextStyle(
-                    fontSize: 15,
-                    color: isFav ? AppColors.accent : AppColors.muted),
-              ),
-            )),
+    return Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      // Left accent bar
+      AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        width: 3,
+        decoration: BoxDecoration(
+          color: isFav ? AppColors.accent : AppColors.subtle,
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(4),
+            bottomLeft: Radius.circular(4),
           ),
         ),
-      ]),
-    );
+      ),
+
+      // Content
+      Expanded(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(14, 14, 12, 14),
+          child: Row(children: [
+            // Ticker + name
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(instrument.ticker, style: AppText.mono(
+                  size: 14, weight: FontWeight.w700,
+                  color: isFav ? AppColors.accentLight : AppColors.text)),
+              const SizedBox(height: 2),
+              Text(instrument.name, style: AppText.mono(
+                  size: 10, color: AppColors.muted)),
+            ])),
+
+            // Point value with dot leader
+            Row(children: [
+              Text('\$${instrument.pointValue}/pt',
+                  style: AppText.mono(size: 12, weight: FontWeight.w700,
+                      color: isFav ? AppColors.accent : AppColors.muted)),
+            ]),
+
+            const SizedBox(width: 14),
+
+            // Star toggle — circular
+            Clickable(
+              onTap: () {
+                HapticFeedback.lightImpact();
+                onToggle();
+              },
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                width: 34, height: 34,
+                decoration: BoxDecoration(
+                  color: isFav
+                      ? AppColors.accent.withValues(alpha: 0.12)
+                      : Colors.transparent,
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: isFav
+                        ? AppColors.accent.withValues(alpha: 0.5)
+                        : AppColors.border,
+                  ),
+                ),
+                child: Center(child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 150),
+                  child: Text(
+                    isFav ? '★' : '☆',
+                    key: ValueKey(isFav),
+                    style: TextStyle(
+                        fontSize: 14,
+                        color: isFav ? AppColors.accent : AppColors.muted),
+                  ),
+                )),
+              ),
+            ),
+          ]),
+        ),
+      ),
+    ]);
   }
 }
