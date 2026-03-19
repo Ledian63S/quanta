@@ -24,24 +24,27 @@ class _MainShellState extends State<MainShell> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: SafeArea(
-        child: Stack(
-          children: [
-            Positioned.fill(
-              child: IndexedStack(index: _currentIndex, children: _screens),
-            ),
-            Positioned(
-              bottom: 16,
-              left: 0,
-              right: 0,
-              child: Center(
+      resizeToAvoidBottomInset: false,
+      body: GestureDetector(
+        onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+        behavior: HitTestBehavior.translucent,
+        child: SafeArea(
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: IndexedStack(index: _currentIndex, children: _screens),
+              ),
+              Positioned(
+                bottom: 0,
+                left: 0,
+                right: 0,
                 child: _FloatingPillNav(
                   currentIndex: _currentIndex,
                   onTap: (i) => setState(() => _currentIndex = i),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -55,29 +58,30 @@ class _FloatingPillNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final pillColor = isDark ? AppColors.pill : Colors.white;
+    final dividerColor = isDark ? Colors.white.withValues(alpha: 0.07) : Colors.black.withValues(alpha: 0.08);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Container(
         decoration: BoxDecoration(
-          color: AppColors.pill,
+          color: pillColor,
           borderRadius: BorderRadius.circular(40),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+          border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.06)),
           boxShadow: [
-            BoxShadow(color: Colors.black.withValues(alpha: 0.45), blurRadius: 32, offset: const Offset(0, 8)),
+            BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 32, offset: const Offset(0, 8)),
           ],
         ),
-        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
         child: Row(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            _PillTab(icon: Icons.description_outlined, label: 'Calculator', active: currentIndex == 0, onTap: () => onTap(0)),
-            _NavDivider(),
-            _PillTab(icon: Icons.bar_chart, label: 'Levels', active: currentIndex == 1, onTap: () => onTap(1)),
-            _NavDivider(),
-            _PillTab(icon: Icons.star_outline, label: 'Instruments', active: currentIndex == 2, onTap: () => onTap(2)),
-            _NavDivider(),
-            _PillTab(icon: Icons.settings_outlined, label: 'Settings', active: currentIndex == 3, onTap: () => onTap(3)),
+            Expanded(child: _PillTab(icon: Icons.description_outlined, label: 'Calculator', active: currentIndex == 0, onTap: () => onTap(0), isDark: isDark)),
+            _NavDivider(color: dividerColor),
+            Expanded(child: _PillTab(icon: Icons.bar_chart, label: 'Levels', active: currentIndex == 1, onTap: () => onTap(1), isDark: isDark)),
+            _NavDivider(color: dividerColor),
+            Expanded(child: _PillTab(icon: Icons.star_outline, label: 'Instruments', active: currentIndex == 2, onTap: () => onTap(2), isDark: isDark)),
+            _NavDivider(color: dividerColor),
+            Expanded(child: _PillTab(icon: Icons.settings_outlined, label: 'Settings', active: currentIndex == 3, onTap: () => onTap(3), isDark: isDark)),
           ],
         ),
       ),
@@ -90,30 +94,34 @@ class _PillTab extends StatelessWidget {
   final String label;
   final bool active;
   final VoidCallback onTap;
-  const _PillTab({required this.icon, required this.label, required this.active, required this.onTap});
+  final bool isDark;
+  const _PillTab({required this.icon, required this.label, required this.active, required this.onTap, required this.isDark});
 
   @override
   Widget build(BuildContext context) {
+    final inactiveColor = isDark ? Colors.white.withValues(alpha: 0.28) : Colors.black.withValues(alpha: 0.3);
+    final activeColor = isDark ? AppColors.accent : AppColors.accentBlue;
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 250),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
-          color: active ? AppColors.accent.withValues(alpha: 0.1) : Colors.transparent,
+          color: active ? activeColor.withValues(alpha: 0.1) : Colors.transparent,
           borderRadius: BorderRadius.circular(28),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Icon(icon, size: 18, color: active ? AppColors.accent : Colors.white.withValues(alpha: 0.28)),
-            const SizedBox(height: 3),
+            Icon(icon, size: 22, color: active ? activeColor : inactiveColor),
+            const SizedBox(height: 4),
             Text(label, style: TextStyle(
               fontFamily: 'Manrope',
-              fontSize: 8,
+              fontSize: 10,
               fontWeight: FontWeight.w700,
               letterSpacing: 0.4,
-              color: active ? AppColors.accent : Colors.white.withValues(alpha: 0.22),
+              color: active ? activeColor : inactiveColor,
             )),
           ],
         ),
@@ -123,8 +131,10 @@ class _PillTab extends StatelessWidget {
 }
 
 class _NavDivider extends StatelessWidget {
+  final Color color;
+  const _NavDivider({required this.color});
   @override
   Widget build(BuildContext context) {
-    return Container(width: 1, height: 26, color: Colors.white.withValues(alpha: 0.07), margin: const EdgeInsets.symmetric(horizontal: 1));
+    return Container(width: 1, height: 26, color: color, margin: const EdgeInsets.symmetric(horizontal: 1));
   }
 }

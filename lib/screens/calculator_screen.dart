@@ -12,47 +12,87 @@ class CalculatorScreen extends StatefulWidget {
 
 class _CalculatorScreenState extends State<CalculatorScreen> {
   final _slController = TextEditingController();
+  late final TextEditingController _riskController;
   final _slFocus = FocusNode();
+  final _riskFocus = FocusNode();
   bool _slFocused = false;
+  bool _riskFocused = false;
 
   @override
   void initState() {
     super.initState();
+    _riskController = TextEditingController(
+      text: context.read<QuantaState>().riskAmount.toStringAsFixed(0),
+    );
     _slFocus.addListener(() => setState(() => _slFocused = _slFocus.hasFocus));
+    _riskFocus.addListener(() => setState(() => _riskFocused = _riskFocus.hasFocus));
   }
 
   @override
   void dispose() {
     _slController.dispose();
+    _riskController.dispose();
     _slFocus.dispose();
+    _riskFocus.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final state = context.watch<QuantaState>();
+    final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
     return SafeArea(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          _ChipsRow(state: state),
-          const SizedBox(height: 20),
-          const _SectionLabel('Instrument'),
-          const SizedBox(height: 8),
-          _InstrumentScrollRow(state: state),
-          const SizedBox(height: 20),
-          const _SectionLabel('Stop Loss'),
-          const SizedBox(height: 8),
-          _StopLossCard(
-            controller: _slController,
-            focusNode: _slFocus,
-            focused: _slFocused,
-            onChanged: (v) => state.setStopLoss(double.tryParse(v) ?? 0),
+      child: Stack(
+        children: [
+          SingleChildScrollView(
+            padding: EdgeInsets.fromLTRB(16, 12, 16, 100 + keyboardHeight),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              _ChipsRow(state: state, riskFocus: _riskFocus, riskController: _riskController),
+              const SizedBox(height: 24),
+              const _SectionLabel('Instrument'),
+              const SizedBox(height: 10),
+              _InstrumentScrollRow(state: state),
+              const SizedBox(height: 24),
+              const _SectionLabel('Stop Loss'),
+              const SizedBox(height: 10),
+              _StopLossCard(
+                controller: _slController,
+                focusNode: _slFocus,
+                focused: _slFocused,
+                onChanged: (v) => state.setStopLoss(double.tryParse(v) ?? 0),
+              ),
+              const SizedBox(height: 16),
+              if (state.contracts > 0 || state.stopLossPoints > 0)
+                _ResultHeroCard(state: state),
+            ]),
           ),
-          const SizedBox(height: 16),
-          if (state.contracts > 0 || state.stopLossPoints > 0)
-            _ResultHeroCard(state: state),
-        ]),
+          if ((_slFocused || _riskFocused) && keyboardHeight > 0)
+            Positioned(
+              bottom: keyboardHeight,
+              left: 0,
+              right: 0,
+              child: Container(
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? const Color(0xFF1C2333)
+                    : const Color(0xFFD1D5DB),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: () => FocusManager.instance.primaryFocus?.unfocus(),
+                    child: Text('Done', style: TextStyle(
+                      fontFamily: 'Manrope',
+                      fontWeight: FontWeight.w700,
+                      fontSize: 15,
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? AppColors.accent
+                          : AppColors.accentBlue,
+                    )),
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -84,121 +124,67 @@ class LogoRow extends StatelessWidget {
   }
 }
 
-class _ChipsRow extends StatefulWidget {
+class _ChipsRow extends StatelessWidget {
   final QuantaState state;
-  const _ChipsRow({required this.state});
-  @override
-  State<_ChipsRow> createState() => _ChipsRowState();
-}
+  final FocusNode riskFocus;
+  final TextEditingController riskController;
+  const _ChipsRow({required this.state, required this.riskFocus, required this.riskController});
 
-class _ChipsRowState extends State<_ChipsRow> {
-  late TextEditingController _riskCtrl;
-
-  @override
-  void initState() {
-    super.initState();
-    _riskCtrl = TextEditingController(
-      text: widget.state.riskAmount.toStringAsFixed(0),
-    );
-  }
-
-  @override
-  void dispose() {
-    _riskCtrl.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final state = widget.state;
-    return Row(children: [
-      Expanded(child: _InfoChip(
-        label: 'Balance',
-        value: '\$${state.accountBalance.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}',
-        valueColor: AppColors.text,
-      )),
-      const SizedBox(width: 8),
-      Expanded(child: _EditableRiskChip(
-        controller: _riskCtrl,
-        onChanged: (v) => state.setSessionRisk(double.tryParse(v) ?? state.riskAmount),
-      )),
-    ]);
-  }
-}
-
-class _EditableRiskChip extends StatelessWidget {
-  final TextEditingController controller;
-  final ValueChanged<String> onChanged;
-  const _EditableRiskChip({required this.controller, required this.onChanged});
   @override
   Widget build(BuildContext context) {
     return Container(
-      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         color: AppColors.card,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: AppColors.border, width: 1.5),
       ),
-      child: Stack(children: [
-        Positioned(top: 0, left: 0, right: 0, child: Container(height: 2,
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(colors: [AppColors.accentBlue, AppColors.accent]),
-            borderRadius: BorderRadius.vertical(top: Radius.circular(14)),
-          ),
-        )),
-        Padding(padding: const EdgeInsets.fromLTRB(12, 13, 12, 11), child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('Risk / Trade', style: AppText.label(color: AppColors.muted)),
-            const SizedBox(height: 3),
-            Row(children: [
-              Text('\$', style: AppText.mono(size: 14, weight: FontWeight.w600, color: AppColors.accentBlue)),
-              Expanded(child: TextField(
-                controller: controller,
-                onChanged: onChanged,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                style: AppText.mono(size: 14, weight: FontWeight.w600, color: AppColors.accentBlue),
-                decoration: const InputDecoration(
-                  border: InputBorder.none,
-                  isDense: true,
-                  contentPadding: EdgeInsets.zero,
-                ),
-              )),
-            ]),
+      child: IntrinsicHeight(
+        child: Row(
+          children: [
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(14, 16, 14, 14),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text('Balance', style: AppText.label(color: AppColors.muted)),
+                  const SizedBox(height: 5),
+                  Text(
+                    '\$${state.accountBalance.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}',
+                    style: AppText.mono(size: 18, weight: FontWeight.w600, color: AppColors.accentBlue),
+                  ),
+                ]),
+              ),
+            ),
+            VerticalDivider(width: 1, thickness: 1, color: AppColors.border),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(14, 16, 14, 14),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                  Text('Risk / Trade', style: AppText.label(color: AppColors.muted)),
+                  const SizedBox(height: 5),
+                  Row(mainAxisAlignment: MainAxisAlignment.end, children: [
+                    Text('\$', style: AppText.mono(size: 18, weight: FontWeight.w600, color: AppColors.accentBlue)),
+                    IntrinsicWidth(
+                      child: TextField(
+                        controller: riskController,
+                        focusNode: riskFocus,
+                        onChanged: (v) => state.setSessionRisk(double.tryParse(v) ?? state.riskAmount),
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        textAlign: TextAlign.right,
+                        style: AppText.mono(size: 18, weight: FontWeight.w600, color: AppColors.accentBlue),
+                        decoration: const InputDecoration(
+                          border: InputBorder.none,
+                          isDense: true,
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                      ),
+                    ),
+                  ]),
+                ]),
+              ),
+            ),
           ],
-        )),
-      ]),
-    );
-  }
-}
-
-class _InfoChip extends StatelessWidget {
-  final String label, value;
-  final Color valueColor;
-  const _InfoChip({required this.label, required this.value, required this.valueColor});
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        color: AppColors.card,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.border, width: 1.5),
+        ),
       ),
-      child: Stack(children: [
-        Positioned(top: 0, left: 0, right: 0, child: Container(height: 2,
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(colors: [AppColors.accentBlue, AppColors.accent]),
-            borderRadius: BorderRadius.vertical(top: Radius.circular(14)),
-          ),
-        )),
-        Padding(padding: const EdgeInsets.fromLTRB(12, 13, 12, 11), child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(label, style: AppText.label(color: AppColors.muted)),
-            const SizedBox(height: 3),
-            Text(value, style: AppText.mono(size: 14, weight: FontWeight.w600, color: valueColor)),
-          ],
-        )),
-      ]),
     );
   }
 }
@@ -232,12 +218,12 @@ class _InstrumentScrollRow extends StatelessWidget {
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
             margin: const EdgeInsets.only(right: 8),
-            padding: const EdgeInsets.fromLTRB(14, 12, 14, 10),
+            padding: const EdgeInsets.fromLTRB(18, 14, 18, 12),
             decoration: isActive ? AppDecor.activeInstrument() : AppDecor.inactiveInstrument(),
             child: Column(children: [
-              Text(inst.ticker, style: GoogleFonts.manrope(fontSize: 12, fontWeight: FontWeight.w800, color: isActive ? Colors.white : AppColors.text)),
-              const SizedBox(height: 3),
-              Text('\$${inst.pointValue}/pt', style: GoogleFonts.manrope(fontSize: 8, fontWeight: FontWeight.w500, color: isActive ? Colors.white.withValues(alpha: 0.55) : AppColors.muted)),
+              Text(inst.ticker, style: GoogleFonts.manrope(fontSize: 15, fontWeight: FontWeight.w800, color: isActive ? Colors.white : AppColors.text)),
+              const SizedBox(height: 4),
+              Text('\$${inst.pointValue}/pt', style: GoogleFonts.manrope(fontSize: 11, fontWeight: FontWeight.w500, color: isActive ? Colors.white.withValues(alpha: 0.55) : AppColors.muted)),
             ]),
           ),
         );
@@ -263,7 +249,7 @@ class _StopLossCard extends StatelessWidget {
         border: Border.all(color: focused ? AppColors.accent.withValues(alpha: 0.4) : AppColors.border, width: 1.5),
         boxShadow: focused ? [BoxShadow(color: AppColors.accent.withValues(alpha: 0.12), blurRadius: 28, offset: const Offset(0, 8))] : null,
       ),
-      padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
+      padding: const EdgeInsets.fromLTRB(22, 22, 22, 0),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
           Text('Enter Points', style: AppText.label(color: focused ? AppColors.accent.withValues(alpha: 0.5) : AppColors.muted)),
@@ -277,17 +263,17 @@ class _StopLossCard extends StatelessWidget {
             child: Text('pts', style: AppText.label(color: focused ? AppColors.accent : AppColors.muted)),
           ),
         ]),
-        const SizedBox(height: 10),
+        const SizedBox(height: 12),
         TextField(
           controller: controller,
           focusNode: focusNode,
           onChanged: onChanged,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          style: AppText.mono(size: 36, weight: FontWeight.w600, color: focused ? Colors.white : AppColors.text),
+          style: AppText.mono(size: 44, weight: FontWeight.w600, color: focused ? Colors.white : AppColors.text),
           decoration: InputDecoration(
             border: InputBorder.none,
             hintText: '0.00',
-            hintStyle: AppText.mono(size: 28, weight: FontWeight.w300, color: focused ? Colors.white.withValues(alpha: 0.12) : AppColors.muted.withValues(alpha: 0.3)),
+            hintStyle: AppText.mono(size: 36, weight: FontWeight.w300, color: focused ? Colors.white.withValues(alpha: 0.12) : AppColors.muted.withValues(alpha: 0.3)),
             isDense: true,
             contentPadding: EdgeInsets.zero,
           ),
@@ -315,19 +301,19 @@ class _ResultHeroCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: AppDecor.navyGradientCard(),
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(24),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text(
           '${state.currentInstrument.ticker} — ${state.currentInstrument.name} · \$${state.currentInstrument.pointValue}/pt',
           style: AppText.label(color: AppColors.accent.withValues(alpha: 0.45)),
         ),
-        const SizedBox(height: 10),
-        Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
-          Text('${state.contracts}', style: AppText.mono(size: 56, weight: FontWeight.w600, color: Colors.white)),
-          const SizedBox(width: 8),
-          Padding(padding: const EdgeInsets.only(bottom: 10), child: Text('contracts', style: GoogleFonts.manrope(fontSize: 13, fontWeight: FontWeight.w700, color: Colors.white.withValues(alpha: 0.3)))),
-        ]),
         const SizedBox(height: 12),
+        Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
+          Text('${state.contracts}', style: AppText.mono(size: 68, weight: FontWeight.w600, color: Colors.white)),
+          const SizedBox(width: 10),
+          Padding(padding: const EdgeInsets.only(bottom: 12), child: Text('contracts', style: GoogleFonts.manrope(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white.withValues(alpha: 0.3)))),
+        ]),
+        const SizedBox(height: 16),
         Container(
           decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.04), borderRadius: BorderRadius.circular(12)),
           child: Row(children: [
@@ -354,9 +340,9 @@ class _RiskCell extends StatelessWidget {
         border: isLast ? null : Border(right: BorderSide(color: Colors.white.withValues(alpha: 0.06))),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(label, style: AppText.label(size: 8.5, color: Colors.white.withValues(alpha: 0.28))),
-        const SizedBox(height: 2),
-        Text(value, style: AppText.mono(size: 13, weight: FontWeight.w600, color: color)),
+        Text(label, style: AppText.label(size: 10, color: Colors.white.withValues(alpha: 0.28))),
+        const SizedBox(height: 3),
+        Text(value, style: AppText.mono(size: 16, weight: FontWeight.w600, color: color)),
       ]),
     ));
   }

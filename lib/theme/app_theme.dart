@@ -72,7 +72,7 @@ class AppText {
   static TextStyle mono({double size = 16, FontWeight weight = FontWeight.w500, Color? color}) =>
     GoogleFonts.jetBrainsMono(fontSize: size, fontWeight: weight, color: color);
 
-  static TextStyle label({double size = 10, Color? color}) =>
+  static TextStyle label({double size = 11, Color? color}) =>
     GoogleFonts.manrope(fontSize: size, fontWeight: FontWeight.w700,
       letterSpacing: 1.1, color: color);
 
