@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/quanta_state.dart';
@@ -16,6 +17,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
   late TextEditingController _balCtrl;
   late TextEditingController _riskCtrl;
   bool _initialized = false;
+  String _version = '';
+
+  @override
+  void initState() {
+    super.initState();
+    PackageInfo.fromPlatform().then((info) {
+      if (mounted) setState(() => _version = 'v${info.version}');
+    });
+  }
 
   @override
   void didChangeDependencies() {
@@ -151,7 +161,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           Container(
             decoration: AppDecor.card(),
             child: Column(children: [
-              const _LabelRow(label: 'Version', value: 'v1.0.0.0'),
+              _LabelRow(label: 'Version', value: _version.isEmpty ? '...' : _version),
               Container(height: 1, color: AppColors.border,
                   margin: const EdgeInsets.symmetric(horizontal: 12)),
               const _LabelRow(label: 'Developer', value: 'Ledian Leka'),
