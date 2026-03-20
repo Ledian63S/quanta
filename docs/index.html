@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -14,6 +14,14 @@
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
+      --accent:  #E8A000;
+      --accent2: #FFBF3C;
+      --green:   #4ADE80;
+      --font:    'JetBrains Mono', monospace;
+      --transition: 0.35s ease;
+    }
+
+    [data-theme="dark"] {
       --bg:      #0C0A01;
       --card:    #181300;
       --elev:    #221C00;
@@ -21,10 +29,18 @@
       --text:    #DDD5A0;
       --muted:   #8C8048;
       --subtle:  #504830;
-      --accent:  #E8A000;
-      --accent2: #FFBF3C;
-      --green:   #4ADE80;
-      --font:    'JetBrains Mono', monospace;
+      --scanline: rgba(0,0,0,0.06);
+    }
+
+    [data-theme="light"] {
+      --bg:      #F5EFE0;
+      --card:    #FFFFFF;
+      --elev:    #F0E8D0;
+      --border:  #DDD5B0;
+      --text:    #1A1500;
+      --muted:   #8A7A40;
+      --subtle:  #CCC5A0;
+      --scanline: rgba(0,0,0,0.025);
     }
 
     html { scroll-behavior: smooth; }
@@ -36,6 +52,7 @@
       font-size: 14px;
       line-height: 1.6;
       -webkit-font-smoothing: antialiased;
+      transition: background var(--transition), color var(--transition);
     }
 
     /* ── Scanlines ── */
@@ -44,14 +61,12 @@
       position: fixed;
       inset: 0;
       background: repeating-linear-gradient(
-        0deg,
-        transparent,
-        transparent 2px,
-        rgba(0,0,0,0.06) 2px,
-        rgba(0,0,0,0.06) 3px
+        0deg, transparent, transparent 2px,
+        var(--scanline) 2px, var(--scanline) 3px
       );
       pointer-events: none;
       z-index: 9999;
+      transition: opacity var(--transition);
     }
 
     /* ── Nav ── */
@@ -63,9 +78,10 @@
       align-items: center;
       justify-content: space-between;
       padding: 16px 24px;
-      background: rgba(12,10,1,0.92);
+      background: color-mix(in srgb, var(--bg) 92%, transparent);
       backdrop-filter: blur(12px);
       border-bottom: 1px solid var(--border);
+      transition: background var(--transition), border-color var(--transition);
     }
 
     .nav-logo {
@@ -74,15 +90,17 @@
       letter-spacing: 2px;
       color: var(--text);
       text-decoration: none;
+      transition: color var(--transition);
     }
-
     .nav-logo span { color: var(--accent); }
 
-    .nav-links {
+    .nav-right {
       display: flex;
-      gap: 24px;
       align-items: center;
+      gap: 20px;
     }
+
+    .nav-links { display: flex; gap: 20px; align-items: center; }
 
     .nav-links a {
       font-size: 11px;
@@ -92,21 +110,54 @@
       text-decoration: none;
       transition: color 0.15s;
     }
-
     .nav-links a:hover { color: var(--accent); }
 
-    /* ── Sections ── */
-    section { padding: 80px 24px; }
-
-    .container {
-      max-width: 960px;
-      margin: 0 auto;
+    /* ── Theme toggle ── */
+    .theme-toggle {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 5px 10px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: background var(--transition), border-color var(--transition);
     }
+    .theme-toggle:hover { border-color: var(--accent); }
+
+    .toggle-track {
+      width: 32px;
+      height: 16px;
+      background: var(--elev);
+      border-radius: 8px;
+      position: relative;
+      transition: background var(--transition);
+    }
+    [data-theme="light"] .toggle-track { background: var(--accent); }
+
+    .toggle-thumb {
+      width: 12px;
+      height: 12px;
+      background: var(--muted);
+      border-radius: 50%;
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      transition: transform 0.25s ease, background 0.25s;
+    }
+    [data-theme="light"] .toggle-thumb {
+      transform: translateX(16px);
+      background: #fff;
+    }
+
+    .toggle-icon { font-size: 12px; user-select: none; }
 
     /* ── Hero ── */
     .hero {
       padding: 100px 24px 80px;
       text-align: center;
+      overflow: hidden;
     }
 
     .hero-badge {
@@ -120,33 +171,47 @@
       padding: 5px 14px;
       border-radius: 2px;
       margin-bottom: 32px;
+      opacity: 0;
+      animation: fadeUp 0.6s ease 0.1s forwards;
     }
 
     .hero h1 {
-      font-size: clamp(48px, 10vw, 80px);
+      font-size: clamp(52px, 12vw, 88px);
       font-weight: 700;
-      letter-spacing: 4px;
+      letter-spacing: 6px;
       color: var(--accent);
       line-height: 1;
       margin-bottom: 20px;
+      opacity: 0;
+      animation: fadeUp 0.6s ease 0.25s forwards;
     }
 
     .hero-tagline {
-      font-size: clamp(16px, 3vw, 20px);
+      font-size: clamp(15px, 3vw, 19px);
       font-weight: 300;
       color: var(--text);
       letter-spacing: 0.5px;
-      margin-bottom: 12px;
+      margin-bottom: 10px;
+      opacity: 0;
+      animation: fadeUp 0.6s ease 0.4s forwards;
+      transition: color var(--transition);
     }
 
     .hero-sub {
       font-size: 12px;
       color: var(--muted);
-      letter-spacing: 1px;
+      letter-spacing: 0.8px;
       margin-bottom: 48px;
+      opacity: 0;
+      animation: fadeUp 0.6s ease 0.5s forwards;
+      transition: color var(--transition);
     }
 
-    /* ── Download buttons ── */
+    .hero-cta {
+      opacity: 0;
+      animation: fadeUp 0.6s ease 0.6s forwards;
+    }
+
     .download-primary {
       display: inline-flex;
       align-items: center;
@@ -160,26 +225,26 @@
       padding: 14px 28px;
       border-radius: 3px;
       text-decoration: none;
-      transition: background 0.15s, transform 0.1s;
-      margin-bottom: 32px;
+      transition: background 0.15s, transform 0.15s, box-shadow 0.15s;
+      margin-bottom: 28px;
     }
-
     .download-primary:hover {
       background: var(--accent2);
-      transform: translateY(-1px);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(232,160,0,0.25);
     }
 
     .platform-grid {
       display: flex;
       justify-content: center;
-      gap: 10px;
+      gap: 8px;
       flex-wrap: wrap;
     }
 
     .platform-btn {
       display: inline-flex;
       align-items: center;
-      gap: 8px;
+      gap: 7px;
       font-family: var(--font);
       font-size: 11px;
       font-weight: 600;
@@ -187,14 +252,19 @@
       color: var(--muted);
       border: 1px solid var(--border);
       background: var(--card);
-      padding: 10px 18px;
+      padding: 9px 16px;
       border-radius: 3px;
       text-decoration: none;
-      cursor: pointer;
-      transition: border-color 0.15s, color 0.15s, background 0.15s;
+      transition: border-color 0.15s, color 0.15s, background 0.15s,
+                  transform 0.15s, box-shadow 0.15s,
+                  background var(--transition), border-color var(--transition);
     }
-
-    .platform-btn:hover,
+    .platform-btn:hover {
+      color: var(--accent);
+      border-color: rgba(232,160,0,0.5);
+      background: rgba(232,160,0,0.06);
+      transform: translateY(-1px);
+    }
     .platform-btn.active {
       color: var(--accent);
       border-color: rgba(232,160,0,0.5);
@@ -207,33 +277,43 @@
       color: var(--subtle);
       letter-spacing: 1px;
       margin-top: 20px;
+      transition: color var(--transition);
     }
 
     /* ── Screenshots ── */
-    .screenshots { background: var(--card); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+    .screenshots {
+      background: var(--card);
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      padding: 72px 24px;
+      transition: background var(--transition), border-color var(--transition);
+    }
+
+    .container { max-width: 980px; margin: 0 auto; }
 
     .section-label {
       font-size: 10px;
       font-weight: 700;
       letter-spacing: 2.5px;
       color: var(--muted);
-      margin-bottom: 40px;
+      margin-bottom: 48px;
       display: flex;
       align-items: center;
       gap: 12px;
+      transition: color var(--transition);
     }
-
     .section-label::after {
       content: '';
       flex: 1;
       height: 1px;
       background: var(--border);
+      transition: background var(--transition);
     }
 
     .screenshots-grid {
       display: flex;
       justify-content: center;
-      gap: 24px;
+      gap: 28px;
       flex-wrap: wrap;
     }
 
@@ -242,14 +322,27 @@
       flex-direction: column;
       align-items: center;
       gap: 14px;
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 0.5s ease, transform 0.5s ease;
     }
+    .screenshot-item.visible { opacity: 1; transform: translateY(0); }
+    .screenshot-item:nth-child(2) { transition-delay: 0.1s; }
+    .screenshot-item:nth-child(3) { transition-delay: 0.2s; }
+    .screenshot-item:nth-child(4) { transition-delay: 0.3s; }
 
     .screenshot-item img {
-      width: 200px;
-      border-radius: 8px;
+      width: 195px;
+      border-radius: 10px;
       border: 1px solid var(--border);
-      box-shadow: 0 8px 40px rgba(0,0,0,0.6);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.35);
       display: block;
+      transition: transform 0.3s ease, box-shadow 0.3s ease,
+                  border-color var(--transition), opacity 0.3s ease;
+    }
+    .screenshot-item img:hover {
+      transform: translateY(-6px) scale(1.02);
+      box-shadow: 0 20px 48px rgba(0,0,0,0.45);
     }
 
     .screenshot-label {
@@ -257,76 +350,89 @@
       font-weight: 700;
       letter-spacing: 2px;
       color: var(--muted);
+      transition: color var(--transition);
     }
 
     /* ── Features ── */
+    .features { padding: 80px 24px; }
+
     .features-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 16px;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 14px;
     }
 
     .feature-card {
       background: var(--card);
       border: 1px solid var(--border);
       border-radius: 4px;
-      padding: 20px;
+      padding: 22px;
+      opacity: 0;
+      transform: translateY(16px);
+      transition: opacity 0.5s ease, transform 0.5s ease,
+                  background var(--transition), border-color var(--transition),
+                  box-shadow 0.2s ease;
+    }
+    .feature-card.visible { opacity: 1; transform: translateY(0); }
+    .feature-card:nth-child(2) { transition-delay: 0.08s; }
+    .feature-card:nth-child(3) { transition-delay: 0.16s; }
+    .feature-card:nth-child(4) { transition-delay: 0.24s; }
+    .feature-card:hover {
+      border-color: rgba(232,160,0,0.35);
+      box-shadow: 0 4px 20px rgba(232,160,0,0.07);
     }
 
     .feature-icon {
-      font-size: 18px;
-      margin-bottom: 12px;
+      font-size: 20px;
+      margin-bottom: 14px;
       color: var(--accent);
     }
-
     .feature-title {
       font-size: 11px;
       font-weight: 700;
       letter-spacing: 1.8px;
       color: var(--text);
       margin-bottom: 8px;
+      transition: color var(--transition);
     }
-
     .feature-desc {
       font-size: 12px;
       font-weight: 400;
       color: var(--muted);
-      line-height: 1.7;
+      line-height: 1.8;
+      transition: color var(--transition);
     }
 
-    /* ── Formula ── */
     .formula-block {
       background: var(--card);
       border: 1px solid var(--border);
       border-radius: 4px;
       padding: 24px 28px;
       margin-top: 40px;
+      transition: background var(--transition), border-color var(--transition);
     }
-
     .formula-block pre {
       font-family: var(--font);
       font-size: 13px;
       color: var(--accent);
-      line-height: 2;
+      line-height: 2.2;
     }
-
     .formula-block pre span { color: var(--muted); }
 
     /* ── Footer ── */
     footer {
-      padding: 40px 24px;
+      padding: 48px 24px;
       border-top: 1px solid var(--border);
       text-align: center;
+      transition: border-color var(--transition);
     }
-
     .footer-logo {
-      font-size: 18px;
+      font-size: 20px;
       font-weight: 700;
-      letter-spacing: 3px;
+      letter-spacing: 4px;
       color: var(--accent);
-      margin-bottom: 12px;
+      margin-bottom: 14px;
     }
-
     .footer-links {
       display: flex;
       justify-content: center;
@@ -334,7 +440,6 @@
       flex-wrap: wrap;
       margin-bottom: 20px;
     }
-
     .footer-links a {
       font-size: 11px;
       font-weight: 600;
@@ -343,85 +448,90 @@
       text-decoration: none;
       transition: color 0.15s;
     }
-
     .footer-links a:hover { color: var(--accent); }
-
     .footer-copy {
       font-size: 11px;
       color: var(--subtle);
       letter-spacing: 0.5px;
+      transition: color var(--transition);
+    }
+
+    /* ── Animations ── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
     }
 
     /* ── Responsive ── */
-    @media (max-width: 600px) {
+    @media (max-width: 640px) {
       .screenshots-grid { gap: 16px; }
-      .screenshot-item img { width: 150px; }
+      .screenshot-item img { width: 140px; }
       .platform-grid { flex-direction: column; align-items: center; }
+      .nav-links { display: none; }
     }
   </style>
 </head>
 <body>
 
-  <!-- Nav -->
   <nav>
     <a class="nav-logo" href="#"><span>> </span>QUANTA</a>
-    <div class="nav-links">
-      <a href="#screenshots">SCREENS</a>
-      <a href="#features">FEATURES</a>
-      <a href="https://github.com/Ledian63S/quanta" target="_blank">GITHUB</a>
+    <div class="nav-right">
+      <div class="nav-links">
+        <a href="#screenshots">SCREENS</a>
+        <a href="#features">FEATURES</a>
+        <a href="https://github.com/Ledian63S/quanta" target="_blank">GITHUB</a>
+      </div>
+      <button class="theme-toggle" id="theme-toggle" aria-label="Toggle theme">
+        <span class="toggle-icon">☀</span>
+        <div class="toggle-track"><div class="toggle-thumb"></div></div>
+        <span class="toggle-icon">◑</span>
+      </button>
     </div>
   </nav>
 
-  <!-- Hero -->
   <section class="hero">
     <div class="hero-badge">FUTURES POSITION SIZING</div>
     <h1>QUANTA</h1>
     <p class="hero-tagline">Know your size before you trade.</p>
-    <p class="hero-sub">For futures traders on Quantower. Enter balance, risk, stop loss — get contracts instantly.</p>
-
-    <br>
-
-    <a class="download-primary" id="primary-btn" href="https://github.com/Ledian63S/quanta/releases/latest">
-      ↓ DOWNLOAD
-    </a>
-
-    <div class="platform-grid">
-      <a class="platform-btn" id="btn-macos" href="#">⌘ macOS</a>
-      <a class="platform-btn" id="btn-windows" href="#">⊞ Windows</a>
-      <a class="platform-btn" id="btn-ios" href="#">iOS</a>
-      <a class="platform-btn" id="btn-android" href="#">Android</a>
+    <p class="hero-sub">For futures traders on Quantower. Balance · Risk · Stop loss → Contracts.</p>
+    <div class="hero-cta">
+      <br>
+      <a class="download-primary" id="primary-btn" href="https://github.com/Ledian63S/quanta/releases/latest">↓ DOWNLOAD</a>
+      <div class="platform-grid">
+        <a class="platform-btn" id="btn-macos"   href="#">⌘ macOS</a>
+        <a class="platform-btn" id="btn-windows" href="#">⊞ Windows</a>
+        <a class="platform-btn" id="btn-ios"     href="#">⬡ iOS</a>
+        <a class="platform-btn" id="btn-android" href="#">◈ Android</a>
+      </div>
+      <span class="version-tag" id="version-tag"></span>
     </div>
-
-    <span class="version-tag" id="version-tag">Loading...</span>
   </section>
 
-  <!-- Screenshots -->
   <section class="screenshots" id="screenshots">
     <div class="container">
       <div class="section-label">SCREENSHOTS</div>
       <div class="screenshots-grid">
         <div class="screenshot-item">
-          <img src="screenshots/calc.png" alt="Calculator screen" loading="lazy">
+          <img id="img-calc"     src="screenshots/calc.png"     alt="Calculator">
           <span class="screenshot-label">CALCULATOR</span>
         </div>
         <div class="screenshot-item">
-          <img src="screenshots/levels.png" alt="Levels screen" loading="lazy">
+          <img id="img-levels"   src="screenshots/levels.png"   alt="Levels">
           <span class="screenshot-label">LEVELS</span>
         </div>
         <div class="screenshot-item">
-          <img src="screenshots/markets.png" alt="Markets screen" loading="lazy">
+          <img id="img-markets"  src="screenshots/markets.png"  alt="Markets">
           <span class="screenshot-label">MARKETS</span>
         </div>
         <div class="screenshot-item">
-          <img src="screenshots/settings.png" alt="Settings screen" loading="lazy">
+          <img id="img-settings" src="screenshots/settings.png" alt="Settings">
           <span class="screenshot-label">SETTINGS</span>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- Features -->
-  <section id="features">
+  <section class="features" id="features">
     <div class="container">
       <div class="section-label">FEATURES</div>
       <div class="features-grid">
@@ -443,10 +553,9 @@
         <div class="feature-card">
           <div class="feature-icon">◎</div>
           <div class="feature-title">MULTI-PLATFORM</div>
-          <p class="feature-desc">Native apps for macOS, Windows, iOS, and Android. One codebase, pixel-perfect everywhere.</p>
+          <p class="feature-desc">Native apps for macOS, Windows, iOS, and Android. Pixel-perfect everywhere.</p>
         </div>
       </div>
-
       <div class="formula-block">
         <pre><span>contracts  =</span> floor( riskAmount / ( stopLossPoints × pointValue ) )
 <span>actualRisk =</span> contracts × stopLossPoints × pointValue
@@ -455,7 +564,6 @@
     </div>
   </section>
 
-  <!-- Footer -->
   <footer>
     <div class="footer-logo">QUANTA</div>
     <div class="footer-links">
@@ -467,55 +575,86 @@
   </footer>
 
   <script>
-    const REPO = 'Ledian63S/quanta';
+    // ── Theme ──────────────────────────────────────────────────────────────
+    const html = document.documentElement;
+    const saved = localStorage.getItem('theme');
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const initTheme = saved || (prefersDark ? 'dark' : 'light');
+    html.setAttribute('data-theme', initTheme);
 
+    const screenshots = {
+      dark:  { calc: 'screenshots/calc.png',   levels: 'screenshots/levels.png',
+               markets: 'screenshots/markets.png', settings: 'screenshots/settings.png' },
+      light: { calc: 'screenshots/calc-light.png', levels: 'screenshots/levels-light.png',
+               markets: 'screenshots/markets-light.png', settings: 'screenshots/settings-light.png' },
+    };
+
+    function applyTheme(theme) {
+      html.setAttribute('data-theme', theme);
+      localStorage.setItem('theme', theme);
+      const imgs = screenshots[theme];
+      ['calc','levels','markets','settings'].forEach(k => {
+        const el = document.getElementById('img-' + k);
+        if (!el) return;
+        el.style.opacity = '0';
+        setTimeout(() => { el.src = imgs[k]; el.style.opacity = '1'; }, 180);
+      });
+    }
+
+    document.getElementById('theme-toggle').addEventListener('click', () => {
+      const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      applyTheme(next);
+    });
+
+    // Set correct screenshots on load
+    applyTheme(initTheme);
+
+    // ── Releases API ───────────────────────────────────────────────────────
+    const REPO = 'Ledian63S/quanta';
     fetch(`https://api.github.com/repos/${REPO}/releases/latest`)
       .then(r => r.json())
       .then(release => {
-        const tag = release.tag_name; // e.g. "v1.1.0.2"
-        const assets = release.assets || [];
-
-        // Update version labels
+        const tag = release.tag_name;
         document.getElementById('version-tag').textContent = tag;
         document.getElementById('footer-version').textContent = tag;
 
-        // Map asset names to platform buttons
+        const assets = release.assets || [];
         const map = {
           macos:   assets.find(a => a.name.includes('macOS')),
           windows: assets.find(a => a.name.includes('Windows')),
           ios:     assets.find(a => a.name.includes('iOS')),
           android: assets.find(a => a.name.includes('Android')),
         };
-
-        const buttons = {
-          macos:   document.getElementById('btn-macos'),
+        const btns = {
+          macos: document.getElementById('btn-macos'),
           windows: document.getElementById('btn-windows'),
-          ios:     document.getElementById('btn-ios'),
+          ios: document.getElementById('btn-ios'),
           android: document.getElementById('btn-android'),
         };
-
-        Object.entries(map).forEach(([platform, asset]) => {
-          if (asset) buttons[platform].href = asset.browser_download_url;
+        Object.entries(map).forEach(([p, asset]) => {
+          if (asset) btns[p].href = asset.browser_download_url;
         });
 
-        // Detect OS and highlight + set primary button
         const ua = navigator.userAgent;
         let detected = 'macos';
-        if (/Windows/i.test(ua))      detected = 'windows';
-        else if (/Android/i.test(ua)) detected = 'android';
+        if (/Windows/i.test(ua))          detected = 'windows';
+        else if (/Android/i.test(ua))     detected = 'android';
         else if (/iPhone|iPad/i.test(ua)) detected = 'ios';
 
-        buttons[detected]?.classList.add('active');
+        btns[detected]?.classList.add('active');
         const primaryBtn = document.getElementById('primary-btn');
         if (map[detected]) primaryBtn.href = map[detected].browser_download_url;
-
-        const labels = { macos: 'macOS', windows: 'Windows', ios: 'iOS', android: 'Android' };
+        const labels = { macos:'macOS', windows:'Windows', ios:'iOS', android:'Android' };
         primaryBtn.textContent = `↓ DOWNLOAD FOR ${labels[detected].toUpperCase()}`;
       })
-      .catch(() => {
-        document.getElementById('version-tag').textContent = '';
-        document.getElementById('primary-btn').href = `https://github.com/${REPO}/releases/latest`;
-      });
+      .catch(() => {});
+
+    // ── Scroll reveal ──────────────────────────────────────────────────────
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+    }, { threshold: 0.12 });
+
+    document.querySelectorAll('.screenshot-item, .feature-card').forEach(el => observer.observe(el));
   </script>
 </body>
 </html>
