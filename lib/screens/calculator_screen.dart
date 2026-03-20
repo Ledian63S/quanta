@@ -13,7 +13,7 @@ class CalculatorScreen extends StatefulWidget {
 }
 
 class _CalculatorScreenState extends State<CalculatorScreen> {
-  final _slController = TextEditingController();
+  late final TextEditingController _slController;
   late final TextEditingController _riskController;
   late final TextEditingController _balanceController;
   final _slFocus = FocusNode();
@@ -27,6 +27,8 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
   void initState() {
     super.initState();
     final state = context.read<QuantaState>();
+    _slController = TextEditingController(
+        text: state.stopLossPoints > 0 ? AppFormat.stopLoss(state.stopLossPoints) : '');
     _riskController = TextEditingController(text: state.riskAmount.toStringAsFixed(0));
     _balanceController = TextEditingController(text: state.accountBalance.toStringAsFixed(0));
     _slFocus.addListener(() => setState(() => _slFocused = _slFocus.hasFocus));
