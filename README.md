@@ -1,9 +1,11 @@
-# Quanta — Position Size Calculator
-
-A terminal-styled futures position size calculator built for **Quantower** traders. Enter your account balance, risk per trade, and stop loss — get the exact number of contracts instantly. Always whole numbers, never fractional.
-
-[![Release](https://img.shields.io/github/v/release/Ledian63S/quanta?style=flat-square)](https://github.com/Ledian63S/quanta/releases)
-[![Platform](https://img.shields.io/badge/platform-iOS%20%7C%20Android%20%7C%20macOS%20%7C%20Windows-lightgrey?style=flat-square)](https://github.com/Ledian63S/quanta/releases)
+<p align="center">
+  <h1 align="center">Quanta — Position Size Calculator</h1>
+  <p align="center">A terminal-styled futures position size calculator built for <strong>Quantower</strong> traders. Enter your account balance, risk per trade, and stop loss — get the exact number of contracts instantly. Always whole numbers, never fractional.</p>
+  <p align="center">
+    <a href="https://github.com/Ledian63S/quanta/releases"><img src="https://img.shields.io/github/v/release/Ledian63S/quanta?style=flat-square" alt="Release"></a>
+    <a href="https://github.com/Ledian63S/quanta/releases"><img src="https://img.shields.io/badge/platform-iOS%20%7C%20Android%20%7C%20macOS%20%7C%20Windows-lightgrey?style=flat-square" alt="Platform"></a>
+  </p>
+</p>
 
 ---
 

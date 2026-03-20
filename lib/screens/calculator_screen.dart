@@ -260,15 +260,12 @@ class _AccountRowState extends State<_AccountRow> {
   @override
   Widget build(BuildContext context) {
     Theme.of(context); // depend on theme so colors update on brightness change
-    final isDesktop = Platform.isMacOS || Platform.isWindows;
-    // On desktop always show TextField — no tap-to-reveal needed with a mouse
-    final showField = _focused || isDesktop;
     final displayText = widget.isPercent
         ? '${widget.controller.text}%'
         : '${widget.prefix}${_fmt(widget.controller.text)}';
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: (showField || isDesktop) ? null : () {
+      onTap: _focused ? null : () {
         setState(() => _focused = true);
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (mounted) widget.focusNode.requestFocus();
@@ -283,7 +280,7 @@ class _AccountRowState extends State<_AccountRow> {
               size: 10,
               color: _focused ? AppColors.accentLight : AppColors.muted)),
           const Spacer(),
-          if (showField) ...[
+          if (_focused) ...[
             if (!widget.isPercent)
               Text(widget.prefix, style: AppText.mono(size: 20, weight: FontWeight.w600,
                   color: _focused ? AppColors.accent : AppColors.muted)),
