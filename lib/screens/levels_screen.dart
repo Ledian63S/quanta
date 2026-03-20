@@ -222,7 +222,13 @@ class _LevelsScreenState extends State<LevelsScreen> {
                     color: AppColors.elevated,
                     borderRadius: BorderRadius.circular(4),
                     border: Border.all(
-                        color: AppColors.accent.withValues(alpha: 0.3), width: 1),
+                        color: AppColors.accent.withValues(alpha: 0.65), width: 1.5),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.accent.withValues(alpha: 0.1),
+                        blurRadius: 16, spreadRadius: 0,
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -253,10 +259,13 @@ class _LevelsScreenState extends State<LevelsScreen> {
                       final ar = state.actualRiskForRisk(risk);
                       final barFraction = maxC > 0 ? c / maxC : 0.0;
                       final isSelected = i == _selectedIndex;
-                      // Highlight the row matching effectiveRisk
                       final isCurrentRisk = (risk - state.effectiveRisk).abs() < 0.01;
+                      final distance = (i - _selectedIndex).abs();
+                      final opacity = isSelected
+                          ? 1.0
+                          : (1.0 - distance * 0.13).clamp(0.18, 0.6);
                       return Opacity(
-                        opacity: isSelected ? 1.0 : 0.55,
+                        opacity: opacity,
                         child: LayoutBuilder(
                           builder: (context, constraints) => Stack(
                             alignment: Alignment.center,
@@ -295,13 +304,12 @@ class _LevelsScreenState extends State<LevelsScreen> {
                                   Expanded(child: Row(children: [
                                     Text(AppFormat.dollar(risk),
                                         style: AppText.mono(
-                                          size: isSelected ? 15 : 13,
+                                          size: 14,
                                           weight: isSelected
                                               ? FontWeight.w700 : FontWeight.w400,
                                           color: isSelected
                                               ? AppColors.text : AppColors.muted,
                                         )),
-                                    // Dot marker for current effectiveRisk
                                     if (isCurrentRisk) ...[
                                       const SizedBox(width: 4),
                                       Container(
@@ -317,7 +325,7 @@ class _LevelsScreenState extends State<LevelsScreen> {
                                   Expanded(child: Text('$c',
                                       textAlign: TextAlign.center,
                                       style: AppText.mono(
-                                        size: isSelected ? 17 : 14,
+                                        size: 14,
                                         weight: FontWeight.w700,
                                         color: isSelected
                                             ? AppColors.accentLight : AppColors.subtle,
@@ -326,8 +334,9 @@ class _LevelsScreenState extends State<LevelsScreen> {
                                   Expanded(child: Text(AppFormat.dollar(ar),
                                       textAlign: TextAlign.right,
                                       style: AppText.mono(
-                                        size: isSelected ? 15 : 13,
-                                        weight: FontWeight.w500,
+                                        size: 14,
+                                        weight: isSelected
+                                            ? FontWeight.w600 : FontWeight.w400,
                                         color: isSelected
                                             ? AppColors.green : AppColors.subtle,
                                       ))),
