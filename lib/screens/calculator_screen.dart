@@ -70,7 +70,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
     return Stack(children: [
       Positioned.fill(
         child: SingleChildScrollView(
-          padding: EdgeInsets.fromLTRB(16, 16, 16, 100 + keyboardHeight),
+          padding: EdgeInsets.fromLTRB(16, 12, 16, 72 + keyboardHeight),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
 
             // ── Account strip ────────────────────────────────────────
@@ -82,13 +82,13 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
               riskFocus: _riskFocus,
               slFocus: _slFocus,
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 12),
 
             // ── Instrument ───────────────────────────────────────────
             Text('INSTRUMENT', style: AppText.label()),
             const SizedBox(height: 8),
             _InstrumentRow(state: state, onChanged: () => _slController.clear()),
-            const SizedBox(height: 20),
+            const SizedBox(height: 12),
 
             // ── Stop loss input ──────────────────────────────────────
             Row(children: [
@@ -114,7 +114,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                 HapticFeedback.selectionClick();
               },
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 12),
 
             // ── Result ───────────────────────────────────────────────
             Row(children: [
@@ -258,12 +258,15 @@ class _AccountRowState extends State<_AccountRow> {
   @override
   Widget build(BuildContext context) {
     Theme.of(context); // depend on theme so colors update on brightness change
+    final isDesktop = Platform.isMacOS || Platform.isWindows;
+    // On desktop always show TextField — no tap-to-reveal needed with a mouse
+    final showField = _focused || isDesktop;
     final displayText = widget.isPercent
         ? '${widget.controller.text}%'
         : '${widget.prefix}${_fmt(widget.controller.text)}';
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: _focused ? null : () {
+      onTap: (showField || isDesktop) ? null : () {
         setState(() => _focused = true);
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (mounted) widget.focusNode.requestFocus();
@@ -278,10 +281,10 @@ class _AccountRowState extends State<_AccountRow> {
               size: 10,
               color: _focused ? AppColors.accentLight : AppColors.muted)),
           const Spacer(),
-          if (_focused) ...[
+          if (showField) ...[
             if (!widget.isPercent)
               Text(widget.prefix, style: AppText.mono(size: 20, weight: FontWeight.w600,
-                  color: AppColors.accent)),
+                  color: _focused ? AppColors.accent : AppColors.muted)),
             IntrinsicWidth(child: TextField(
               controller: widget.controller,
               focusNode: widget.focusNode,
@@ -295,13 +298,13 @@ class _AccountRowState extends State<_AccountRow> {
               autofocus: false,
               cursorColor: AppColors.accent,
               style: AppText.mono(size: 20, weight: FontWeight.w600,
-                  color: AppColors.accentLight),
+                  color: _focused ? AppColors.accentLight : AppColors.text),
               decoration: const InputDecoration(
                 border: InputBorder.none, isDense: true, contentPadding: EdgeInsets.zero),
             )),
             if (widget.isPercent)
               Text('%', style: AppText.mono(size: 20, weight: FontWeight.w600,
-                  color: AppColors.accent)),
+                  color: _focused ? AppColors.accent : AppColors.muted)),
           ] else
             AnimatedSwitcher(
               duration: const Duration(milliseconds: 200),
@@ -388,7 +391,7 @@ class _StopLossPanel extends StatelessWidget {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
       decoration: focused ? AppDecor.focusCard() : AppDecor.card(),
-      padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
+      padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         // Prompt line
         Row(children: [
@@ -400,7 +403,7 @@ class _StopLossPanel extends StatelessWidget {
           Text('PTS', style: AppText.label(
               color: focused ? AppColors.accent : AppColors.muted)),
         ]),
-        const SizedBox(height: 10),
+        const SizedBox(height: 6),
 
         // Big number input
         TextField(
@@ -436,7 +439,7 @@ class _StopLossPanel extends StatelessWidget {
             contentPadding: EdgeInsets.zero,
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 8),
 
         // Quick-adjust buttons
         Row(children: [
@@ -540,10 +543,10 @@ class _ResultPanel extends StatelessWidget {
         ),
       ],
 
-      const SizedBox(height: 16),
+      const SizedBox(height: 10),
       Container(
         decoration: AppDecor.card(),
-        padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+        padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
         child: Column(children: [
           _ReadoutRow('MAX RISK',
               AppFormat.dollar(state.effectiveRisk), AppColors.muted),
@@ -598,7 +601,7 @@ class _ReadoutRow extends StatelessWidget {
         duration: const Duration(milliseconds: 150),
         child: Text(value,
           key: ValueKey(value),
-          style: AppText.mono(size: 13, weight: FontWeight.w700, color: color),
+          style: AppText.mono(size: 14, weight: FontWeight.w700, color: color),
         ),
       ),
     ]);
