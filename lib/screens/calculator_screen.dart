@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -34,6 +35,22 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final state = context.read<QuantaState>();
+    if (!_balanceFocused) {
+      final expected = state.accountBalance.toStringAsFixed(0);
+      if (_balanceController.text != expected) _balanceController.text = expected;
+    }
+    if (!_riskFocused) {
+      final expected = state.riskIsPercent
+          ? state.riskPercent.toStringAsFixed(1)
+          : state.effectiveRisk.toStringAsFixed(0);
+      if (_riskController.text != expected) _riskController.text = expected;
+    }
+  }
+
+  @override
   void dispose() {
     _slController.dispose();
     _riskController.dispose();
@@ -46,205 +63,277 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
 
   @override
   Widget build(BuildContext context) {
+    Theme.of(context); // depend on theme so StatelessWidget children repaint on brightness change
     final state = context.watch<QuantaState>();
     final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
-    return SafeArea(
-      child: Stack(
-        children: [
-          Positioned.fill(
-            child: SingleChildScrollView(
-            padding: EdgeInsets.fromLTRB(16, 12, 16, 108 + keyboardHeight),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              _ChipsRow(
-                state: state,
-                riskFocus: _riskFocus,
-                riskController: _riskController,
-                balanceFocus: _balanceFocus,
-                balanceController: _balanceController,
-                slFocus: _slFocus,
-              ),
-              const SizedBox(height: 24),
-              const _SectionLabel('Instrument'),
-              const SizedBox(height: 10),
-              _InstrumentScrollRow(
-                state: state,
-                onInstrumentChanged: () => _slController.clear(),
-              ),
-              const SizedBox(height: 24),
-              const _SectionLabel('Stop Loss'),
-              const SizedBox(height: 10),
-              _StopLossCard(
-                controller: _slController,
-                focusNode: _slFocus,
-                focused: _slFocused,
-                onChanged: (v) => state.setStopLoss(double.tryParse(v) ?? 0),
-              ),
-              const SizedBox(height: 16),
-              _ResultHeroCard(state: state),
+
+    return Stack(children: [
+      Positioned.fill(
+        child: SingleChildScrollView(
+          padding: EdgeInsets.fromLTRB(16, 12, 16, 72 + keyboardHeight),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+
+            // ── Account strip ────────────────────────────────────────
+            _AccountStrip(
+              state: state,
+              balanceController: _balanceController,
+              riskController: _riskController,
+              balanceFocus: _balanceFocus,
+              riskFocus: _riskFocus,
+              slFocus: _slFocus,
+            ),
+            const SizedBox(height: 12),
+
+            // ── Instrument ───────────────────────────────────────────
+            Text('INSTRUMENT', style: AppText.label()),
+            const SizedBox(height: 8),
+            _InstrumentRow(state: state, onChanged: () => _slController.clear()),
+            const SizedBox(height: 12),
+
+            // ── Stop loss input ──────────────────────────────────────
+            Row(children: [
+              Text('STOP LOSS', style: AppText.label()),
+              const SizedBox(width: 8),
+              Expanded(child: Container(height: 1, color: AppColors.border)),
             ]),
-          )),
-          if (keyboardHeight > 0)
-            Positioned(
-              bottom: keyboardHeight + 12,
-              right: 16,
-              child: AnimatedOpacity(
-                duration: const Duration(milliseconds: 180),
-                opacity: (_slFocused || _riskFocused || _balanceFocused) ? 1.0 : 0.0,
-                child: IgnorePointer(
-                  ignoring: !(_slFocused || _riskFocused || _balanceFocused),
-                  child: Clickable(
-                    onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
-                    child: Builder(builder: (context) {
-                      final isDark = Theme.of(context).brightness == Brightness.dark;
-                      return Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                        decoration: BoxDecoration(
-                          color: isDark ? AppColors.darkCard : AppColors.card,
-                          borderRadius: BorderRadius.circular(22),
-                          border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.border, width: 1.5),
-                          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.12), blurRadius: 14, offset: const Offset(0, 4))],
-                        ),
-                        child: Text('Done', style: AppText.label(color: isDark ? AppColors.accent : AppColors.accentBlue)),
-                      );
-                    }),
-                  ),
+            const SizedBox(height: 8),
+            _StopLossPanel(
+              controller: _slController,
+              focusNode: _slFocus,
+              focused: _slFocused,
+              ticker: state.currentInstrument.ticker,
+              onChanged: (v) {
+                final normalized = v.replaceAll(',', '.');
+                state.setStopLoss(
+                    normalized.isEmpty ? 0 : (double.tryParse(normalized) ?? state.stopLossPoints));
+              },
+              onAdjust: (delta) {
+                final newVal = (state.stopLossPoints + delta).clamp(0.0, double.infinity);
+                _slController.text = newVal > 0 ? AppFormat.stopLoss(newVal) : '';
+                state.setStopLoss(newVal);
+                HapticFeedback.selectionClick();
+              },
+            ),
+            const SizedBox(height: 12),
+
+            // ── Result ───────────────────────────────────────────────
+            Row(children: [
+              Text('RESULT', style: AppText.label()),
+              const SizedBox(width: 8),
+              Expanded(child: Container(height: 1, color: AppColors.border)),
+            ]),
+            const SizedBox(height: 8),
+            _ResultPanel(state: state),
+          ]),
+        ),
+      ),
+
+      // Done button — mobile only (desktop uses Tab/Enter to dismiss focus)
+      if (!Platform.isMacOS && !Platform.isWindows) Positioned(
+        bottom: keyboardHeight > 0 ? keyboardHeight + 12 : 100,
+        right: 16,
+        child: AnimatedOpacity(
+          duration: const Duration(milliseconds: 150),
+          opacity: (_slFocused || _riskFocused || _balanceFocused) ? 1.0 : 0.0,
+          child: IgnorePointer(
+            ignoring: !(_slFocused || _riskFocused || _balanceFocused),
+            child: Clickable(
+              onTap: () {
+                HapticFeedback.selectionClick();
+                FocusManager.instance.primaryFocus?.unfocus();
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: AppColors.accent,
+                  borderRadius: BorderRadius.circular(4),
                 ),
+                child: Text('DONE', style: AppText.label(color: Colors.black)),
               ),
             ),
-        ],
+          ),
+        ),
       ),
-    );
+    ]);
   }
 }
 
-
-class _ChipsRow extends StatelessWidget {
+// ── Account strip ──────────────────────────────────────────────────────────
+class _AccountStrip extends StatelessWidget {
   final QuantaState state;
-  final FocusNode riskFocus;
-  final TextEditingController riskController;
-  final FocusNode balanceFocus;
-  final TextEditingController balanceController;
-  final FocusNode slFocus;
-  const _ChipsRow({
+  final TextEditingController balanceController, riskController;
+  final FocusNode balanceFocus, riskFocus, slFocus;
+  const _AccountStrip({
     required this.state,
-    required this.riskFocus,
-    required this.riskController,
-    required this.balanceFocus,
-    required this.balanceController,
-    required this.slFocus,
+    required this.balanceController, required this.riskController,
+    required this.balanceFocus, required this.riskFocus, required this.slFocus,
   });
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final cardColor = isDark ? AppColors.darkCard : AppColors.card;
-    final borderColor = isDark ? AppColors.darkBorder : AppColors.border;
-    final mutedColor = isDark ? AppColors.darkMuted : AppColors.muted;
     return Container(
-      decoration: BoxDecoration(
-        color: cardColor,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: borderColor, width: 1.5),
-      ),
-      child: IntrinsicHeight(
-        child: Row(
-          children: [
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(14, 16, 14, 14),
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text('Balance', style: AppText.label(color: mutedColor)),
-                  const SizedBox(height: 5),
-                  Row(children: [
-                    Text('\$', style: AppText.mono(size: 18, weight: FontWeight.w600, color: AppColors.accentBlue)),
-                    IntrinsicWidth(
-                      child: TextField(
-                        controller: balanceController,
-                        focusNode: balanceFocus,
-                        onChanged: (v) => state.setBalance(double.tryParse(v) ?? state.accountBalance),
-                        onSubmitted: (_) => riskFocus.requestFocus(),
-                        textInputAction: TextInputAction.next,
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                        inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[\d.]'))],
-                        enableInteractiveSelection: false,
-                        style: AppText.mono(size: 18, weight: FontWeight.w600, color: AppColors.accentBlue),
-                        decoration: const InputDecoration(
-                          border: InputBorder.none,
-                          isDense: true,
-                          contentPadding: EdgeInsets.zero,
-                        ),
-                      ),
-                    ),
-                  ]),
-                ]),
-              ),
-            ),
-            VerticalDivider(width: 1, thickness: 1, color: borderColor),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(14, 16, 14, 14),
-                child: Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                  Text('Risk / Trade', style: AppText.label(color: mutedColor)),
-                  const SizedBox(height: 5),
-                  Row(mainAxisAlignment: MainAxisAlignment.end, children: [
-                    Text('\$', style: AppText.mono(size: 18, weight: FontWeight.w600, color: AppColors.accentBlue)),
-                    IntrinsicWidth(
-                      child: TextField(
-                        controller: riskController,
-                        focusNode: riskFocus,
-                        onChanged: (v) => state.setSessionRisk(double.tryParse(v) ?? state.riskAmount),
-                        onSubmitted: (_) => slFocus.requestFocus(),
-                        textInputAction: TextInputAction.next,
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                        inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[\d.]'))],
-                        enableInteractiveSelection: false,
-                        textAlign: TextAlign.right,
-                        style: AppText.mono(size: 18, weight: FontWeight.w600, color: AppColors.accentBlue),
-                        decoration: const InputDecoration(
-                          border: InputBorder.none,
-                          isDense: true,
-                          contentPadding: EdgeInsets.zero,
-                        ),
-                      ),
-                    ),
-                  ]),
-                ]),
-              ),
-            ),
-          ],
+      decoration: AppDecor.card(),
+      child: Column(children: [
+        _AccountRow(
+          label: 'BALANCE',
+          prefix: '\$',
+          controller: balanceController,
+          focusNode: balanceFocus,
+          onChanged: (v) => state.setBalance(double.tryParse(v) ?? state.accountBalance),
+          onSubmitted: (_) => riskFocus.requestFocus(),
         ),
+        Container(height: 1, color: AppColors.border),
+        _AccountRow(
+          label: 'RISK / TRADE',
+          prefix: state.riskIsPercent ? '%' : '\$',
+          isPercent: state.riskIsPercent,
+          controller: riskController,
+          focusNode: riskFocus,
+          onChanged: (v) {
+            if (state.riskIsPercent) {
+              final pct = double.tryParse(v) ?? 0;
+              state.setSessionRisk(pct / 100 * state.accountBalance);
+            } else {
+              state.setSessionRisk(double.tryParse(v) ?? state.riskAmount);
+            }
+          },
+          onSubmitted: (_) => slFocus.requestFocus(),
+        ),
+      ]),
+    );
+  }
+}
+
+class _AccountRow extends StatefulWidget {
+  final String label, prefix;
+  final TextEditingController controller;
+  final FocusNode focusNode;
+  final bool isPercent;
+  final ValueChanged<String> onChanged, onSubmitted;
+  const _AccountRow({
+    required this.label, required this.prefix, required this.controller,
+    required this.focusNode,
+    required this.onChanged, required this.onSubmitted,
+    this.isPercent = false,
+  });
+
+  @override
+  State<_AccountRow> createState() => _AccountRowState();
+}
+
+class _AccountRowState extends State<_AccountRow> {
+  bool _focused = false;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.focusNode.addListener(_onFocusChange);
+  }
+
+  void _onFocusChange() {
+    setState(() => _focused = widget.focusNode.hasFocus);
+  }
+
+  @override
+  void didUpdateWidget(_AccountRow old) {
+    super.didUpdateWidget(old);
+    if (old.isPercent != widget.isPercent) {
+      HapticFeedback.selectionClick();
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.focusNode.removeListener(_onFocusChange);
+    super.dispose();
+  }
+
+  static String _fmt(String raw) {
+    final v = double.tryParse(raw);
+    if (v == null) return raw;
+    return v.toStringAsFixed(0)
+        .replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+$)'), (m) => '${m[1]},');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    Theme.of(context); // depend on theme so colors update on brightness change
+    final isDesktop = Platform.isMacOS || Platform.isWindows;
+    // On desktop always show TextField — no tap-to-reveal needed with a mouse
+    final showField = _focused || isDesktop;
+    final displayText = widget.isPercent
+        ? '${widget.controller.text}%'
+        : '${widget.prefix}${_fmt(widget.controller.text)}';
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: (showField || isDesktop) ? null : () {
+        setState(() => _focused = true);
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) widget.focusNode.requestFocus();
+        });
+      },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        child: Row(children: [
+          Text('> ', style: AppText.mono(size: 11,
+              color: _focused ? AppColors.accent : AppColors.subtle)),
+          Text(widget.label, style: AppText.label(
+              size: 10,
+              color: _focused ? AppColors.accentLight : AppColors.muted)),
+          const Spacer(),
+          if (showField) ...[
+            if (!widget.isPercent)
+              Text(widget.prefix, style: AppText.mono(size: 20, weight: FontWeight.w600,
+                  color: _focused ? AppColors.accent : AppColors.muted)),
+            IntrinsicWidth(child: TextField(
+              controller: widget.controller,
+              focusNode: widget.focusNode,
+              onChanged: widget.onChanged,
+              onSubmitted: widget.onSubmitted,
+              textInputAction: TextInputAction.next,
+              textAlign: TextAlign.right,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[\d.]'))],
+              enableInteractiveSelection: false,
+              autofocus: false,
+              cursorColor: AppColors.accent,
+              style: AppText.mono(size: 20, weight: FontWeight.w600,
+                  color: _focused ? AppColors.accentLight : AppColors.text),
+              decoration: const InputDecoration(
+                border: InputBorder.none, isDense: true, contentPadding: EdgeInsets.zero),
+            )),
+            if (widget.isPercent)
+              Text('%', style: AppText.mono(size: 20, weight: FontWeight.w600,
+                  color: _focused ? AppColors.accent : AppColors.muted)),
+          ] else
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 200),
+              child: Text(displayText,
+                key: ValueKey(displayText),
+                style: AppText.mono(size: 20, weight: FontWeight.w600,
+                    color: AppColors.text)),
+            ),
+        ]),
       ),
     );
   }
 }
 
-class _SectionLabel extends StatelessWidget {
-  final String text;
-  const _SectionLabel(this.text);
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Text(text, style: AppText.label(color: isDark ? AppColors.darkMuted : AppColors.muted));
-  }
-}
-
-class _InstrumentScrollRow extends StatelessWidget {
+// ── Instrument row ─────────────────────────────────────────────────────────
+class _InstrumentRow extends StatelessWidget {
   final QuantaState state;
-  final VoidCallback onInstrumentChanged;
-  const _InstrumentScrollRow({required this.state, required this.onInstrumentChanged});
+  final VoidCallback onChanged;
+  const _InstrumentRow({required this.state, required this.onChanged});
+
   @override
   Widget build(BuildContext context) {
     final favs = state.favoriteInstruments;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     if (favs.isEmpty) {
       return Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: isDark ? AppColors.darkCard : AppColors.card,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.border, width: 1.5),
-        ),
-        child: Text('★ Star instruments to add here', style: AppText.body(color: isDark ? AppColors.darkMuted : AppColors.muted)),
+        padding: const EdgeInsets.all(12),
+        decoration: AppDecor.card(),
+        child: Text('> STAR INSTRUMENTS TO ADD HERE',
+            style: AppText.body(color: AppColors.muted)),
       );
     }
     return SingleChildScrollView(
@@ -253,23 +342,28 @@ class _InstrumentScrollRow extends StatelessWidget {
         final isActive = inst.ticker == state.selectedTicker;
         return Clickable(
           onTap: () {
-                HapticFeedback.selectionClick();
-                state.setInstrument(inst.ticker);
-                onInstrumentChanged();
-              },
+            HapticFeedback.selectionClick();
+            state.setInstrument(inst.ticker);
+            onChanged();
+          },
           child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
+            duration: const Duration(milliseconds: 150),
             margin: const EdgeInsets.only(right: 8),
-            padding: const EdgeInsets.fromLTRB(18, 14, 18, 12),
-            decoration: isActive ? AppDecor.activeInstrument() : BoxDecoration(
-              color: isDark ? AppColors.darkCard : AppColors.card,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.border, width: 1.5),
-            ),
-            child: Column(children: [
-              Text(inst.ticker, style: GoogleFonts.manrope(fontSize: 15, fontWeight: FontWeight.w800, color: isActive ? Colors.white : (isDark ? AppColors.darkText : AppColors.text))),
-              const SizedBox(height: 4),
-              Text('\$${inst.pointValue}/pt', style: GoogleFonts.manrope(fontSize: 11, fontWeight: FontWeight.w500, color: isActive ? Colors.white.withValues(alpha: 0.55) : (isDark ? AppColors.darkMuted : AppColors.muted))),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            decoration: isActive
+                ? AppDecor.activeInstrumentPill()
+                : AppDecor.inactiveInstrumentPill(),
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              Text(inst.ticker, style: AppText.mono(
+                size: 13, weight: FontWeight.w700,
+                color: isActive ? AppColors.accent : AppColors.text,
+              )),
+              const SizedBox(width: 6),
+              Text('\$${inst.pointValue}', style: AppText.label(
+                size: 9,
+                color: isActive ? AppColors.accent.withValues(alpha: 0.6)
+                    : AppColors.muted,
+              )),
             ]),
           ),
         );
@@ -278,147 +372,240 @@ class _InstrumentScrollRow extends StatelessWidget {
   }
 }
 
-class _StopLossCard extends StatelessWidget {
+// ── Stop loss panel ────────────────────────────────────────────────────────
+class _StopLossPanel extends StatelessWidget {
   final TextEditingController controller;
   final FocusNode focusNode;
   final bool focused;
+  final String ticker;
   final ValueChanged<String> onChanged;
-  const _StopLossCard({required this.controller, required this.focusNode, required this.focused, required this.onChanged});
+  final void Function(double delta) onAdjust;
+  const _StopLossPanel({
+    required this.controller, required this.focusNode,
+    required this.focused, required this.ticker,
+    required this.onChanged, required this.onAdjust,
+  });
+
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final unfocusedCard = isDark ? AppColors.darkCard : AppColors.card;
-    final unfocusedBorder = isDark ? AppColors.darkBorder : AppColors.border;
-    final unfocusedMuted = isDark ? AppColors.darkMuted : AppColors.muted;
-    final unfocusedText = isDark ? AppColors.darkText : AppColors.text;
-    final unfocusedBg = isDark ? AppColors.darkBg : AppColors.bg;
     return AnimatedContainer(
-      duration: const Duration(milliseconds: 300),
-      decoration: BoxDecoration(
-        gradient: focused ? const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [AppColors.navyCard1, AppColors.navyCard2]) : null,
-        color: focused ? null : unfocusedCard,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: focused ? AppColors.accent.withValues(alpha: 0.4) : unfocusedBorder, width: 1.5),
-        boxShadow: focused ? [BoxShadow(color: AppColors.accent.withValues(alpha: 0.12), blurRadius: 28, offset: const Offset(0, 8))] : null,
-      ),
-      padding: const EdgeInsets.fromLTRB(22, 22, 22, 0),
+      duration: const Duration(milliseconds: 200),
+      decoration: focused ? AppDecor.focusCard() : AppDecor.card(),
+      padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-          Text('Enter Points', style: AppText.label(color: focused ? AppColors.accent.withValues(alpha: 0.5) : unfocusedMuted)),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 4),
-            decoration: BoxDecoration(
-              color: focused ? AppColors.accent.withValues(alpha: 0.1) : unfocusedBg,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: focused ? AppColors.accent.withValues(alpha: 0.2) : unfocusedBorder),
-            ),
-            child: Text('pts', style: AppText.label(color: focused ? AppColors.accent : unfocusedMuted)),
-          ),
+        // Prompt line
+        Row(children: [
+          Text('> ', style: AppText.mono(size: 12,
+              color: focused ? AppColors.accent : AppColors.muted)),
+          Text('$ticker  ', style: AppText.mono(size: 12,
+              color: focused ? AppColors.accentLight : AppColors.subtle)),
+          const Spacer(),
+          Text('PTS', style: AppText.label(
+              color: focused ? AppColors.accent : AppColors.muted)),
         ]),
-        const SizedBox(height: 12),
+        const SizedBox(height: 6),
+
+        // Big number input
         TextField(
           controller: controller,
           focusNode: focusNode,
           onChanged: onChanged,
           onSubmitted: (_) => FocusManager.instance.primaryFocus?.unfocus(),
           textInputAction: TextInputAction.done,
+          textAlign: TextAlign.left,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[\d.]'))],
+          inputFormatters: [
+            FilteringTextInputFormatter.allow(RegExp(r'[\d.,]')),
+            _CommaToDotFormatter(),
+          ],
           enableInteractiveSelection: false,
-          style: AppText.mono(size: 44, weight: FontWeight.w600, color: focused ? Colors.white : unfocusedText),
+          cursorColor: AppColors.accent,
+          cursorWidth: 2,
+          style: GoogleFonts.jetBrainsMono(
+            fontSize: 56,
+            fontWeight: FontWeight.w700,
+            color: focused ? AppColors.accent : AppColors.text,
+            height: 1.0,
+          ),
           decoration: InputDecoration(
             border: InputBorder.none,
-            hintText: '0.00',
-            hintStyle: AppText.mono(size: 36, weight: FontWeight.w300, color: focused ? Colors.white.withValues(alpha: 0.12) : unfocusedMuted.withValues(alpha: 0.3)),
+            hintText: '0.0',
+            hintStyle: GoogleFonts.jetBrainsMono(
+              fontSize: 56, fontWeight: FontWeight.w300,
+              color: AppColors.muted.withValues(alpha: 0.3),
+              height: 1.0,
+            ),
             isDense: true,
             contentPadding: EdgeInsets.zero,
           ),
         ),
-        AnimatedContainer(
-          duration: const Duration(milliseconds: 300),
-          height: 3,
-          margin: const EdgeInsets.only(top: 4, bottom: 0),
-          decoration: BoxDecoration(
-            gradient: focused ? const LinearGradient(colors: [AppColors.accentBlue, AppColors.accent]) : null,
-            color: focused ? null : Colors.transparent,
-            borderRadius: BorderRadius.circular(3),
-          ),
-        ),
-        const SizedBox(height: 0),
+        const SizedBox(height: 8),
+
+        // Quick-adjust buttons
+        Row(children: [
+          for (final delta in [-1.0, -0.25, 0.25, 1.0]) ...[
+            Expanded(child: _AdjustButton(
+              label: delta > 0 ? '+${AppFormat.stopLoss(delta)}' : AppFormat.stopLoss(delta),
+              onTap: () => onAdjust(delta),
+            )),
+            if (delta != 1.0) const SizedBox(width: 6),
+          ],
+        ]),
       ]),
     );
   }
 }
 
-class _ResultHeroCard extends StatelessWidget {
-  final QuantaState state;
-  const _ResultHeroCard({super.key, required this.state});
+class _CommaToDotFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+      TextEditingValue oldValue, TextEditingValue newValue) {
+    final text = newValue.text.replaceAll(',', '.');
+    return newValue.copyWith(text: text);
+  }
+}
+
+class _AdjustButton extends StatelessWidget {
+  final String label;
+  final VoidCallback onTap;
+  const _AdjustButton({required this.label, required this.onTap});
+
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: AppDecor.navyGradientCard(),
-      padding: const EdgeInsets.all(24),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(
-          '${state.currentInstrument.ticker} — ${state.currentInstrument.name} · \$${state.currentInstrument.pointValue}/pt',
-          style: AppText.label(color: AppColors.accent.withValues(alpha: 0.45)),
+    return Clickable(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        decoration: BoxDecoration(
+          color: AppColors.elevated,
+          borderRadius: BorderRadius.circular(4),
+          border: Border.all(color: AppColors.border),
         ),
-        const SizedBox(height: 12),
-        Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
-          AnimatedSwitcher(
-            duration: const Duration(milliseconds: 200),
-            transitionBuilder: (child, animation) => ScaleTransition(
-              scale: Tween<double>(begin: 0.8, end: 1.0)
-                  .animate(CurvedAnimation(parent: animation, curve: Curves.easeOut)),
-              child: FadeTransition(opacity: animation, child: child),
-            ),
-            child: Text(
-              state.stopLossPoints > 0 ? '${state.contracts}' : '--',
-              key: ValueKey(state.stopLossPoints > 0 ? state.contracts : -1),
-              style: AppText.mono(size: 68, weight: FontWeight.w600, color: state.stopLossPoints > 0 ? Colors.white : Colors.white.withValues(alpha: 0.2)),
-            ),
-          ),
-          const SizedBox(width: 10),
-          Padding(padding: const EdgeInsets.only(bottom: 12), child: Text('contracts', style: GoogleFonts.manrope(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white.withValues(alpha: 0.3)))),
-        ]),
-        const SizedBox(height: 16),
+        child: Text(label,
+          textAlign: TextAlign.center,
+          style: AppText.mono(size: 12, weight: FontWeight.w600,
+              color: AppColors.muted)),
+      ),
+    );
+  }
+}
+
+// ── Result panel ───────────────────────────────────────────────────────────
+class _ResultPanel extends StatelessWidget {
+  final QuantaState state;
+  const _ResultPanel({required this.state});
+
+  @override
+  Widget build(BuildContext context) {
+    final hasData = state.stopLossPoints > 0;
+    final noContracts = hasData && state.contracts == 0;
+    final riskPct = state.accountBalance > 0
+        ? state.actualRisk / state.accountBalance * 100 : 0.0;
+
+    return Column(children: [
+      // Gauge — tap to copy contracts
+      Clickable(
+        onTap: hasData && !noContracts ? () {
+          HapticFeedback.mediumImpact();
+          Clipboard.setData(ClipboardData(text: '${state.contracts}'));
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('${state.contracts} CONTRACTS COPIED',
+                style: AppText.label(color: Colors.black)),
+            backgroundColor: AppColors.accent,
+            duration: const Duration(milliseconds: 1200),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+            margin: const EdgeInsets.fromLTRB(16, 0, 16, 100),
+          ));
+        } : null,
+        child: PacManGauge(
+          contracts: hasData ? state.contracts : 0,
+          hasData: hasData,
+        ),
+      ),
+
+      // Zero-contracts warning
+      if (noContracts) ...[
+        const SizedBox(height: 10),
         Container(
-          decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.04), borderRadius: BorderRadius.circular(12)),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            color: AppColors.orange.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(4),
+            border: Border.all(color: AppColors.orange.withValues(alpha: 0.4)),
+          ),
           child: Row(children: [
-            _RiskCell(label: 'Max Risk',     value: '\$${state.effectiveRisk.toStringAsFixed(0)}', color: Colors.white.withValues(alpha: 0.5)),
-            _RiskCell(label: 'Actual Risk',  value: '\$${state.actualRisk.toStringAsFixed(0)}', color: AppColors.green),
-            _RiskCell(label: 'Unused',       value: '\$${state.unusedRisk.toStringAsFixed(0)}', color: AppColors.orange, isLast: true),
+            Text('! ', style: AppText.mono(size: 12,
+                weight: FontWeight.w700, color: AppColors.orange)),
+            Expanded(child: Text('STOP TOO LARGE — REDUCE SL OR INCREASE RISK',
+                style: AppText.label(size: 10, color: AppColors.orange))),
           ]),
         ),
-      ]),
-    );
+      ],
+
+      const SizedBox(height: 10),
+      Container(
+        decoration: AppDecor.card(),
+        padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
+        child: Column(children: [
+          _ReadoutRow('MAX RISK',
+              AppFormat.dollar(state.effectiveRisk), AppColors.muted),
+          const SizedBox(height: 8),
+          _ReadoutRow('ACTUAL  ',
+              AppFormat.dollar(state.actualRisk), AppColors.green,
+              onTap: hasData && !noContracts ? () {
+                HapticFeedback.lightImpact();
+                Clipboard.setData(ClipboardData(
+                    text: AppFormat.dollar(state.actualRisk)));
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                  content: Text('${AppFormat.dollar(state.actualRisk)} COPIED',
+                      style: AppText.label(color: Colors.black)),
+                  backgroundColor: AppColors.accent,
+                  duration: const Duration(milliseconds: 1200),
+                  behavior: SnackBarBehavior.floating,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(4)),
+                  margin: const EdgeInsets.fromLTRB(16, 0, 16, 100),
+                ));
+              } : null),
+          const SizedBox(height: 8),
+          _ReadoutRow('UNUSED  ',
+              AppFormat.dollar(state.unusedRisk), AppColors.orange),
+          if (hasData && !noContracts) ...[
+            const SizedBox(height: 8),
+            Container(height: 1, color: AppColors.border),
+            const SizedBox(height: 8),
+            _ReadoutRow('RISK %  ',
+                AppFormat.pct(riskPct), AppColors.muted),
+          ],
+        ]),
+      ),
+    ]);
   }
 }
 
-class _RiskCell extends StatelessWidget {
+class _ReadoutRow extends StatelessWidget {
   final String label, value;
   final Color color;
-  final bool isLast;
-  const _RiskCell({required this.label, required this.value, required this.color, this.isLast = false});
+  final VoidCallback? onTap;
+  const _ReadoutRow(this.label, this.value, this.color, {this.onTap});
+
   @override
   Widget build(BuildContext context) {
-    return Expanded(child: Container(
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        border: isLast ? null : Border(right: BorderSide(color: Colors.white.withValues(alpha: 0.06))),
-      ),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(label, style: AppText.label(size: 10, color: Colors.white.withValues(alpha: 0.28))),
-        const SizedBox(height: 3),
-        AnimatedSwitcher(
-          duration: const Duration(milliseconds: 200),
-          child: Text(
-            value,
-            key: ValueKey(value),
-            style: AppText.mono(size: 16, weight: FontWeight.w600, color: color),
-          ),
+    final row = Row(children: [
+      Text(label, style: AppText.mono(size: 12, color: AppColors.muted)),
+      const SizedBox(width: 4),
+      const DotLeader(),
+      const SizedBox(width: 4),
+      AnimatedSwitcher(
+        duration: const Duration(milliseconds: 150),
+        child: Text(value,
+          key: ValueKey(value),
+          style: AppText.mono(size: 14, weight: FontWeight.w700, color: color),
         ),
-      ]),
-    ));
+      ),
+    ]);
+    if (onTap == null) return row;
+    return GestureDetector(onTap: onTap, child: row);
   }
 }

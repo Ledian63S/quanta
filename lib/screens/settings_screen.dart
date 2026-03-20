@@ -1,8 +1,11 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../models/quanta_state.dart';
 import '../theme/app_theme.dart';
+
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
   @override
@@ -20,7 +23,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (!_initialized) {
       final state = context.read<QuantaState>();
       _balCtrl  = TextEditingController(text: state.accountBalance.toStringAsFixed(0));
-      _riskCtrl = TextEditingController(text: state.riskAmount.toStringAsFixed(0));
+      _riskCtrl = TextEditingController(
+        text: state.riskIsPercent
+            ? state.riskPercent.toStringAsFixed(1)
+            : state.riskAmount.toStringAsFixed(0),
+      );
       _initialized = true;
     }
   }
@@ -34,211 +41,447 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    Theme.of(context); // depend on theme so StatelessWidget children repaint on brightness change
     final state = context.watch<QuantaState>();
-    return SafeArea(
+    final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
+    return Stack(children: [
+      SafeArea(
       child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          _Section(title: 'Account', children: [
-            _InputRow(
-              label: 'Account Balance',
-              subtitle: 'Your trading account size',
-              controller: _balCtrl,
-              prefix: '',
-              suffix: '',
-              onChanged: (v) => state.setBalance(double.tryParse(v) ?? state.accountBalance),
-            ),
-            _DividerLine(),
-            const _LabelRow(label: 'Currency', value: 'USD ›'),
+
+          // Header
+          Row(children: [
+            Text('> ', style: AppText.mono(size: 11, color: AppColors.accent)),
+            Text('SETTINGS', style: AppText.label(color: AppColors.accentLight)),
           ]),
           const SizedBox(height: 20),
-          _Section(title: 'Risk', children: [
-            _InputRow(
-              label: 'Risk per Trade',
-              subtitle: 'Fixed USD amount',
-              controller: _riskCtrl,
-              prefix: '\$',
-              suffix: '',
-              onChanged: (v) => state.setRisk(double.tryParse(v) ?? state.riskAmount),
-            ),
-          ]),
+
+          // ── ACCOUNT ──────────────────────────────────────────────────
+          const _SectionHeader('ACCOUNT'),
+          const SizedBox(height: 8),
+          Container(
+            decoration: AppDecor.card(),
+            child: Column(children: [
+              _InputRow(
+                label: 'Balance',
+                controller: _balCtrl,
+                prefix: '\$',
+                onChanged: (v) => state.setBalance(double.tryParse(v) ?? state.accountBalance),
+              ),
+              Container(height: 1, color: AppColors.border,
+                  margin: const EdgeInsets.symmetric(horizontal: 12)),
+              const _LabelRow(label: 'Currency', value: 'USD'),
+            ]),
+          ),
+
           const SizedBox(height: 20),
-          _Section(title: 'Preferences', children: [
-            _ToggleRow(label: 'Remember Balance',    value: state.rememberBalance,    onChanged: state.setRememberBalance),
-            _DividerLine(),
-            _ToggleRow(label: 'Remember Risk',       value: state.rememberRisk,       onChanged: state.setRememberRisk),
-            _DividerLine(),
-            _ToggleRow(label: 'Remember Instrument', value: state.rememberInstrument, onChanged: state.setRememberInstrument),
-          ]),
+
+          // ── RISK ─────────────────────────────────────────────────────
+          const _SectionHeader('RISK'),
+          const SizedBox(height: 8),
+          Container(
+            decoration: AppDecor.card(),
+            child: Column(children: [
+              _ToggleRow(
+                label: '% of Balance',
+                value: state.riskIsPercent,
+                onChanged: (v) {
+                  state.setRiskIsPercent(v);
+                  _riskCtrl.text = v
+                      ? state.riskPercent.toStringAsFixed(1)
+                      : state.riskAmount.toStringAsFixed(0);
+                },
+              ),
+              Container(height: 1, color: AppColors.border,
+                  margin: const EdgeInsets.symmetric(horizontal: 12)),
+              _InputRow(
+                label: 'Risk / Trade',
+                controller: _riskCtrl,
+                prefix: state.riskIsPercent ? '%' : '\$',
+                isPercent: state.riskIsPercent,
+                onChanged: (v) {
+                  if (state.riskIsPercent) {
+                    final pct = double.tryParse(v) ?? 0;
+                    state.setRisk(pct / 100 * state.accountBalance);
+                  } else {
+                    state.setRisk(double.tryParse(v) ?? state.riskAmount);
+                  }
+                },
+              ),
+            ]),
+          ),
+
           const SizedBox(height: 20),
-          _Section(title: 'Appearance', children: [
-            _AppearanceRow(current: state.themeMode, onChanged: state.setThemeMode),
-          ]),
+
+          // ── PREFERENCES ──────────────────────────────────────────────
+          const _SectionHeader('PREFERENCES'),
+          const SizedBox(height: 8),
+          Container(
+            decoration: AppDecor.card(),
+            child: Column(children: [
+              _ToggleRow(label: 'Remember Balance',
+                  value: state.rememberBalance, onChanged: state.setRememberBalance),
+              Container(height: 1, color: AppColors.border,
+                  margin: const EdgeInsets.symmetric(horizontal: 12)),
+              _ToggleRow(label: 'Remember Risk',
+                  value: state.rememberRisk, onChanged: state.setRememberRisk),
+              Container(height: 1, color: AppColors.border,
+                  margin: const EdgeInsets.symmetric(horizontal: 12)),
+              _ToggleRow(label: 'Remember Instrument',
+                  value: state.rememberInstrument, onChanged: state.setRememberInstrument),
+            ]),
+          ),
+
           const SizedBox(height: 20),
-          _Section(title: 'About', children: [
-            const _LabelRow(label: 'Version', value: '1.0.0'),
-            _DividerLine(),
-            const _LabelRow(label: 'Built for Quantower', value: '✦', valueColor: AppColors.accent),
-          ]),
+
+          // ── APPEARANCE ───────────────────────────────────────────────
+          const _SectionHeader('APPEARANCE'),
+          const SizedBox(height: 8),
+          Container(
+            decoration: AppDecor.card(),
+            child: _AppearanceRow(current: state.themeMode, onChanged: state.setThemeMode),
+          ),
+
+          const SizedBox(height: 20),
+
+          // ── ABOUT ────────────────────────────────────────────────────
+          const _SectionHeader('ABOUT'),
+          const SizedBox(height: 8),
+          Container(
+            decoration: AppDecor.card(),
+            child: Column(children: [
+              const _LabelRow(label: 'Version', value: 'v1.0.0.0'),
+              Container(height: 1, color: AppColors.border,
+                  margin: const EdgeInsets.symmetric(horizontal: 12)),
+              const _LabelRow(label: 'Developer', value: 'Ledian Leka'),
+              Container(height: 1, color: AppColors.border,
+                  margin: const EdgeInsets.symmetric(horizontal: 12)),
+              _TappableLabelRow(
+                label: 'Website',
+                value: 'ledian63s.github.io',
+                valueColor: AppColors.accentLight,
+                onTap: () => launchUrl(
+                  Uri.parse('https://ledian63s.github.io'),
+                  mode: LaunchMode.externalApplication,
+                ),
+              ),
+              Container(height: 1, color: AppColors.border,
+                  margin: const EdgeInsets.symmetric(horizontal: 12)),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                child: Center(
+                  child: Text('Made with ♥ for traders',
+                    style: AppText.mono(size: 12, color: AppColors.muted)),
+                ),
+              ),
+            ]),
+          ),
         ]),
       ),
-    );
-  }
-}
-
-class _Section extends StatelessWidget {
-  final String title;
-  final List<Widget> children;
-  const _Section({required this.title, required this.children});
-  @override
-  Widget build(BuildContext context) {
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text(title, style: AppText.label(color: AppColors.muted)),
-      const SizedBox(height: 8),
-      Container(
-        decoration: BoxDecoration(
-          color: AppColors.card,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.border, width: 1.5),
+    ),
+      // Done button — mobile only
+      if (!Platform.isMacOS && !Platform.isWindows) Positioned(
+        bottom: keyboardHeight > 0 ? keyboardHeight + 12 : 100,
+        right: 16,
+        child: AnimatedOpacity(
+          duration: const Duration(milliseconds: 150),
+          opacity: keyboardHeight > 0 ? 1.0 : 0.0,
+          child: IgnorePointer(
+            ignoring: keyboardHeight == 0,
+            child: Clickable(
+              onTap: () {
+                HapticFeedback.selectionClick();
+                FocusManager.instance.primaryFocus?.unfocus();
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: AppColors.accent,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text('DONE', style: AppText.label(color: Colors.black)),
+              ),
+            ),
+          ),
         ),
-        child: Column(children: children),
       ),
     ]);
   }
 }
 
-class _InputRow extends StatelessWidget {
-  final String label, subtitle, prefix, suffix;
+// ── Section header ──────────────────────────────────────────────────────────
+class _SectionHeader extends StatelessWidget {
+  final String title;
+  const _SectionHeader(this.title);
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(children: [
+      Text(title, style: AppText.label()),
+      const SizedBox(width: 8),
+      Expanded(child: Container(height: 1, color: AppColors.border)),
+    ]);
+  }
+}
+
+// ── Input row ───────────────────────────────────────────────────────────────
+class _InputRow extends StatefulWidget {
+  final String label, prefix;
   final TextEditingController controller;
   final ValueChanged<String> onChanged;
-  const _InputRow({required this.label, required this.subtitle, required this.controller, required this.prefix, required this.suffix, required this.onChanged});
+  final bool isPercent;
+  const _InputRow({required this.label, required this.controller,
+      required this.prefix, required this.onChanged, this.isPercent = false});
+  @override
+  State<_InputRow> createState() => _InputRowState();
+}
+
+class _InputRowState extends State<_InputRow> {
+  final _focus = FocusNode();
+  bool _focused = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _focus.addListener(() => setState(() => _focused = _focus.hasFocus));
+  }
+
+  @override
+  void dispose() { _focus.dispose(); super.dispose(); }
+
+  static String _fmt(String raw, {bool isPercent = false}) {
+    final v = double.tryParse(raw);
+    if (v == null) return raw;
+    if (isPercent) return v.toStringAsFixed(1);
+    return v.toStringAsFixed(0)
+        .replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+$)'), (m) => '${m[1]},');
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
-      child: Row(children: [
-        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(label, style: AppText.body(size: 13, weight: FontWeight.w600, color: AppColors.text)),
-          Text(subtitle, style: AppText.body(size: 10, color: AppColors.muted)),
-        ])),
-        Row(children: [
-          if (prefix.isNotEmpty) Text(prefix, style: AppText.body(size: 13, weight: FontWeight.w600, color: AppColors.muted)),
-          SizedBox(width: 90, child: TextField(
-            controller: controller,
-            onChanged: onChanged,
-            textAlign: TextAlign.right,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[\d.]'))],
-            enableInteractiveSelection: false,
-            style: AppText.mono(size: 15, weight: FontWeight.w600, color: AppColors.accentBlue),
-            decoration: const InputDecoration(border: InputBorder.none, isDense: true, contentPadding: EdgeInsets.zero),
-          )),
+    Theme.of(context); // depend on theme so colors update on brightness change
+    final displayText = widget.isPercent
+        ? '${_fmt(widget.controller.text, isPercent: true)}%'
+        : '${widget.prefix}${_fmt(widget.controller.text)}';
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: _focused ? null : () {
+        setState(() => _focused = true);
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) _focus.requestFocus();
+        });
+      },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        child: Row(children: [
+          Text('> ', style: AppText.mono(size: 11, color: AppColors.muted)),
+          Text(widget.label, style: AppText.mono(
+              size: 13, weight: FontWeight.w500, color: AppColors.text)),
+          const SizedBox(width: 4),
+          const DotLeader(),
+          const SizedBox(width: 4),
+          if (_focused) ...[
+            if (!widget.isPercent)
+              Text(widget.prefix, style: AppText.mono(size: 13,
+                  weight: FontWeight.w600, color: AppColors.muted)),
+            SizedBox(width: 80, child: TextField(
+              controller: widget.controller,
+              focusNode: _focus,
+              onChanged: widget.onChanged,
+              textAlign: TextAlign.right,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[\d.]'))],
+              enableInteractiveSelection: false,
+              cursorColor: AppColors.accent,
+              style: AppText.mono(size: 13, weight: FontWeight.w700,
+                  color: AppColors.accentLight),
+              decoration: const InputDecoration(
+                  border: InputBorder.none, isDense: true, contentPadding: EdgeInsets.zero),
+            )),
+            if (widget.isPercent)
+              Text('%', style: AppText.mono(size: 13,
+                  weight: FontWeight.w600, color: AppColors.muted)),
+          ] else
+            Text(displayText,
+              style: AppText.mono(size: 13, weight: FontWeight.w700,
+                  color: AppColors.accentLight)),
         ]),
-      ]),
+      ),
     );
   }
 }
 
+// ── Label row ───────────────────────────────────────────────────────────────
 class _LabelRow extends StatelessWidget {
   final String label, value;
-  final Color? valueColor;
-  const _LabelRow({required this.label, required this.value, this.valueColor});
+  const _LabelRow({required this.label, required this.value});
+
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
-      child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-        Text(label, style: AppText.body(size: 13, weight: FontWeight.w600, color: AppColors.text)),
-        Text(value, style: AppText.body(size: 13, weight: FontWeight.w700, color: valueColor ?? AppColors.accentBlue)),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+      child: Row(children: [
+        Text('> ', style: AppText.mono(size: 11, color: AppColors.subtle)),
+        Text(label, style: AppText.mono(
+            size: 13, weight: FontWeight.w500, color: AppColors.muted)),
+        const SizedBox(width: 4),
+        const DotLeader(),
+        const SizedBox(width: 4),
+        Text(value, style: AppText.mono(size: 13, weight: FontWeight.w700,
+            color: AppColors.text)),
       ]),
     );
   }
 }
 
+// ── Tappable label row ───────────────────────────────────────────────────────
+class _TappableLabelRow extends StatelessWidget {
+  final String label, value;
+  final Color? valueColor;
+  final VoidCallback onTap;
+  const _TappableLabelRow({required this.label, required this.value,
+      this.valueColor, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Clickable(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        child: Row(children: [
+          Text('> ', style: AppText.mono(size: 11, color: AppColors.subtle)),
+          Text(label, style: AppText.mono(
+              size: 13, weight: FontWeight.w500, color: AppColors.muted)),
+          const SizedBox(width: 4),
+          const DotLeader(),
+          const SizedBox(width: 4),
+          Text(value, style: AppText.mono(size: 13, weight: FontWeight.w700,
+              color: valueColor ?? AppColors.text)),
+          const SizedBox(width: 4),
+          Text('↗', style: AppText.mono(size: 11, color: AppColors.muted)),
+        ]),
+      ),
+    );
+  }
+}
+
+// ── Toggle row ──────────────────────────────────────────────────────────────
 class _ToggleRow extends StatelessWidget {
   final String label;
   final bool value;
   final ValueChanged<bool> onChanged;
   const _ToggleRow({required this.label, required this.value, required this.onChanged});
+
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-        Text(label, style: AppText.body(size: 13, weight: FontWeight.w600, color: AppColors.text)),
-        Switch.adaptive(
-          value: value,
-          onChanged: (v) {
-            HapticFeedback.selectionClick();
-            onChanged(v);
-          },
-        ),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      child: Row(children: [
+        Text('> ', style: AppText.mono(size: 11, color: AppColors.subtle)),
+        Expanded(child: Text(label, style: AppText.mono(
+            size: 13, weight: FontWeight.w500, color: AppColors.text))),
+        _AppToggle(value: value, onChanged: onChanged),
       ]),
     );
   }
 }
 
-class _DividerLine extends StatelessWidget {
+// ── Custom amber terminal toggle ─────────────────────────────────────────────
+class _AppToggle extends StatelessWidget {
+  final bool value;
+  final ValueChanged<bool> onChanged;
+  const _AppToggle({required this.value, required this.onChanged});
+
   @override
   Widget build(BuildContext context) {
-    return Container(height: 1, color: AppColors.border, margin: const EdgeInsets.symmetric(horizontal: 16));
+    return Clickable(
+      onTap: () {
+        HapticFeedback.selectionClick();
+        onChanged(!value);
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        width: 48, height: 26,
+        decoration: BoxDecoration(
+          color: value
+              ? AppColors.accent.withValues(alpha: 0.15)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(4),
+          border: Border.all(
+            color: value ? AppColors.accent : AppColors.border,
+            width: 1.5,
+          ),
+        ),
+        child: Stack(children: [
+          AnimatedPositioned(
+            duration: const Duration(milliseconds: 150),
+            curve: Curves.easeOut,
+            top: 3, bottom: 3,
+            left: value ? 23 : 3,
+            right: value ? 3 : 23,
+            child: Container(
+              decoration: BoxDecoration(
+                color: value ? AppColors.accent : AppColors.muted,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+        ]),
+      ),
+    );
   }
 }
 
+// ── Appearance picker ───────────────────────────────────────────────────────
 class _AppearanceRow extends StatelessWidget {
   final ThemeMode current;
   final ValueChanged<ThemeMode> onChanged;
   const _AppearanceRow({required this.current, required this.onChanged});
 
   static const _options = [
-    (ThemeMode.system,  'Automatic'),
-    (ThemeMode.light,   'Light'),
-    (ThemeMode.dark,    'Dark'),
+    (ThemeMode.system, 'AUTO'),
+    (ThemeMode.light,  'LIGHT'),
+    (ThemeMode.dark,   'DARK'),
   ];
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.all(12),
-      child: Container(
-        decoration: BoxDecoration(
-          color: AppColors.bg,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.border),
-        ),
-        padding: const EdgeInsets.all(3),
-        child: Row(
-          children: _options.map((opt) {
-            final (mode, label) = opt;
-            final active = current == mode;
-            return Expanded(
-              child: Clickable(
-                onTap: () {
-                    HapticFeedback.selectionClick();
-                    onChanged(mode);
-                  },
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  decoration: BoxDecoration(
-                    color: active ? AppColors.card : Colors.transparent,
-                    borderRadius: BorderRadius.circular(9),
-                    boxShadow: active
-                        ? [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 6, offset: const Offset(0, 2))]
-                        : null,
+      padding: const EdgeInsets.all(10),
+      child: Row(
+        children: _options.map((opt) {
+          final (mode, label) = opt;
+          final active = current == mode;
+          return Expanded(
+            child: Clickable(
+              onTap: () {
+                HapticFeedback.selectionClick();
+                onChanged(mode);
+              },
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 150),
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                decoration: BoxDecoration(
+                  color: active
+                      ? AppColors.accent.withValues(alpha: 0.12)
+                      : Colors.transparent,
+                  borderRadius: BorderRadius.circular(4),
+                  border: Border.all(
+                    color: active
+                        ? AppColors.accent.withValues(alpha: 0.5)
+                        : Colors.transparent,
                   ),
-                  child: Text(label,
-                    textAlign: TextAlign.center,
-                    style: AppText.body(
-                      size: 13,
-                      weight: active ? FontWeight.w700 : FontWeight.w500,
-                      color: active ? AppColors.accentBlue : AppColors.muted,
-                    )),
                 ),
+                child: Text(label,
+                  textAlign: TextAlign.center,
+                  style: AppText.label(
+                    color: active ? AppColors.accent : AppColors.muted,
+                  )),
               ),
-            );
-          }).toList(),
-        ),
+            ),
+          );
+        }).toList(),
       ),
     );
   }

@@ -11,12 +11,24 @@ dependencies:
     sdk: flutter
   google_fonts: ^6.2.1
   provider: ^6.1.1
-  shared_preferences: ^2.2.2
+  url_launcher: ^6.3.2
+  window_manager: ^0.5.1
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^3.0.0
+  flutter_launcher_icons: ^0.14.3
+
+flutter_launcher_icons:
+  ios: true
+  android: false
+  image_path: "assets/icon.png"
+  ios_content_mode: scaleAspectFill
+  remove_alpha_ios: true
+  macos:
+    generate: true
+    image_path: "assets/icon.png"
 
 flutter:
   uses-material-design: true

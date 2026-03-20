@@ -5,10 +5,12 @@ import 'package:provider/provider.dart';
 import '../models/quanta_state.dart';
 import '../theme/app_theme.dart';
 
-const _kRowHeight = 58.0;
+const _kRowHeight = 56.0;
+const _kH = 20.0;
 
 class LevelsScreen extends StatefulWidget {
-  const LevelsScreen({super.key});
+  final VoidCallback? onNavigateToCalc;
+  const LevelsScreen({super.key, this.onNavigateToCalc});
   @override
   State<LevelsScreen> createState() => _LevelsScreenState();
 }
@@ -16,7 +18,9 @@ class LevelsScreen extends StatefulWidget {
 class _LevelsScreenState extends State<LevelsScreen> {
   FixedExtentScrollController? _wheelController;
   int _selectedIndex = 0;
-  double? _prevStopLossPoints;
+  double? _prevEffectiveRisk;
+  double? _prevStopLoss;
+  bool _prevHasData = false;
   DateTime _programmaticScrollUntil = DateTime(0);
 
   @override
@@ -25,17 +29,19 @@ class _LevelsScreenState extends State<LevelsScreen> {
     super.dispose();
   }
 
-  void _initWheel(List<double> levels, double stopLoss) {
-    final idx = levels.indexWhere((l) => (l - stopLoss).abs() < 0.01);
-    _selectedIndex = idx >= 0 ? idx : levels.length ~/ 2;
-    _wheelController?.dispose();
-    _wheelController = FixedExtentScrollController(initialItem: _selectedIndex);
+  void _initWheel(List<double> levels, double targetRisk) {
+    final idx = _closestIndex(levels, targetRisk);
+    _selectedIndex = idx;
+    final oldController = _wheelController;
+    _wheelController = FixedExtentScrollController(initialItem: idx);
+    if (oldController != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => oldController.dispose());
+    }
   }
 
-  void _animateToStop(List<double> levels, double stop) {
-    final idx = levels.indexWhere((l) => (l - stop).abs() < 0.01);
-    if (idx < 0) return;
-    _selectedIndex = idx; // update immediately so build doesn't go out of bounds
+  void _animateToRisk(List<double> levels, double targetRisk) {
+    final idx = _closestIndex(levels, targetRisk);
+    _selectedIndex = idx;
     _programmaticScrollUntil = DateTime.now().add(const Duration(milliseconds: 450));
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _wheelController?.animateToItem(idx,
@@ -43,251 +49,315 @@ class _LevelsScreenState extends State<LevelsScreen> {
     });
   }
 
+  int _closestIndex(List<double> levels, double target) {
+    if (levels.isEmpty) return 0;
+    int best = 0;
+    double bestDiff = double.infinity;
+    for (int i = 0; i < levels.length; i++) {
+      final d = (levels[i] - target).abs();
+      if (d < bestDiff) { bestDiff = d; best = i; }
+    }
+    return best;
+  }
+
   @override
   Widget build(BuildContext context) {
+    Theme.of(context); // depend on theme so colors repaint on brightness change
     final state = context.watch<QuantaState>();
     final hasData = state.stopLossPoints > 0;
 
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bgColor = isDark ? AppColors.darkBg : AppColors.bg;
-    final mutedColor = isDark ? AppColors.darkMuted : AppColors.muted;
-    final textColor = isDark ? AppColors.darkText : AppColors.text;
-
-    // Reset wheel when stop loss is cleared (e.g. instrument switch)
+    // Reset when data is cleared
     if (!hasData && _wheelController != null) {
       _wheelController!.dispose();
       _wheelController = null;
       _selectedIndex = 0;
-      _prevStopLossPoints = 0;
+      _prevEffectiveRisk = null;
+      _prevStopLoss = null;
+      _prevHasData = false;
     }
 
     if (!hasData) {
-      return SafeArea(
-        child: Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Icon(Icons.bar_chart, size: 48, color: mutedColor.withValues(alpha: 0.4)),
-          const SizedBox(height: 12),
-          Text('Enter a stop loss in Calculator\nto see nearby levels',
-              textAlign: TextAlign.center,
-              style: GoogleFonts.manrope(fontSize: 14, color: mutedColor,
-                  fontWeight: FontWeight.w500, height: 1.6)),
-        ])),
-      );
+      return Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
+        Container(
+          width: 48, height: 48,
+          decoration: BoxDecoration(
+            color: AppColors.card,
+            borderRadius: BorderRadius.circular(4),
+            border: Border.all(color: AppColors.border),
+          ),
+          child: Center(child: Text('///', style: AppText.mono(
+              size: 14, weight: FontWeight.w700, color: AppColors.muted))),
+        ),
+        const SizedBox(height: 16),
+        Text('NO DATA', style: AppText.label(color: AppColors.muted)),
+        const SizedBox(height: 6),
+        Text('> SET STOP LOSS IN CALC FIRST',
+            style: AppText.mono(size: 11, color: AppColors.subtle)),
+        if (widget.onNavigateToCalc != null) ...[
+          const SizedBox(height: 20),
+          Clickable(
+            onTap: widget.onNavigateToCalc,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              decoration: BoxDecoration(
+                color: AppColors.accent.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(4),
+                border: Border.all(
+                    color: AppColors.accent.withValues(alpha: 0.4)),
+              ),
+              child: Text('GO TO CALC',
+                  style: AppText.label(color: AppColors.accent)),
+            ),
+          ),
+        ],
+      ]));
     }
 
-    final levels = state.nearbyStopLevels;
+    final levels = state.nearbyRiskLevels;
 
-    if (_prevStopLossPoints != state.stopLossPoints) {
-      _prevStopLossPoints = state.stopLossPoints;
-      if (_wheelController == null) {
-        _initWheel(levels, state.stopLossPoints);
-      } else {
-        _animateToStop(levels, state.stopLossPoints);
-      }
+    // Initialize or animate when effective risk, stop loss, or data state changes
+    final effectiveRiskChanged = _prevEffectiveRisk != state.effectiveRisk;
+    final stopLossChanged = _prevStopLoss != state.stopLossPoints;
+    final dataJustAppeared = !_prevHasData && hasData;
+
+    if (dataJustAppeared || stopLossChanged || (effectiveRiskChanged && _wheelController == null)) {
+      _prevEffectiveRisk = state.effectiveRisk;
+      _prevStopLoss = state.stopLossPoints;
+      _prevHasData = true;
+      _initWheel(levels, state.effectiveRisk);
+    } else if (effectiveRiskChanged && _wheelController != null) {
+      _prevEffectiveRisk = state.effectiveRisk;
+      _animateToRisk(levels, state.effectiveRisk);
     }
 
     final safeIndex = _selectedIndex.clamp(0, levels.length - 1);
-    final selectedStop = levels.isNotEmpty ? levels[safeIndex] : state.stopLossPoints;
+    final selectedRisk = levels.isNotEmpty ? levels[safeIndex] : state.effectiveRisk;
+    final contracts = state.contractsForRisk(selectedRisk);
+    final actualRisk = state.actualRiskForRisk(selectedRisk);
 
     return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          _SummaryCard(state: state, selectedStop: selectedStop),
-          const SizedBox(height: 20),
-          _SectionLabel('Nearby Stop Levels', color: mutedColor),
-          const SizedBox(height: 10),
-          _TableHeader(mutedColor: mutedColor),
-          const SizedBox(height: 8),
-          Expanded(
-            child: Stack(
-              children: [
+      child: Column(children: [
 
-                // Center highlight — fixed behind the wheel
-                IgnorePointer(
-                  child: Center(
-                    child: Container(
-                      height: _kRowHeight,
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          begin: Alignment.topLeft, end: Alignment.bottomRight,
-                          colors: [AppColors.navyCard1, AppColors.navyCard2],
-                        ),
-                        borderRadius: BorderRadius.circular(13),
-                        border: Border.all(
-                            color: AppColors.accent.withValues(alpha: 0.35), width: 1.5),
-                        boxShadow: [BoxShadow(
-                            color: AppColors.accent.withValues(alpha: 0.14),
-                            blurRadius: 16)],
-                      ),
-                    ),
+        // ── Hero ──────────────────────────────────────────────────────
+        Padding(
+          padding: const EdgeInsets.fromLTRB(_kH, 16, _kH, 0),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+
+            // Ticker / label bar
+            Row(children: [
+              Text('> ', style: AppText.mono(size: 11, color: AppColors.accent)),
+              Text(state.currentInstrument.ticker,
+                  style: AppText.mono(size: 11, weight: FontWeight.w700,
+                      color: AppColors.accentLight)),
+              Text('  \$${state.currentInstrument.pointValue}/PT',
+                  style: AppText.mono(size: 11, color: AppColors.muted)),
+              const Spacer(),
+              Text('LEVELS', style: AppText.label(color: AppColors.muted)),
+            ]),
+            const SizedBox(height: 14),
+
+            // Hero stats — 3-column row matching wheel columns below
+            Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
+              // STOP LOSS — fixed from calculator (left)
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                Text('STOP LOSS', style: AppText.label(size: 10)),
+                const SizedBox(height: 4),
+                Text(AppFormat.stopLoss(state.stopLossPoints),
+                    style: GoogleFonts.jetBrainsMono(
+                        fontSize: 48, fontWeight: FontWeight.w700,
+                        color: AppColors.muted, height: 1.0)),
+                Text('pts  ·  fixed', style: AppText.label(size: 10, color: AppColors.subtle)),
+              ])),
+
+              // CONTRACTS for selected risk (center)
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                Text('CONTRACTS', style: AppText.label(size: 10)),
+                const SizedBox(height: 4),
+                Text('$contracts',
+                    textAlign: TextAlign.center,
+                    style: AppText.mono(size: 40, weight: FontWeight.w700,
+                        color: AppColors.accentLight)),
+              ])),
+
+              // ACTUAL RISK for selected risk (right)
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                Text('ACTUAL RISK', style: AppText.label(size: 10)),
+                const SizedBox(height: 4),
+                Text(AppFormat.dollar(actualRisk),
+                    style: AppText.mono(size: 26, weight: FontWeight.w700,
+                        color: AppColors.green)),
+              ])),
+            ]),
+
+            const SizedBox(height: 14),
+            Container(height: 1, color: AppColors.border),
+            const SizedBox(height: 10),
+
+            // Column headers
+            Row(children: [
+              Expanded(child: Text('RISK', style: AppText.label(size: 10))),
+              Expanded(child: Text('CONTRACTS', textAlign: TextAlign.center,
+                  style: AppText.label(size: 10))),
+              Expanded(child: Text('ACTUAL', textAlign: TextAlign.right,
+                  style: AppText.label(size: 10))),
+            ]),
+            const SizedBox(height: 6),
+          ]),
+        ),
+
+        // ── Wheel ──────────────────────────────────────────────────────
+        Expanded(
+          child: Stack(children: [
+
+            // Selection highlight
+            IgnorePointer(
+              child: Center(
+                child: Container(
+                  height: _kRowHeight,
+                  margin: const EdgeInsets.symmetric(horizontal: _kH - 4),
+                  decoration: BoxDecoration(
+                    color: AppColors.elevated,
+                    borderRadius: BorderRadius.circular(4),
+                    border: Border.all(
+                        color: AppColors.accent.withValues(alpha: 0.3), width: 1),
                   ),
                 ),
+              ),
+            ),
 
-                // Wheel picker — snaps automatically
-                if (_wheelController != null)
-                  ListWheelScrollView.useDelegate(
-                    controller: _wheelController!,
-                    itemExtent: _kRowHeight,
-                    physics: const FixedExtentScrollPhysics(),
-                    diameterRatio: 100,
-                    overAndUnderCenterOpacity: 1.0,
-                    onSelectedItemChanged: (i) {
-                      if (DateTime.now().isAfter(_programmaticScrollUntil)) HapticFeedback.selectionClick();
-                      setState(() => _selectedIndex = i);
-                    },
-                    childDelegate: ListWheelChildBuilderDelegate(
-                      childCount: levels.length,
-                      builder: (context, i) {
-                        final sl = levels[i];
-                        final c = state.contractsForStop(sl);
-                        final ar = state.actualRiskForStop(sl);
-                        return AnimatedBuilder(
-                          animation: _wheelController!,
-                          builder: (context, _) {
-                            double dist = 0;
-                            if (_wheelController!.hasClients) {
-                              final frac = _wheelController!.offset / _kRowHeight;
-                              dist = (frac - i).abs();
-                            }
-                            final isSelected = dist < 0.5;
-                            final opacity = (1.0 - dist * 0.15).clamp(0.5, 1.0);
-                            final ptSize = (17.0 - dist * 1.2).clamp(14.0, 17.0);
-                            final cSize  = (19.0 - dist * 1.4).clamp(15.0, 19.0);
-                            final rSize  = (17.0 - dist * 1.2).clamp(14.0, 17.0);
-                            return Opacity(
-                              opacity: opacity,
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 14),
+            if (_wheelController != null)
+              Builder(builder: (context) {
+                final maxC = levels.isEmpty ? 1
+                    : levels.map((r) => state.contractsForRisk(r))
+                        .reduce((a, b) => a > b ? a : b);
+                return ListWheelScrollView.useDelegate(
+                  controller: _wheelController!,
+                  itemExtent: _kRowHeight,
+                  physics: const FixedExtentScrollPhysics(),
+                  diameterRatio: 100,
+                  overAndUnderCenterOpacity: 1.0,
+                  onSelectedItemChanged: (i) {
+                    if (DateTime.now().isAfter(_programmaticScrollUntil)) {
+                      HapticFeedback.selectionClick();
+                    }
+                    setState(() => _selectedIndex = i);
+                  },
+                  childDelegate: ListWheelChildBuilderDelegate(
+                    childCount: levels.length,
+                    builder: (context, i) {
+                      final risk = levels[i];
+                      final c = state.contractsForRisk(risk);
+                      final ar = state.actualRiskForRisk(risk);
+                      final barFraction = maxC > 0 ? c / maxC : 0.0;
+                      final isSelected = i == _selectedIndex;
+                      // Highlight the row matching effectiveRisk
+                      final isCurrentRisk = (risk - state.effectiveRisk).abs() < 0.01;
+                      return Opacity(
+                        opacity: isSelected ? 1.0 : 0.55,
+                        child: LayoutBuilder(
+                          builder: (context, constraints) => Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              // Background bar
+                              Positioned(
+                                left: 0, top: 8, bottom: 8,
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 300),
+                                  width: constraints.maxWidth * barFraction * 0.55,
+                                  decoration: BoxDecoration(
+                                    color: AppColors.accent.withValues(
+                                        alpha: isSelected ? 0.08 : 0.04),
+                                    borderRadius: const BorderRadius.only(
+                                      topRight: Radius.circular(2),
+                                      bottomRight: Radius.circular(2),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              // Left cursor
+                              Positioned(
+                                left: 0, top: 12, bottom: 12,
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 150),
+                                  width: 2,
+                                  color: isSelected
+                                      ? AppColors.accent : Colors.transparent,
+                                ),
+                              ),
+                              // Row content
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: _kH),
                                 child: Row(children: [
-                                  Expanded(child: Text(sl.toStringAsFixed(1),
-                                      style: AppText.body(size: ptSize,
-                                          weight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                                  // RISK column
+                                  Expanded(child: Row(children: [
+                                    Text(AppFormat.dollar(risk),
+                                        style: AppText.mono(
+                                          size: isSelected ? 15 : 13,
+                                          weight: isSelected
+                                              ? FontWeight.w700 : FontWeight.w400,
                                           color: isSelected
-                                              ? Colors.white.withValues(alpha: 0.85)
-                                              : textColor))),
+                                              ? AppColors.text : AppColors.muted,
+                                        )),
+                                    // Dot marker for current effectiveRisk
+                                    if (isCurrentRisk) ...[
+                                      const SizedBox(width: 4),
+                                      Container(
+                                        width: 4, height: 4,
+                                        decoration: const BoxDecoration(
+                                          color: AppColors.accent,
+                                          shape: BoxShape.circle,
+                                        ),
+                                      ),
+                                    ],
+                                  ])),
+                                  // CONTRACTS column
                                   Expanded(child: Text('$c',
                                       textAlign: TextAlign.center,
-                                      style: AppText.mono(size: cSize,
-                                          weight: FontWeight.w700,
-                                          color: isSelected ? Colors.white : textColor))),
-                                  Expanded(child: Text('\$${ar.toStringAsFixed(0)}',
+                                      style: AppText.mono(
+                                        size: isSelected ? 17 : 14,
+                                        weight: FontWeight.w700,
+                                        color: isSelected
+                                            ? AppColors.accentLight : AppColors.subtle,
+                                      ))),
+                                  // ACTUAL column
+                                  Expanded(child: Text(AppFormat.dollar(ar),
                                       textAlign: TextAlign.right,
-                                      style: AppText.mono(size: rSize,
-                                          weight: FontWeight.w500,
-                                          color: isSelected ? AppColors.green : textColor))),
+                                      style: AppText.mono(
+                                        size: isSelected ? 15 : 13,
+                                        weight: FontWeight.w500,
+                                        color: isSelected
+                                            ? AppColors.green : AppColors.subtle,
+                                      ))),
                                 ]),
                               ),
-                            );
-                          },
-                        );
-                      },
-                    ),
-                  ),
-
-                // Top fade
-                Positioned(
-                  top: 0, left: 0, right: 0,
-                  child: IgnorePointer(
-                    child: Container(
-                      height: 100,
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter, end: Alignment.bottomCenter,
-                          colors: [bgColor, bgColor.withValues(alpha: 0)],
+                            ],
+                          ),
                         ),
-                      ),
-                    ),
+                      );
+                    },
                   ),
-                ),
+                );
+              }),
 
-                // Bottom fade
-                Positioned(
-                  bottom: 0, left: 0, right: 0,
-                  child: IgnorePointer(
-                    child: Container(
-                      height: 100,
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter, end: Alignment.bottomCenter,
-                          colors: [bgColor.withValues(alpha: 0), bgColor],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ]),
-      ),
-    );
-  }
-}
-
-class _SummaryCard extends StatelessWidget {
-  final QuantaState state;
-  final double selectedStop;
-  const _SummaryCard({required this.state, required this.selectedStop});
-  @override
-  Widget build(BuildContext context) {
-    final c = state.contractsForStop(selectedStop);
-    final ar = state.actualRiskForStop(selectedStop);
-    return Container(
-      decoration: AppDecor.navyGradientCard(),
-      padding: const EdgeInsets.all(22),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text('${state.currentInstrument.ticker} · \$${state.currentInstrument.pointValue}/pt',
-            style: AppText.label(color: AppColors.accent.withValues(alpha: 0.45))),
-        const SizedBox(height: 12),
-        Row(children: [
-          _SumItem(label: 'Contracts', value: '$c', color: AppColors.accent),
-          _SumItem(label: 'Stop Loss',
-              value: '${selectedStop.toStringAsFixed(1)} pts', color: Colors.white),
-          _SumItem(label: 'Actual Risk',
-              value: '\$${ar.toStringAsFixed(0)}', color: Colors.white),
-        ]),
+            // Fade overlays
+            Positioned(top: 0, left: 0, right: 0,
+              child: IgnorePointer(child: Container(height: 80,
+                decoration: BoxDecoration(gradient: LinearGradient(
+                  begin: Alignment.topCenter, end: Alignment.bottomCenter,
+                  colors: [AppColors.bg, AppColors.bg.withValues(alpha: 0)],
+                ))))),
+            Positioned(bottom: 0, left: 0, right: 0,
+              child: IgnorePointer(child: Container(height: 80,
+                decoration: BoxDecoration(gradient: LinearGradient(
+                  begin: Alignment.topCenter, end: Alignment.bottomCenter,
+                  colors: [AppColors.bg.withValues(alpha: 0), AppColors.bg],
+                ))))),
+          ]),
+        ),
       ]),
     );
   }
-}
-
-class _SumItem extends StatelessWidget {
-  final String label, value;
-  final Color color;
-  const _SumItem({required this.label, required this.value, required this.color});
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text(label, style: AppText.label(size: 11, color: Colors.white.withValues(alpha: 0.3))),
-      const SizedBox(height: 5),
-      Text(value, style: AppText.mono(size: 20, weight: FontWeight.w600, color: color)),
-    ]));
-  }
-}
-
-class _TableHeader extends StatelessWidget {
-  final Color mutedColor;
-  const _TableHeader({required this.mutedColor});
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 14),
-      child: Row(children: [
-        Expanded(child: Text('POINTS', style: AppText.label(size: 11, color: mutedColor))),
-        Expanded(child: Text('CONTRACTS', textAlign: TextAlign.center,
-            style: AppText.label(size: 11, color: mutedColor))),
-        Expanded(child: Text('ACTUAL RISK', textAlign: TextAlign.right,
-            style: AppText.label(size: 11, color: mutedColor))),
-      ]),
-    );
-  }
-}
-
-class _SectionLabel extends StatelessWidget {
-  final String text;
-  final Color color;
-  const _SectionLabel(this.text, {required this.color});
-  @override
-  Widget build(BuildContext context) =>
-      Text(text, style: AppText.label(color: color));
 }

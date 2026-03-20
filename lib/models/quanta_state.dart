@@ -1,30 +1,39 @@
+import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'instrument.dart';
+import '../theme/app_theme.dart';
 
-class QuantaState extends ChangeNotifier {
+class QuantaState extends ChangeNotifier with WidgetsBindingObserver {
   double accountBalance = 50000;
   double riskAmount = 300; // persisted setting
   double? _sessionRisk; // temporary override, not persisted
   double get effectiveRisk => _sessionRisk ?? riskAmount;
   String selectedTicker = 'MNQ';
   double stopLossPoints = 0;
-  Set<String> favorites = {'MNQ'};
+  List<String> favorites = ['MNQ'];
 
   // Appearance
-  ThemeMode themeMode = ThemeMode.light;
+  ThemeMode themeMode = ThemeMode.system;
 
   // Settings toggles
   bool rememberBalance = true;
   bool rememberRisk = true;
   bool rememberInstrument = true;
+  bool riskIsPercent = false;
 
   Instrument get currentInstrument =>
       kAllInstruments.firstWhere((i) => i.ticker == selectedTicker,
           orElse: () => kAllInstruments.first);
 
-  List<Instrument> get favoriteInstruments =>
-      kAllInstruments.where((i) => favorites.contains(i.ticker)).toList();
+  // Preserve insertion order from the favorites list
+  List<Instrument> get favoriteInstruments => favorites
+      .where((t) => kAllInstruments.any((i) => i.ticker == t))
+      .map((t) => kAllInstruments.firstWhere((i) => i.ticker == t))
+      .toList();
+
+  double get riskPercent =>
+      accountBalance > 0 ? riskAmount / accountBalance * 100 : 0;
 
   // Core calculation — ALWAYS floor, never round
   int get contracts => stopLossPoints > 0
@@ -37,18 +46,25 @@ class QuantaState extends ChangeNotifier {
 
   double get unusedRisk => effectiveRisk - actualRisk;
 
-  // Nearby levels for Levels screen — ±20 pts in 0.5pt steps
-  List<double> get nearbyStopLevels {
+  // Risk ladder for Levels screen — scroll risk amounts at fixed stop loss
+  List<double> get nearbyRiskLevels {
     if (stopLossPoints <= 0) return [];
-    final sl = stopLossPoints;
+    const step = 25.0;
+    final top = (effectiveRisk * 5).clamp(500.0, 5000.0);
     final levels = <double>[];
-    for (double step = -20.0; step <= 20.0; step += 0.5) {
-      final val = double.parse((sl + step).toStringAsFixed(1));
-      if (val > 0) levels.add(val);
+    for (double r = 25.0; r <= top; r += step) {
+      levels.add(r);
     }
     return levels;
   }
 
+  int contractsForRisk(double risk) => stopLossPoints > 0
+      ? (risk / (stopLossPoints * currentInstrument.pointValue)).floor() : 0;
+
+  double actualRiskForRisk(double risk) =>
+      contractsForRisk(risk) * stopLossPoints * currentInstrument.pointValue;
+
+  // Keep stop-based helpers for any future use
   int contractsForStop(double sl) =>
       sl > 0 ? (effectiveRisk / (sl * currentInstrument.pointValue)).floor() : 0;
 
@@ -63,6 +79,7 @@ class QuantaState extends ChangeNotifier {
 
   void setRisk(double value) {
     riskAmount = value.clamp(0.01, 1000000);
+    _sessionRisk = null; // clear session override when persisted risk changes
     notifyListeners();
     _save();
   }
@@ -84,6 +101,14 @@ class QuantaState extends ChangeNotifier {
     notifyListeners();
   }
 
+  void reorderFavorites(int oldIndex, int newIndex) {
+    if (newIndex > oldIndex) newIndex--;
+    final item = favorites.removeAt(oldIndex);
+    favorites.insert(newIndex, item);
+    notifyListeners();
+    _save();
+  }
+
   void toggleFavorite(String ticker) {
     if (favorites.contains(ticker)) {
       if (favorites.length == 1) return; // keep at least one
@@ -94,6 +119,12 @@ class QuantaState extends ChangeNotifier {
     } else {
       favorites.add(ticker);
     }
+    notifyListeners();
+    _save();
+  }
+
+  void setRiskIsPercent(bool v) {
+    riskIsPercent = v;
     notifyListeners();
     _save();
   }
@@ -118,40 +149,80 @@ class QuantaState extends ChangeNotifier {
 
   void setThemeMode(ThemeMode mode) {
     themeMode = mode;
+    _syncIsDark();
     notifyListeners();
     _save();
   }
 
+  @override
+  void didChangePlatformBrightness() {
+    _syncIsDark();
+    notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  void _syncIsDark() {
+    final platformDark = WidgetsBinding
+        .instance.platformDispatcher.platformBrightness == Brightness.dark;
+    AppColors.isDark = themeMode == ThemeMode.dark ||
+        (themeMode == ThemeMode.system && platformDark);
+  }
+
+  static File _prefsFile() {
+    final home = Platform.environment['HOME'] ?? '';
+    return File('$home/Documents/quanta_prefs.json');
+  }
+
   Future<void> load() async {
-    final prefs = await SharedPreferences.getInstance();
-    rememberBalance = prefs.getBool('rememberBalance') ?? true;
-    rememberRisk = prefs.getBool('rememberRisk') ?? true;
-    rememberInstrument = prefs.getBool('rememberInstrument') ?? true;
-    if (rememberBalance) accountBalance = prefs.getDouble('balance') ?? 50000;
-    if (rememberRisk) riskAmount = prefs.getDouble('risk') ?? 300;
-    if (rememberInstrument) {
-      selectedTicker = prefs.getString('instrument') ?? 'MNQ';
+    try {
+      final file = _prefsFile();
+      if (await file.exists()) {
+        final data = jsonDecode(await file.readAsString()) as Map<String, dynamic>;
+        rememberBalance = data['rememberBalance'] as bool? ?? true;
+        rememberRisk = data['rememberRisk'] as bool? ?? true;
+        rememberInstrument = data['rememberInstrument'] as bool? ?? true;
+        if (rememberBalance) accountBalance = (data['balance'] as num?)?.toDouble() ?? 50000;
+        if (rememberRisk) riskAmount = (data['risk'] as num?)?.toDouble() ?? 300;
+        if (rememberInstrument) selectedTicker = data['instrument'] as String? ?? 'MNQ';
+        final favList = (data['favorites'] as List?)?.cast<String>() ?? ['MNQ'];
+        favorites = List<String>.from(favList.isNotEmpty ? favList : ['MNQ']);
+        riskIsPercent = data['riskIsPercent'] as bool? ?? false;
+        if (!favorites.contains(selectedTicker)) selectedTicker = favorites.first;
+        final themeModeStr = data['themeMode'] as String? ?? 'system';
+        themeMode = ThemeMode.values.firstWhere((m) => m.name == themeModeStr,
+            orElse: () => ThemeMode.system);
+      }
+    } catch (_) {
+      // Use defaults on any error
     }
-    final favList = prefs.getStringList('favorites') ?? ['MNQ'];
-    favorites = Set<String>.from(favList);
-    if (!favorites.contains(selectedTicker)) {
-      selectedTicker = favorites.first;
-    }
-    final themeModeStr = prefs.getString('themeMode') ?? 'light';
-    themeMode = ThemeMode.values.firstWhere((m) => m.name == themeModeStr,
-        orElse: () => ThemeMode.light);
+    WidgetsBinding.instance.addObserver(this);
+    _syncIsDark();
     notifyListeners();
   }
 
   Future<void> _save() async {
-    final prefs = await SharedPreferences.getInstance();
-    prefs.setBool('rememberBalance', rememberBalance);
-    prefs.setBool('rememberRisk', rememberRisk);
-    prefs.setBool('rememberInstrument', rememberInstrument);
-    if (rememberBalance) prefs.setDouble('balance', accountBalance);
-    if (rememberRisk) prefs.setDouble('risk', riskAmount);
-    if (rememberInstrument) prefs.setString('instrument', selectedTicker);
-    prefs.setStringList('favorites', favorites.toList());
-    prefs.setString('themeMode', themeMode.name);
+    try {
+      final file = _prefsFile();
+      await file.parent.create(recursive: true);
+      final data = <String, dynamic>{
+        'rememberBalance': rememberBalance,
+        'rememberRisk': rememberRisk,
+        'rememberInstrument': rememberInstrument,
+        if (rememberBalance) 'balance': accountBalance,
+        if (rememberRisk) 'risk': riskAmount,
+        if (rememberInstrument) 'instrument': selectedTicker,
+        'favorites': favorites,
+        'riskIsPercent': riskIsPercent,
+        'themeMode': themeMode.name,
+      };
+      await file.writeAsString(jsonEncode(data));
+    } catch (_) {
+      // Ignore save errors
+    }
   }
 }
