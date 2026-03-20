@@ -5,6 +5,9 @@ on:
     tags:
       - 'v*'
 
+permissions:
+  contents: write
+
 jobs:
   build-macos:
     name: Build macOS
@@ -26,7 +29,7 @@ jobs:
       - name: Zip app
         run: |
           ditto -c -k --sequesterRsrc --keepParent \
-            build/macos/Build/Products/Release/quanta.app \
+            build/macos/Build/Products/Release/Quanta.app \
             Quanta-macOS-${{ github.ref_name }}.zip
 
       - name: Upload to release
@@ -56,8 +59,10 @@ jobs:
       - name: Build APK
         run: flutter build apk --release
 
+      - name: Rename APK
+        run: mv build/app/outputs/flutter-apk/app-release.apk Quanta-Android-${{ github.ref_name }}.apk
+
       - name: Upload to release
         uses: softprops/action-gh-release@v2
         with:
-          files: build/app/outputs/flutter-apk/app-release.apk
-          asset_name: Quanta-Android-${{ github.ref_name }}.apk
+          files: Quanta-Android-${{ github.ref_name }}.apk
