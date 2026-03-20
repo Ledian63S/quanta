@@ -114,153 +114,152 @@ class _TerminalNumberState extends State<TerminalNumber>
   }
 }
 
-// ── Risk arc gauge ─────────────────────────────────────────────────────────
-class RiskGauge extends StatefulWidget {
-  final double actual;
-  final double max;
+// ── Brick gauge — 2 rows × 5 cols ──────────────────────────────────────────
+class PacManGauge extends StatelessWidget {
   final int contracts;
-  const RiskGauge({super.key, required this.actual,
-      required this.max, required this.contracts});
-  @override
-  State<RiskGauge> createState() => _RiskGaugeState();
-}
-
-class _RiskGaugeState extends State<RiskGauge>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _pulseCtrl;
-  late Animation<double> _pulse;
-
-  @override
-  void initState() {
-    super.initState();
-    _pulseCtrl = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 350));
-    _pulse = Tween(begin: 0.0, end: 1.0).animate(
-        CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeOut));
-  }
-
-  @override
-  void didUpdateWidget(RiskGauge old) {
-    super.didUpdateWidget(old);
-    if (old.contracts != widget.contracts && widget.contracts > 0) {
-      _pulseCtrl.forward(from: 0).then((_) => _pulseCtrl.reverse());
-    }
-  }
-
-  @override
-  void dispose() { _pulseCtrl.dispose(); super.dispose(); }
+  final bool hasData;
+  static const _cols = 5;
+  static const _maxBricks = 10; // 2 rows × 5 cols
+  const PacManGauge({super.key, required this.contracts, required this.hasData});
 
   @override
   Widget build(BuildContext context) {
-    final ratio = widget.max > 0
-        ? (widget.actual / widget.max).clamp(0.0, 1.0) : 0.0;
-    // The arc (160°→20° clockwise through top) in a 250×250 canvas:
-    //   - top of arc (270° = 12 o'clock): y ≈ 20
-    //   - arc endpoints: y ≈ 161
-    //   - number center: y = 125
-    // Crop the bottom ~75px of empty space via ClipRect+OverflowBox,
-    // so the CustomPaint always paints with correct 250×250 geometry.
-    return ClipRect(
-      child: SizedBox(
-        width: 250,
-        height: 175,
-        child: OverflowBox(
-          maxWidth: 250,
-          maxHeight: 250,
-          alignment: Alignment.topCenter,
-          child: SizedBox(
-            width: 250,
-            height: 250,
-            child: Stack(
-              alignment: Alignment.center,
+    final filled = hasData ? contracts.clamp(0, _maxBricks) : 0;
+    final overflow = hasData && contracts > _maxBricks ? contracts - _maxBricks : 0;
+
+    // Build a row of 5 bricks; offset shifts which global index they start at
+    Widget brickRow(int offset) => Row(
+      children: List.generate(_cols, (col) {
+        final idx = offset + col; // global brick index 0–9
+        return Expanded(
+          child: Padding(
+            padding: EdgeInsets.only(right: col < _cols - 1 ? 4 : 0),
+            child: _Brick(on: idx < filled, index: idx),
+          ),
+        );
+      }),
+    );
+
+    return SizedBox(
+      height: 175,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          // 2×5 brick grid on the left
+          Expanded(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                TweenAnimationBuilder<double>(
-                  tween: Tween(begin: 0, end: ratio),
-                  duration: const Duration(milliseconds: 500),
-                  curve: Curves.easeOut,
-                  builder: (_, r, __) => AnimatedBuilder(
-                    animation: _pulse,
-                    builder: (_, __) => CustomPaint(
-                      size: const Size(250, 250),
-                      painter: _GaugePainter(ratio: r, pulse: _pulse.value),
-                    ),
+                brickRow(5), // top row: bricks 5–9
+                const SizedBox(height: 4),
+                brickRow(0), // bottom row: bricks 0–4
+                if (overflow > 0) ...[
+                  const SizedBox(height: 6),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text('+$overflow',
+                        style: AppText.mono(size: 9, color: AppColors.accent)),
                   ),
-                ),
-                Column(mainAxisSize: MainAxisSize.min, children: [
-                  TerminalNumber(value: widget.contracts, size: 82,
-                      color: AppColors.accent),
-                  const SizedBox(height: 4),
-                  Text('CONTRACTS',
-                      style: AppText.label(size: 10, color: AppColors.muted)),
-                ]),
+                ],
               ],
             ),
           ),
-        ),
+          const SizedBox(width: 16),
+          // Contract count on the right
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              TerminalNumber(
+                  value: contracts, size: 72, color: AppColors.accent),
+              const SizedBox(height: 2),
+              Text('CONTRACTS',
+                  style: AppText.label(size: 9, color: AppColors.muted)),
+            ],
+          ),
+        ],
       ),
     );
   }
 }
 
-class _GaugePainter extends CustomPainter {
-  final double ratio;
-  final double pulse;
-  _GaugePainter({required this.ratio, this.pulse = 0});
+class _Brick extends StatelessWidget {
+  final bool on;
+  final int index;
+  const _Brick({required this.on, required this.index});
 
-  static const _start = 160 * pi / 180;
-  static const _sweep = 220 * pi / 180;
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 52,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          // Empty shell — always visible, sharp corners
+          Container(
+            decoration: BoxDecoration(
+              color: AppColors.card,
+              border: Border.all(
+                color: AppColors.border.withValues(alpha: 0.6),
+                width: 1,
+              ),
+            ),
+          ),
+          // Filled brick — scales + fades in, staggered by index
+          TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0, end: on ? 1.0 : 0.0),
+            duration: Duration(milliseconds: 90 + index * 28),
+            curve: Curves.easeOut,
+            builder: (_, t, __) {
+              if (t < 0.01) return const SizedBox.shrink();
+              return Opacity(
+                opacity: t,
+                child: Transform.scale(
+                  scale: 0.72 + 0.28 * t,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: AppColors.accent,
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.accent.withValues(alpha: 0.45 * t),
+                          blurRadius: 10,
+                          spreadRadius: 1,
+                        ),
+                      ],
+                    ),
+                    child: CustomPaint(painter: _BrickFacePainter()),
+                  ),
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
 
-  static const _numSegs = 20;
-  static const _gapSweep = 0.045;
-
+class _BrickFacePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height / 2);
-    final radius = size.width * 0.42;
-    final rect = Rect.fromCircle(center: center, radius: radius);
-
-    const segSweep = (_sweep - _numSegs * _gapSweep) / _numSegs;
-    final filledSegs = (ratio * _numSegs).round().clamp(0, _numSegs);
-    final arcColor = _riskColor(ratio);
-
-    // Glow behind filled segments (single pass for performance)
-    if (filledSegs > 0 && ratio > 0.01) {
-      final glowSweep = filledSegs * (segSweep + _gapSweep) - _gapSweep;
-      canvas.drawArc(rect, _start, glowSweep, false,
-        Paint()
-          ..color = arcColor.withValues(alpha: 0.18 + pulse * 0.3)
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 28 + pulse * 14
-          ..strokeCap = StrokeCap.butt
-          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 10),
-      );
-    }
-
-    // Draw each segment
-    for (int i = 0; i < _numSegs; i++) {
-      final segStart = _start + i * (segSweep + _gapSweep) + _gapSweep / 2;
-      final filled = i < filledSegs;
-      canvas.drawArc(rect, segStart, segSweep, false,
-        Paint()
-          ..color = filled ? arcColor : AppColors.border
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 12
-          ..strokeCap = StrokeCap.butt,
-      );
-    }
-  }
-
-  static Color _riskColor(double r) {
-    if (r < 0.7) return AppColors.accent;
-    final t = ((r - 0.7) / 0.3).clamp(0.0, 1.0);
-    return Color.lerp(AppColors.accent, AppColors.orange, t)!;
+    final w = size.width;
+    final h = size.height;
+    // Top highlight
+    canvas.drawRect(Rect.fromLTWH(0, 0, w, 3),
+        Paint()..color = Colors.white.withValues(alpha: 0.30));
+    // Left highlight
+    canvas.drawRect(Rect.fromLTWH(0, 0, 3, h),
+        Paint()..color = Colors.white.withValues(alpha: 0.16));
+    // Bottom shadow
+    canvas.drawRect(Rect.fromLTWH(0, h - 3, w, 3),
+        Paint()..color = Colors.black.withValues(alpha: 0.28));
+    // Right shadow
+    canvas.drawRect(Rect.fromLTWH(w - 3, 0, 3, h),
+        Paint()..color = Colors.black.withValues(alpha: 0.18));
   }
 
   @override
-  bool shouldRepaint(_GaugePainter old) =>
-      old.ratio != ratio || old.pulse != pulse || old._isDark != _isDark;
-
-  final bool _isDark = AppColors.isDark;
+  bool shouldRepaint(covariant CustomPainter old) => false;
 }
 
 // ── Dot leader ─────────────────────────────────────────────────────────────

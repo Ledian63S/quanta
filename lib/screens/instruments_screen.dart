@@ -32,8 +32,9 @@ class InstrumentsScreen extends StatelessWidget {
               const SizedBox(width: 8),
               Expanded(child: Container(height: 1, color: AppColors.border)),
               const SizedBox(width: 8),
-              Text('DRAG · SWIPE TO REMOVE',
-                  style: AppText.mono(size: 9, color: AppColors.subtle)),
+              if (state.favoriteInstruments.length > 1)
+                Text('DRAG · SWIPE TO REMOVE',
+                    style: AppText.mono(size: 9, color: AppColors.subtle)),
             ]),
             const SizedBox(height: 10),
             ReorderableListView.builder(
@@ -176,6 +177,18 @@ class _WatchlistItem extends StatelessWidget {
     return Dismissible(
       key: ValueKey('dismiss_${instrument.ticker}'),
       direction: DismissDirection.endToStart,
+      confirmDismiss: isSelected ? (_) async {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('SWITCH INSTRUMENT FIRST',
+              style: AppText.label(color: Colors.black)),
+          backgroundColor: AppColors.orange,
+          duration: const Duration(milliseconds: 1500),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+          margin: const EdgeInsets.fromLTRB(16, 0, 16, 100),
+        ));
+        return false;
+      } : null,
       onDismissed: (_) {
         HapticFeedback.mediumImpact();
         onRemove!();

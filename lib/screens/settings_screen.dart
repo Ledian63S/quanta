@@ -40,7 +40,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final state = context.watch<QuantaState>();
-    return SafeArea(
+    final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
+    return Stack(children: [
+      SafeArea(
       child: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -162,7 +164,34 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         ]),
       ),
-    );
+    ),
+      // Done button
+      Positioned(
+        bottom: keyboardHeight > 0 ? keyboardHeight + 12 : 100,
+        right: 16,
+        child: AnimatedOpacity(
+          duration: const Duration(milliseconds: 150),
+          opacity: keyboardHeight > 0 ? 1.0 : 0.0,
+          child: IgnorePointer(
+            ignoring: keyboardHeight == 0,
+            child: Clickable(
+              onTap: () {
+                HapticFeedback.selectionClick();
+                FocusManager.instance.primaryFocus?.unfocus();
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: AppColors.accent,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text('DONE', style: AppText.label(color: Colors.black)),
+              ),
+            ),
+          ),
+        ),
+      ),
+    ]);
   }
 }
 

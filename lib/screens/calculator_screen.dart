@@ -34,6 +34,22 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final state = context.read<QuantaState>();
+    if (!_balanceFocused) {
+      final expected = state.accountBalance.toStringAsFixed(0);
+      if (_balanceController.text != expected) _balanceController.text = expected;
+    }
+    if (!_riskFocused) {
+      final expected = state.riskIsPercent
+          ? state.riskPercent.toStringAsFixed(1)
+          : state.effectiveRisk.toStringAsFixed(0);
+      if (_riskController.text != expected) _riskController.text = expected;
+    }
+  }
+
+  @override
   void dispose() {
     _slController.dispose();
     _riskController.dispose();
@@ -48,18 +64,6 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
   Widget build(BuildContext context) {
     final state = context.watch<QuantaState>();
     final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
-
-    // Sync controllers from state when not actively editing
-    if (!_balanceFocused) {
-      final expected = state.accountBalance.toStringAsFixed(0);
-      if (_balanceController.text != expected) _balanceController.text = expected;
-    }
-    if (!_riskFocused) {
-      final expected = state.riskIsPercent
-          ? state.riskPercent.toStringAsFixed(1)
-          : state.effectiveRisk.toStringAsFixed(0);
-      if (_riskController.text != expected) _riskController.text = expected;
-    }
 
     return Stack(children: [
       Positioned.fill(
@@ -122,29 +126,32 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
         ),
       ),
 
-      // Done button
-      if (keyboardHeight > 0)
-        Positioned(
-          bottom: keyboardHeight + 12, right: 16,
-          child: AnimatedOpacity(
-            duration: const Duration(milliseconds: 150),
-            opacity: (_slFocused || _riskFocused || _balanceFocused) ? 1.0 : 0.0,
-            child: IgnorePointer(
-              ignoring: !(_slFocused || _riskFocused || _balanceFocused),
-              child: Clickable(
-                onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: AppColors.accent,
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Text('DONE', style: AppText.label(color: Colors.black)),
+      // Done button — shows whenever a field is focused, floats above keyboard
+      Positioned(
+        bottom: keyboardHeight > 0 ? keyboardHeight + 12 : 100,
+        right: 16,
+        child: AnimatedOpacity(
+          duration: const Duration(milliseconds: 150),
+          opacity: (_slFocused || _riskFocused || _balanceFocused) ? 1.0 : 0.0,
+          child: IgnorePointer(
+            ignoring: !(_slFocused || _riskFocused || _balanceFocused),
+            child: Clickable(
+              onTap: () {
+                HapticFeedback.selectionClick();
+                FocusManager.instance.primaryFocus?.unfocus();
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: AppColors.accent,
+                  borderRadius: BorderRadius.circular(4),
                 ),
+                child: Text('DONE', style: AppText.label(color: Colors.black)),
               ),
             ),
           ),
         ),
+      ),
     ]);
   }
 }
@@ -226,6 +233,14 @@ class _AccountRowState extends State<_AccountRow> {
   }
 
   @override
+  void didUpdateWidget(_AccountRow old) {
+    super.didUpdateWidget(old);
+    if (old.isPercent != widget.isPercent) {
+      HapticFeedback.selectionClick();
+    }
+  }
+
+  @override
   void dispose() {
     widget.focusNode.removeListener(_onFocusChange);
     super.dispose();
@@ -285,9 +300,13 @@ class _AccountRowState extends State<_AccountRow> {
               Text('%', style: AppText.mono(size: 20, weight: FontWeight.w600,
                   color: AppColors.accent)),
           ] else
-            Text(displayText,
-              style: AppText.mono(size: 20, weight: FontWeight.w600,
-                  color: AppColors.text)),
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 200),
+              child: Text(displayText,
+                key: ValueKey(displayText),
+                style: AppText.mono(size: 20, weight: FontWeight.w600,
+                    color: AppColors.text)),
+            ),
         ]),
       ),
     );
@@ -493,12 +512,9 @@ class _ResultPanel extends StatelessWidget {
             margin: const EdgeInsets.fromLTRB(16, 0, 16, 100),
           ));
         } : null,
-        child: Center(
-          child: RiskGauge(
-            actual: hasData ? state.actualRisk : 0,
-            max: hasData ? state.effectiveRisk : 0,
-            contracts: hasData ? state.contracts : 0,
-          ),
+        child: PacManGauge(
+          contracts: hasData ? state.contracts : 0,
+          hasData: hasData,
         ),
       ),
 
@@ -582,10 +598,6 @@ class _ReadoutRow extends StatelessWidget {
           style: AppText.mono(size: 13, weight: FontWeight.w700, color: color),
         ),
       ),
-      if (onTap != null) ...[
-        const SizedBox(width: 6),
-        Text('⎘', style: AppText.mono(size: 10, color: AppColors.subtle)),
-      ],
     ]);
     if (onTap == null) return row;
     return GestureDetector(onTap: onTap, child: row);
