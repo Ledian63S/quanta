@@ -1,5 +1,6 @@
+import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'instrument.dart';
 import '../theme/app_theme.dart';
 
@@ -160,39 +161,55 @@ class QuantaState extends ChangeNotifier {
         (themeMode == ThemeMode.system && platformDark);
   }
 
+  static File _prefsFile() {
+    final home = Platform.environment['HOME'] ?? '';
+    return File('$home/Documents/quanta_prefs.json');
+  }
+
   Future<void> load() async {
-    final prefs = await SharedPreferences.getInstance();
-    rememberBalance = prefs.getBool('rememberBalance') ?? true;
-    rememberRisk = prefs.getBool('rememberRisk') ?? true;
-    rememberInstrument = prefs.getBool('rememberInstrument') ?? true;
-    if (rememberBalance) accountBalance = prefs.getDouble('balance') ?? 50000;
-    if (rememberRisk) riskAmount = prefs.getDouble('risk') ?? 300;
-    if (rememberInstrument) {
-      selectedTicker = prefs.getString('instrument') ?? 'MNQ';
+    try {
+      final file = _prefsFile();
+      if (await file.exists()) {
+        final data = jsonDecode(await file.readAsString()) as Map<String, dynamic>;
+        rememberBalance = data['rememberBalance'] as bool? ?? true;
+        rememberRisk = data['rememberRisk'] as bool? ?? true;
+        rememberInstrument = data['rememberInstrument'] as bool? ?? true;
+        if (rememberBalance) accountBalance = (data['balance'] as num?)?.toDouble() ?? 50000;
+        if (rememberRisk) riskAmount = (data['risk'] as num?)?.toDouble() ?? 300;
+        if (rememberInstrument) selectedTicker = data['instrument'] as String? ?? 'MNQ';
+        final favList = (data['favorites'] as List?)?.cast<String>() ?? ['MNQ'];
+        favorites = List<String>.from(favList.isNotEmpty ? favList : ['MNQ']);
+        riskIsPercent = data['riskIsPercent'] as bool? ?? false;
+        if (!favorites.contains(selectedTicker)) selectedTicker = favorites.first;
+        final themeModeStr = data['themeMode'] as String? ?? 'system';
+        themeMode = ThemeMode.values.firstWhere((m) => m.name == themeModeStr,
+            orElse: () => ThemeMode.system);
+      }
+    } catch (_) {
+      // Use defaults on any error
     }
-    final favList = prefs.getStringList('favorites') ?? ['MNQ'];
-    favorites = List<String>.from(favList);
-    riskIsPercent = prefs.getBool('riskIsPercent') ?? false;
-    if (!favorites.contains(selectedTicker)) {
-      selectedTicker = favorites.first;
-    }
-    final themeModeStr = prefs.getString('themeMode') ?? 'system';
-    themeMode = ThemeMode.values.firstWhere((m) => m.name == themeModeStr,
-        orElse: () => ThemeMode.system);
     _syncIsDark();
     notifyListeners();
   }
 
   Future<void> _save() async {
-    final prefs = await SharedPreferences.getInstance();
-    prefs.setBool('rememberBalance', rememberBalance);
-    prefs.setBool('rememberRisk', rememberRisk);
-    prefs.setBool('rememberInstrument', rememberInstrument);
-    if (rememberBalance) prefs.setDouble('balance', accountBalance);
-    if (rememberRisk) prefs.setDouble('risk', riskAmount);
-    if (rememberInstrument) prefs.setString('instrument', selectedTicker);
-    prefs.setStringList('favorites', favorites);
-    prefs.setBool('riskIsPercent', riskIsPercent);
-    prefs.setString('themeMode', themeMode.name);
+    try {
+      final file = _prefsFile();
+      await file.parent.create(recursive: true);
+      final data = <String, dynamic>{
+        'rememberBalance': rememberBalance,
+        'rememberRisk': rememberRisk,
+        'rememberInstrument': rememberInstrument,
+        if (rememberBalance) 'balance': accountBalance,
+        if (rememberRisk) 'risk': riskAmount,
+        if (rememberInstrument) 'instrument': selectedTicker,
+        'favorites': favorites,
+        'riskIsPercent': riskIsPercent,
+        'themeMode': themeMode.name,
+      };
+      await file.writeAsString(jsonEncode(data));
+    } catch (_) {
+      // Ignore save errors
+    }
   }
 }
