@@ -12,5 +12,12 @@ class MainFlutterWindow: NSWindow {
     RegisterGeneratedPlugins(registry: flutterViewController)
 
     super.awakeFromNib()
+
+    self.isReleasedWhenClosed = false
+  }
+
+  override func close() {
+    super.close()
+    NSApplication.shared.terminate(self)
   }
 }

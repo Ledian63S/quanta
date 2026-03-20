@@ -339,15 +339,15 @@ class AppColors {
   static bool isDark = true;
 
   // Backgrounds
-  static Color get bg       => isDark ? const Color(0xFF080601) : const Color(0xFFF5EFE0);
-  static Color get card     => isDark ? const Color(0xFF0D0A00) : const Color(0xFFFFFFFF);
-  static Color get elevated => isDark ? const Color(0xFF131000) : const Color(0xFFF0E8D0);
-  static Color get high     => isDark ? const Color(0xFF1A1600) : const Color(0xFFE8DFC0);
+  static Color get bg       => isDark ? const Color(0xFF0C0A01) : const Color(0xFFF5EFE0);
+  static Color get card     => isDark ? const Color(0xFF181300) : const Color(0xFFFFFFFF);
+  static Color get elevated => isDark ? const Color(0xFF221C00) : const Color(0xFFF0E8D0);
+  static Color get high     => isDark ? const Color(0xFF2C2500) : const Color(0xFFE8DFC0);
 
   // Text
   static Color get text     => isDark ? const Color(0xFFDDD5A0) : const Color(0xFF1A1500);
-  static Color get muted    => isDark ? const Color(0xFF5C5530) : const Color(0xFF8A7A40);
-  static Color get subtle   => isDark ? const Color(0xFF2E2A18) : const Color(0xFFCCC5A0);
+  static Color get muted    => isDark ? const Color(0xFF8C8048) : const Color(0xFF8A7A40);
+  static Color get subtle   => isDark ? const Color(0xFF504830) : const Color(0xFFCCC5A0);
 
   // Accent — same amber in both modes
   static const accent      = Color(0xFFE8A000);
@@ -359,7 +359,7 @@ class AppColors {
   static Color get orange => isDark ? const Color(0xFFFF6B35) : const Color(0xFFCC4000);
 
   // Border
-  static Color get border => isDark ? const Color(0xFF2A2510) : const Color(0xFFDDD5B0);
+  static Color get border => isDark ? const Color(0xFF484030) : const Color(0xFFDDD5B0);
 
   // Legacy aliases
   static Color get darkBg     => bg;

@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -7,6 +8,7 @@ import 'calculator_screen.dart';
 import 'levels_screen.dart';
 import 'instruments_screen.dart';
 import 'settings_screen.dart';
+import 'desktop_title_bar.dart';
 
 class MainShell extends StatefulWidget {
   const MainShell({super.key});
@@ -29,10 +31,13 @@ class _MainShellState extends State<MainShell> {
     // Set isDark before any child screen builds. Theme.of registers the
     // InheritedWidget dependency so this rebuilds on system brightness changes too.
     AppColors.isDark = Theme.of(context).brightness == Brightness.dark;
+    final isDesktop = Platform.isMacOS || Platform.isWindows;
     return Scaffold(
       resizeToAvoidBottomInset: false,
       backgroundColor: AppColors.bg,
-      body: Stack(
+      body: Column(children: [
+        if (isDesktop) const DesktopTitleBar(),
+        Expanded(child: Stack(
         children: [
           // Scanlines
           const Positioned.fill(child: ScanlineOverlay()),
@@ -78,7 +83,8 @@ class _MainShellState extends State<MainShell> {
             ),
           ),
         ],
-      ),
+      )),
+      ]),
     );
   }
 }

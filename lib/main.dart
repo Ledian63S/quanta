@@ -1,11 +1,29 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:window_manager/window_manager.dart';
 import 'models/quanta_state.dart';
 import 'theme/app_theme.dart';
 import 'screens/main_shell.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  if (Platform.isMacOS || Platform.isWindows || Platform.isLinux) {
+    await windowManager.ensureInitialized();
+    const options = WindowOptions(
+      size: Size(430, 780),
+      minimumSize: Size(430, 700),
+      center: true,
+      titleBarStyle: TitleBarStyle.hidden,
+      title: 'Quanta',
+    );
+    await windowManager.waitUntilReadyToShow(options, () async {
+      await windowManager.show();
+      await windowManager.focus();
+    });
+  }
+
   final state = QuantaState();
   await state.load();
   runApp(
