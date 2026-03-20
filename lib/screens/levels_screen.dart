@@ -6,7 +6,7 @@ import 'package:provider/provider.dart';
 import '../models/quanta_state.dart';
 import '../theme/app_theme.dart';
 
-const _kRowHeight = 56.0;
+const _kRowHeight = 64.0;
 const _kH = 20.0;
 
 class LevelsScreen extends StatefulWidget {
