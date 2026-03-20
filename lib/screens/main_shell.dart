@@ -17,11 +17,11 @@ class MainShell extends StatefulWidget {
 class _MainShellState extends State<MainShell> {
   int _currentIndex = 0;
 
-  final _screens = const [
-    CalculatorScreen(),
-    LevelsScreen(),
-    InstrumentsScreen(),
-    SettingsScreen(),
+  late final List<Widget> _screens = [
+    const CalculatorScreen(),
+    LevelsScreen(onNavigateToCalc: () => setState(() => _currentIndex = 0)),
+    const InstrumentsScreen(),
+    const SettingsScreen(),
   ];
 
   @override

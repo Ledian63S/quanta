@@ -78,6 +78,7 @@ class QuantaState extends ChangeNotifier {
 
   void setRisk(double value) {
     riskAmount = value.clamp(0.01, 1000000);
+    _sessionRisk = null; // clear session override when persisted risk changes
     notifyListeners();
     _save();
   }

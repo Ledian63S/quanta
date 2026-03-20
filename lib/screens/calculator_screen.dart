@@ -49,6 +49,18 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
     final state = context.watch<QuantaState>();
     final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
 
+    // Sync controllers from state when not actively editing
+    if (!_balanceFocused) {
+      final expected = state.accountBalance.toStringAsFixed(0);
+      if (_balanceController.text != expected) _balanceController.text = expected;
+    }
+    if (!_riskFocused) {
+      final expected = state.riskIsPercent
+          ? state.riskPercent.toStringAsFixed(1)
+          : state.effectiveRisk.toStringAsFixed(0);
+      if (_riskController.text != expected) _riskController.text = expected;
+    }
+
     return Stack(children: [
       Positioned.fill(
         child: SingleChildScrollView(
@@ -518,7 +530,22 @@ class _ResultPanel extends StatelessWidget {
               AppFormat.dollar(state.effectiveRisk), AppColors.muted),
           const SizedBox(height: 8),
           _ReadoutRow('ACTUAL  ',
-              AppFormat.dollar(state.actualRisk), AppColors.green),
+              AppFormat.dollar(state.actualRisk), AppColors.green,
+              onTap: hasData && !noContracts ? () {
+                HapticFeedback.lightImpact();
+                Clipboard.setData(ClipboardData(
+                    text: AppFormat.dollar(state.actualRisk)));
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                  content: Text('${AppFormat.dollar(state.actualRisk)} COPIED',
+                      style: AppText.label(color: Colors.black)),
+                  backgroundColor: AppColors.accent,
+                  duration: const Duration(milliseconds: 1200),
+                  behavior: SnackBarBehavior.floating,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(4)),
+                  margin: const EdgeInsets.fromLTRB(16, 0, 16, 100),
+                ));
+              } : null),
           const SizedBox(height: 8),
           _ReadoutRow('UNUSED  ',
               AppFormat.dollar(state.unusedRisk), AppColors.orange),
@@ -538,11 +565,12 @@ class _ResultPanel extends StatelessWidget {
 class _ReadoutRow extends StatelessWidget {
   final String label, value;
   final Color color;
-  const _ReadoutRow(this.label, this.value, this.color);
+  final VoidCallback? onTap;
+  const _ReadoutRow(this.label, this.value, this.color, {this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return Row(children: [
+    final row = Row(children: [
       Text(label, style: AppText.mono(size: 12, color: AppColors.muted)),
       const SizedBox(width: 4),
       const DotLeader(),
@@ -554,6 +582,12 @@ class _ReadoutRow extends StatelessWidget {
           style: AppText.mono(size: 13, weight: FontWeight.w700, color: color),
         ),
       ),
+      if (onTap != null) ...[
+        const SizedBox(width: 6),
+        Text('⎘', style: AppText.mono(size: 10, color: AppColors.subtle)),
+      ],
     ]);
+    if (onTap == null) return row;
+    return GestureDetector(onTap: onTap, child: row);
   }
 }

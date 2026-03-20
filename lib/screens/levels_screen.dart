@@ -9,7 +9,8 @@ const _kRowHeight = 56.0;
 const _kH = 20.0;
 
 class LevelsScreen extends StatefulWidget {
-  const LevelsScreen({super.key});
+  final VoidCallback? onNavigateToCalc;
+  const LevelsScreen({super.key, this.onNavigateToCalc});
   @override
   State<LevelsScreen> createState() => _LevelsScreenState();
 }
@@ -91,6 +92,23 @@ class _LevelsScreenState extends State<LevelsScreen> {
         const SizedBox(height: 6),
         Text('> SET STOP LOSS IN CALC FIRST',
             style: AppText.mono(size: 11, color: AppColors.subtle)),
+        if (widget.onNavigateToCalc != null) ...[
+          const SizedBox(height: 20),
+          Clickable(
+            onTap: widget.onNavigateToCalc,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              decoration: BoxDecoration(
+                color: AppColors.accent.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(4),
+                border: Border.all(
+                    color: AppColors.accent.withValues(alpha: 0.4)),
+              ),
+              child: Text('GO TO CALC',
+                  style: AppText.label(color: AppColors.accent)),
+            ),
+          ),
+        ],
       ]));
     }
 

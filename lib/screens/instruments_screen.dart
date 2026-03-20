@@ -32,7 +32,8 @@ class InstrumentsScreen extends StatelessWidget {
               const SizedBox(width: 8),
               Expanded(child: Container(height: 1, color: AppColors.border)),
               const SizedBox(width: 8),
-              Text('DRAG TO REORDER', style: AppText.mono(size: 9, color: AppColors.subtle)),
+              Text('DRAG · SWIPE TO REMOVE',
+                  style: AppText.mono(size: 9, color: AppColors.subtle)),
             ]),
             const SizedBox(height: 10),
             ReorderableListView.builder(
@@ -53,6 +54,9 @@ class InstrumentsScreen extends StatelessWidget {
                   instrument: inst,
                   isSelected: isSelected,
                   index: i,
+                  onRemove: state.favorites.length > 1
+                      ? () => state.toggleFavorite(inst.ticker)
+                      : null,
                 );
               },
             ),
@@ -108,16 +112,18 @@ class _WatchlistItem extends StatelessWidget {
   final Instrument instrument;
   final bool isSelected;
   final int index;
+  final VoidCallback? onRemove;
   const _WatchlistItem({
     super.key,
     required this.instrument,
     required this.isSelected,
     required this.index,
+    this.onRemove,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    final card = Container(
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
         color: AppColors.card,
@@ -164,6 +170,28 @@ class _WatchlistItem extends StatelessWidget {
           )),
         ),
       ]),
+    );
+
+    if (onRemove == null) return card;
+    return Dismissible(
+      key: ValueKey('dismiss_${instrument.ticker}'),
+      direction: DismissDirection.endToStart,
+      onDismissed: (_) {
+        HapticFeedback.mediumImpact();
+        onRemove!();
+      },
+      background: Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 20),
+        decoration: BoxDecoration(
+          color: AppColors.orange.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(4),
+          border: Border.all(color: AppColors.orange.withValues(alpha: 0.4)),
+        ),
+        child: Text('REMOVE', style: AppText.label(size: 9, color: AppColors.orange)),
+      ),
+      child: card,
     );
   }
 }
