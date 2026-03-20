@@ -462,16 +462,68 @@
       to   { opacity: 1; transform: translateY(0); }
     }
 
+    /* ── Lightbox ── */
+    .lightbox {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.88);
+      z-index: 10000;
+      align-items: center;
+      justify-content: center;
+      cursor: zoom-out;
+      backdrop-filter: blur(6px);
+      animation: lbFadeIn 0.2s ease;
+    }
+    .lightbox.open { display: flex; }
+    .lightbox img {
+      max-width: min(340px, 85vw);
+      max-height: 90vh;
+      border-radius: 12px;
+      box-shadow: 0 32px 80px rgba(0,0,0,0.7);
+      animation: lbZoomIn 0.25s ease;
+    }
+    .lightbox-close {
+      position: absolute;
+      top: 20px; right: 24px;
+      font-size: 22px;
+      color: rgba(255,255,255,0.5);
+      cursor: pointer;
+      font-family: var(--font);
+      line-height: 1;
+      transition: color 0.15s;
+    }
+    .lightbox-close:hover { color: var(--accent); }
+    @keyframes lbFadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes lbZoomIn { from { transform: scale(0.92); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+    .screenshot-item img { cursor: zoom-in; }
+
     /* ── Responsive ── */
+    @media (max-width: 768px) {
+      .hero { padding: 64px 20px 56px; }
+      section { padding: 56px 20px; }
+      .screenshots { padding: 56px 20px; }
+      .features { padding: 56px 20px; }
+    }
     @media (max-width: 640px) {
-      .screenshots-grid { gap: 16px; }
-      .screenshot-item img { width: 140px; }
+      .screenshots-grid { gap: 14px; display: grid; grid-template-columns: 1fr 1fr; }
+      .screenshot-item img { width: 100%; }
       .platform-grid { flex-direction: column; align-items: center; }
+      .platform-btn { width: 200px; justify-content: center; }
       .nav-links { display: none; }
+      .formula-block { padding: 18px; overflow-x: auto; }
+      .formula-block pre { font-size: 11px; }
     }
   </style>
 </head>
 <body>
+
+  <!-- Lightbox -->
+  <div class="lightbox" id="lightbox">
+    <span class="lightbox-close" id="lightbox-close">✕</span>
+    <img id="lightbox-img" src="" alt="">
+  </div>
 
   <nav>
     <a class="nav-logo" href="#"><span>> </span>QUANTA</a>
@@ -655,6 +707,28 @@
     }, { threshold: 0.12 });
 
     document.querySelectorAll('.screenshot-item, .feature-card').forEach(el => observer.observe(el));
+
+    // ── Lightbox ───────────────────────────────────────────────────────────
+    const lightbox    = document.getElementById('lightbox');
+    const lightboxImg = document.getElementById('lightbox-img');
+
+    document.querySelectorAll('.screenshot-item img').forEach(img => {
+      img.addEventListener('click', () => {
+        lightboxImg.src = img.src;
+        lightboxImg.alt = img.alt;
+        lightbox.classList.add('open');
+        document.body.style.overflow = 'hidden';
+      });
+    });
+
+    function closeLightbox() {
+      lightbox.classList.remove('open');
+      document.body.style.overflow = '';
+    }
+
+    document.getElementById('lightbox-close').addEventListener('click', closeLightbox);
+    lightbox.addEventListener('click', e => { if (e.target === lightbox) closeLightbox(); });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLightbox(); });
   </script>
 </body>
 </html>
