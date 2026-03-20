@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -319,14 +320,26 @@ class _AccountRowState extends State<_AccountRow> {
 }
 
 // ── Instrument row ─────────────────────────────────────────────────────────
-class _InstrumentRow extends StatelessWidget {
+class _InstrumentRow extends StatefulWidget {
   final QuantaState state;
   final VoidCallback onChanged;
   const _InstrumentRow({required this.state, required this.onChanged});
+  @override
+  State<_InstrumentRow> createState() => _InstrumentRowState();
+}
+
+class _InstrumentRowState extends State<_InstrumentRow> {
+  final _scrollController = ScrollController();
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final favs = state.favoriteInstruments;
+    final favs = widget.state.favoriteInstruments;
     if (favs.isEmpty) {
       return Container(
         padding: const EdgeInsets.all(12),
@@ -335,15 +348,25 @@ class _InstrumentRow extends StatelessWidget {
             style: AppText.body(color: AppColors.muted)),
       );
     }
-    return SingleChildScrollView(
+    return Listener(
+      onPointerSignal: (event) {
+        if (event is PointerScrollEvent) {
+          final pos = _scrollController.position;
+          final next = (_scrollController.offset + event.scrollDelta.dy)
+              .clamp(pos.minScrollExtent, pos.maxScrollExtent);
+          _scrollController.jumpTo(next);
+        }
+      },
+      child: SingleChildScrollView(
+      controller: _scrollController,
       scrollDirection: Axis.horizontal,
       child: Row(children: favs.map((inst) {
-        final isActive = inst.ticker == state.selectedTicker;
+        final isActive = inst.ticker == widget.state.selectedTicker;
         return Clickable(
           onTap: () {
             HapticFeedback.selectionClick();
-            state.setInstrument(inst.ticker);
-            onChanged();
+            widget.state.setInstrument(inst.ticker);
+            widget.onChanged();
           },
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 150),
@@ -367,7 +390,7 @@ class _InstrumentRow extends StatelessWidget {
           ),
         );
       }).toList()),
-    );
+    ));
   }
 }
 

@@ -1,4 +1,5 @@
 <p align="center">
+  <img src="assets/icon.png" width="400" height="400" alt="Quanta Logo">
   <h1 align="center">Quanta — Position Size Calculator</h1>
   <p align="center">A terminal-styled futures position size calculator built for <strong>Quantower</strong> traders. Enter your account balance, risk per trade, and stop loss — get the exact number of contracts instantly. Always whole numbers, never fractional.</p>
   <p align="center">

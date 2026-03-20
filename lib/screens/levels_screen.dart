@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -157,7 +158,7 @@ class _LevelsScreenState extends State<LevelsScreen> {
             const SizedBox(height: 14),
 
             // Hero stats — 3-column row matching wheel columns below
-            Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
+            Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
               // STOP LOSS — fixed from calculator (left)
               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -235,7 +236,19 @@ class _LevelsScreenState extends State<LevelsScreen> {
             ),
 
             if (_wheelController != null)
-              Builder(builder: (context) {
+              Listener(
+                onPointerSignal: (event) {
+                  if (event is PointerScrollEvent && _wheelController != null) {
+                    final next = (_selectedIndex + (event.scrollDelta.dy > 0 ? 1 : -1))
+                        .clamp(0, levels.length - 1);
+                    if (next != _selectedIndex) {
+                      _wheelController!.animateToItem(next,
+                          duration: const Duration(milliseconds: 160),
+                          curve: Curves.easeOut);
+                    }
+                  }
+                },
+              child: Builder(builder: (context) {
                 final maxC = levels.isEmpty ? 1
                     : levels.map((r) => state.contractsForRisk(r))
                         .reduce((a, b) => a > b ? a : b);
@@ -304,7 +317,7 @@ class _LevelsScreenState extends State<LevelsScreen> {
                                   Expanded(child: Row(children: [
                                     Text(AppFormat.dollar(risk),
                                         style: AppText.mono(
-                                          size: 14,
+                                          size: isSelected ? 16 : 14,
                                           weight: isSelected
                                               ? FontWeight.w700 : FontWeight.w400,
                                           color: isSelected
@@ -325,7 +338,7 @@ class _LevelsScreenState extends State<LevelsScreen> {
                                   Expanded(child: Text('$c',
                                       textAlign: TextAlign.center,
                                       style: AppText.mono(
-                                        size: 14,
+                                        size: isSelected ? 16 : 14,
                                         weight: FontWeight.w700,
                                         color: isSelected
                                             ? AppColors.accentLight : AppColors.subtle,
@@ -334,7 +347,7 @@ class _LevelsScreenState extends State<LevelsScreen> {
                                   Expanded(child: Text(AppFormat.dollar(ar),
                                       textAlign: TextAlign.right,
                                       style: AppText.mono(
-                                        size: 14,
+                                        size: isSelected ? 16 : 14,
                                         weight: isSelected
                                             ? FontWeight.w600 : FontWeight.w400,
                                         color: isSelected
@@ -349,7 +362,7 @@ class _LevelsScreenState extends State<LevelsScreen> {
                     },
                   ),
                 );
-              }),
+              })),
 
             // Fade overlays
             Positioned(top: 0, left: 0, right: 0,
