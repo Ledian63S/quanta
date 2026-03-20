@@ -9,7 +9,11 @@ A terminal-styled futures position size calculator built for **Quantower** trade
 
 ## Screenshots
 
-_Add screenshots here_
+<p align="center">
+  <img src="docs/screenshots/calc.png" width="200" alt="Calculator">
+  <img src="docs/screenshots/levels.png" width="200" alt="Levels">
+  <img src="docs/screenshots/settings.png" width="200" alt="Settings">
+</p>
 
 ---
 
@@ -22,7 +26,7 @@ Get the latest release for your platform from the [Releases page](https://github
 | macOS | `Quanta-macOS-vX.X.X.X.zip` |
 | Android | `Quanta-Android-vX.X.X.X.apk` |
 | Windows | `Quanta-Windows-vX.X.X.X.zip` |
-| iOS | TestFlight (coming soon) |
+| iOS | `Quanta-iOS-vX.X.X.X.zip` — sideload via AltStore |
 
 ---
 

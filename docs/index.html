@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quanta — Know your size before you trade</title>
+  <meta name="description" content="Precision position sizing calculator for futures traders. Available on macOS, Windows, iOS, and Android.">
+  <meta property="og:title" content="Quanta — Know your size before you trade">
+  <meta property="og:description" content="Precision position sizing calculator for futures traders.">
+  <meta property="og:image" content="screenshots/calc.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:      #0C0A01;
+      --card:    #181300;
+      --elev:    #221C00;
+      --border:  #484030;
+      --text:    #DDD5A0;
+      --muted:   #8C8048;
+      --subtle:  #504830;
+      --accent:  #E8A000;
+      --accent2: #FFBF3C;
+      --green:   #4ADE80;
+      --font:    'JetBrains Mono', monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 14px;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Scanlines ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0,0,0,0.06) 2px,
+        rgba(0,0,0,0.06) 3px
+      );
+      pointer-events: none;
+      z-index: 9999;
+    }
+
+    /* ── Nav ── */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 24px;
+      background: rgba(12,10,1,0.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .nav-logo {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      color: var(--text);
+      text-decoration: none;
+    }
+
+    .nav-logo span { color: var(--accent); }
+
+    .nav-links {
+      display: flex;
+      gap: 24px;
+      align-items: center;
+    }
+
+    .nav-links a {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1.8px;
+      color: var(--muted);
+      text-decoration: none;
+      transition: color 0.15s;
+    }
+
+    .nav-links a:hover { color: var(--accent); }
+
+    /* ── Sections ── */
+    section { padding: 80px 24px; }
+
+    .container {
+      max-width: 960px;
+      margin: 0 auto;
+    }
+
+    /* ── Hero ── */
+    .hero {
+      padding: 100px 24px 80px;
+      text-align: center;
+    }
+
+    .hero-badge {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      color: var(--accent);
+      border: 1px solid rgba(232,160,0,0.3);
+      background: rgba(232,160,0,0.06);
+      padding: 5px 14px;
+      border-radius: 2px;
+      margin-bottom: 32px;
+    }
+
+    .hero h1 {
+      font-size: clamp(48px, 10vw, 80px);
+      font-weight: 700;
+      letter-spacing: 4px;
+      color: var(--accent);
+      line-height: 1;
+      margin-bottom: 20px;
+    }
+
+    .hero-tagline {
+      font-size: clamp(16px, 3vw, 20px);
+      font-weight: 300;
+      color: var(--text);
+      letter-spacing: 0.5px;
+      margin-bottom: 12px;
+    }
+
+    .hero-sub {
+      font-size: 12px;
+      color: var(--muted);
+      letter-spacing: 1px;
+      margin-bottom: 48px;
+    }
+
+    /* ── Download buttons ── */
+    .download-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--accent);
+      color: #000;
+      font-family: var(--font);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      padding: 14px 28px;
+      border-radius: 3px;
+      text-decoration: none;
+      transition: background 0.15s, transform 0.1s;
+      margin-bottom: 32px;
+    }
+
+    .download-primary:hover {
+      background: var(--accent2);
+      transform: translateY(-1px);
+    }
+
+    .platform-grid {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .platform-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-family: var(--font);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 1.4px;
+      color: var(--muted);
+      border: 1px solid var(--border);
+      background: var(--card);
+      padding: 10px 18px;
+      border-radius: 3px;
+      text-decoration: none;
+      cursor: pointer;
+      transition: border-color 0.15s, color 0.15s, background 0.15s;
+    }
+
+    .platform-btn:hover,
+    .platform-btn.active {
+      color: var(--accent);
+      border-color: rgba(232,160,0,0.5);
+      background: rgba(232,160,0,0.06);
+    }
+
+    .version-tag {
+      display: block;
+      font-size: 10px;
+      color: var(--subtle);
+      letter-spacing: 1px;
+      margin-top: 20px;
+    }
+
+    /* ── Screenshots ── */
+    .screenshots { background: var(--card); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+
+    .section-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 2.5px;
+      color: var(--muted);
+      margin-bottom: 40px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .section-label::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    .screenshots-grid {
+      display: flex;
+      justify-content: center;
+      gap: 24px;
+      flex-wrap: wrap;
+    }
+
+    .screenshot-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .screenshot-item img {
+      width: 200px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      box-shadow: 0 8px 40px rgba(0,0,0,0.6);
+      display: block;
+    }
+
+    .screenshot-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      color: var(--muted);
+    }
+
+    /* ── Features ── */
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+    }
+
+    .feature-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 20px;
+    }
+
+    .feature-icon {
+      font-size: 18px;
+      margin-bottom: 12px;
+      color: var(--accent);
+    }
+
+    .feature-title {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1.8px;
+      color: var(--text);
+      margin-bottom: 8px;
+    }
+
+    .feature-desc {
+      font-size: 12px;
+      font-weight: 400;
+      color: var(--muted);
+      line-height: 1.7;
+    }
+
+    /* ── Formula ── */
+    .formula-block {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 24px 28px;
+      margin-top: 40px;
+    }
+
+    .formula-block pre {
+      font-family: var(--font);
+      font-size: 13px;
+      color: var(--accent);
+      line-height: 2;
+    }
+
+    .formula-block pre span { color: var(--muted); }
+
+    /* ── Footer ── */
+    footer {
+      padding: 40px 24px;
+      border-top: 1px solid var(--border);
+      text-align: center;
+    }
+
+    .footer-logo {
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: 3px;
+      color: var(--accent);
+      margin-bottom: 12px;
+    }
+
+    .footer-links {
+      display: flex;
+      justify-content: center;
+      gap: 24px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+
+    .footer-links a {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 1.4px;
+      color: var(--muted);
+      text-decoration: none;
+      transition: color 0.15s;
+    }
+
+    .footer-links a:hover { color: var(--accent); }
+
+    .footer-copy {
+      font-size: 11px;
+      color: var(--subtle);
+      letter-spacing: 0.5px;
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 600px) {
+      .screenshots-grid { gap: 16px; }
+      .screenshot-item img { width: 150px; }
+      .platform-grid { flex-direction: column; align-items: center; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Nav -->
+  <nav>
+    <a class="nav-logo" href="#"><span>> </span>QUANTA</a>
+    <div class="nav-links">
+      <a href="#screenshots">SCREENS</a>
+      <a href="#features">FEATURES</a>
+      <a href="https://github.com/Ledian63S/quanta" target="_blank">GITHUB</a>
+    </div>
+  </nav>
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="hero-badge">FUTURES POSITION SIZING</div>
+    <h1>QUANTA</h1>
+    <p class="hero-tagline">Know your size before you trade.</p>
+    <p class="hero-sub">For futures traders on Quantower. Enter balance, risk, stop loss — get contracts instantly.</p>
+
+    <br>
+
+    <a class="download-primary" id="primary-btn" href="https://github.com/Ledian63S/quanta/releases/latest">
+      ↓ DOWNLOAD
+    </a>
+
+    <div class="platform-grid">
+      <a class="platform-btn" id="btn-macos" href="#">⌘ macOS</a>
+      <a class="platform-btn" id="btn-windows" href="#">⊞ Windows</a>
+      <a class="platform-btn" id="btn-ios" href="#">iOS</a>
+      <a class="platform-btn" id="btn-android" href="#">Android</a>
+    </div>
+
+    <span class="version-tag" id="version-tag">Loading...</span>
+  </section>
+
+  <!-- Screenshots -->
+  <section class="screenshots" id="screenshots">
+    <div class="container">
+      <div class="section-label">SCREENSHOTS</div>
+      <div class="screenshots-grid">
+        <div class="screenshot-item">
+          <img src="screenshots/calc.png" alt="Calculator screen" loading="lazy">
+          <span class="screenshot-label">CALCULATOR</span>
+        </div>
+        <div class="screenshot-item">
+          <img src="screenshots/levels.png" alt="Levels screen" loading="lazy">
+          <span class="screenshot-label">LEVELS</span>
+        </div>
+        <div class="screenshot-item">
+          <img src="screenshots/settings.png" alt="Settings screen" loading="lazy">
+          <span class="screenshot-label">SETTINGS</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section id="features">
+    <div class="container">
+      <div class="section-label">FEATURES</div>
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon">⚡</div>
+          <div class="feature-title">INSTANT CALCULATION</div>
+          <p class="feature-desc">Contracts update live as you type. No submit button, no delay.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">⌊ ⌋</div>
+          <div class="feature-title">ALWAYS FLOOR</div>
+          <p class="feature-desc">Results are always floored — never rounds up, never gives you fractional contracts.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">≡</div>
+          <div class="feature-title">LEVELS TABLE</div>
+          <p class="feature-desc">See contracts and actual risk across a full range of risk amounts at a glance.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">◎</div>
+          <div class="feature-title">MULTI-PLATFORM</div>
+          <p class="feature-desc">Native apps for macOS, Windows, iOS, and Android. One codebase, pixel-perfect everywhere.</p>
+        </div>
+      </div>
+
+      <div class="formula-block">
+        <pre><span>contracts  =</span> floor( riskAmount / ( stopLossPoints × pointValue ) )
+<span>actualRisk =</span> contracts × stopLossPoints × pointValue
+<span>unused     =</span> riskAmount − actualRisk</pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <div class="footer-logo">QUANTA</div>
+    <div class="footer-links">
+      <a href="https://github.com/Ledian63S/quanta/releases/latest">DOWNLOAD</a>
+      <a href="https://github.com/Ledian63S/quanta">GITHUB</a>
+      <a href="https://github.com/Ledian63S/quanta/issues">ISSUES</a>
+    </div>
+    <p class="footer-copy">Made with ♥ for traders · <span id="footer-version"></span></p>
+  </footer>
+
+  <script>
+    const REPO = 'Ledian63S/quanta';
+
+    fetch(`https://api.github.com/repos/${REPO}/releases/latest`)
+      .then(r => r.json())
+      .then(release => {
+        const tag = release.tag_name; // e.g. "v1.1.0.2"
+        const assets = release.assets || [];
+
+        // Update version labels
+        document.getElementById('version-tag').textContent = tag;
+        document.getElementById('footer-version').textContent = tag;
+
+        // Map asset names to platform buttons
+        const map = {
+          macos:   assets.find(a => a.name.includes('macOS')),
+          windows: assets.find(a => a.name.includes('Windows')),
+          ios:     assets.find(a => a.name.includes('iOS')),
+          android: assets.find(a => a.name.includes('Android')),
+        };
+
+        const buttons = {
+          macos:   document.getElementById('btn-macos'),
+          windows: document.getElementById('btn-windows'),
+          ios:     document.getElementById('btn-ios'),
+          android: document.getElementById('btn-android'),
+        };
+
+        Object.entries(map).forEach(([platform, asset]) => {
+          if (asset) buttons[platform].href = asset.browser_download_url;
+        });
+
+        // Detect OS and highlight + set primary button
+        const ua = navigator.userAgent;
+        let detected = 'macos';
+        if (/Windows/i.test(ua))      detected = 'windows';
+        else if (/Android/i.test(ua)) detected = 'android';
+        else if (/iPhone|iPad/i.test(ua)) detected = 'ios';
+
+        buttons[detected]?.classList.add('active');
+        const primaryBtn = document.getElementById('primary-btn');
+        if (map[detected]) primaryBtn.href = map[detected].browser_download_url;
+
+        const labels = { macos: 'macOS', windows: 'Windows', ios: 'iOS', android: 'Android' };
+        primaryBtn.textContent = `↓ DOWNLOAD FOR ${labels[detected].toUpperCase()}`;
+      })
+      .catch(() => {
+        document.getElementById('version-tag').textContent = '';
+        document.getElementById('primary-btn').href = `https://github.com/${REPO}/releases/latest`;
+      });
+  </script>
+</body>
+</html>
