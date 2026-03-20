@@ -218,7 +218,7 @@ class _DigitWheelState extends State<_DigitWheel>
   }
 
   Widget _digit(int d) => Text(
-    d < 0 ? '--' : '$d',
+    d < 0 ? '-' : '$d',
     style: GoogleFonts.jetBrainsMono(
       fontSize: _h,
       fontWeight: FontWeight.w700,

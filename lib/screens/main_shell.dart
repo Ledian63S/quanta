@@ -16,20 +16,52 @@ class MainShell extends StatefulWidget {
   State<MainShell> createState() => _MainShellState();
 }
 
-class _MainShellState extends State<MainShell> {
+class _MainShellState extends State<MainShell>
+    with SingleTickerProviderStateMixin {
   int _currentIndex = 0;
+  int _prevIndex = 0;
+  late final AnimationController _animCtrl;
+  late Animation<double> _slideAnim;
+  late Animation<double> _fadeAnim;
 
   late final List<Widget> _screens = [
     const CalculatorScreen(),
-    LevelsScreen(onNavigateToCalc: () => setState(() => _currentIndex = 0)),
+    LevelsScreen(onNavigateToCalc: () => _navigateTo(0)),
     const InstrumentsScreen(),
     const SettingsScreen(),
   ];
 
   @override
+  void initState() {
+    super.initState();
+    _animCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 220),
+      value: 1.0, // start fully visible
+    );
+    _slideAnim = Tween(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _animCtrl, curve: Curves.easeOut));
+    _fadeAnim = Tween(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _animCtrl, curve: Curves.easeOut));
+  }
+
+  @override
+  void dispose() {
+    _animCtrl.dispose();
+    super.dispose();
+  }
+
+  void _navigateTo(int i) {
+    if (i == _currentIndex) return;
+    setState(() {
+      _prevIndex = _currentIndex;
+      _currentIndex = i;
+    });
+    _animCtrl.forward(from: 0.0);
+  }
+
+  @override
   Widget build(BuildContext context) {
-    // Set isDark before any child screen builds. Theme.of registers the
-    // InheritedWidget dependency so this rebuilds on system brightness changes too.
     AppColors.isDark = Theme.of(context).brightness == Brightness.dark;
     final isDesktop = Platform.isMacOS || Platform.isWindows;
     return Scaffold(
@@ -39,9 +71,7 @@ class _MainShellState extends State<MainShell> {
         if (isDesktop) const DesktopTitleBar(),
         Expanded(child: Stack(
         children: [
-          // Scanlines
           const Positioned.fill(child: ScanlineOverlay()),
-          // Grain
           const Positioned.fill(child: GrainOverlay()),
 
           GestureDetector(
@@ -52,31 +82,51 @@ class _MainShellState extends State<MainShell> {
                 builder: (context, constraints) {
                   final contentWidth = constraints.maxWidth.clamp(0.0, 430.0);
                   final hPad = (constraints.maxWidth - contentWidth) / 2;
-                  return Stack(
-                    children: [
-                      ...List.generate(_screens.length, (i) => Positioned(
-                        top: 0, bottom: 0,
-                        left: hPad, width: contentWidth,
-                        child: AnimatedOpacity(
-                          duration: const Duration(milliseconds: 120),
-                          opacity: _currentIndex == i ? 1.0 : 0.0,
-                          child: IgnorePointer(
-                            ignoring: _currentIndex != i,
-                            child: _screens[i],
+                  // direction: +1 = going right (higher index), -1 = going left
+                  final direction = _currentIndex >= _prevIndex ? 1.0 : -1.0;
+                  return AnimatedBuilder(
+                    animation: _animCtrl,
+                    builder: (context, _) {
+                      final t = _slideAnim.value;
+                      return Stack(
+                        children: [
+                          // Exiting screen slides out
+                          if (_animCtrl.isAnimating)
+                            Positioned(
+                              top: 0, bottom: 0,
+                              left: hPad + (-direction * t * contentWidth * 0.3),
+                              width: contentWidth,
+                              child: Opacity(
+                                opacity: (1.0 - t).clamp(0.0, 1.0),
+                                child: IgnorePointer(child: _screens[_prevIndex]),
+                              ),
+                            ),
+                          // Entering screen slides in
+                          Positioned(
+                            top: 0, bottom: 0,
+                            left: hPad + (direction * (1.0 - t) * contentWidth * 0.3),
+                            width: contentWidth,
+                            child: Opacity(
+                              opacity: _fadeAnim.value.clamp(0.0, 1.0),
+                              child: IgnorePointer(
+                                ignoring: _animCtrl.isAnimating,
+                                child: _screens[_currentIndex],
+                              ),
+                            ),
                           ),
-                        ),
-                      )),
-                      Positioned(
-                        bottom: 0, left: hPad, width: contentWidth,
-                        child: _TerminalNav(
-                          currentIndex: _currentIndex,
-                          onTap: (i) {
-                            HapticFeedback.selectionClick();
-                            setState(() => _currentIndex = i);
-                          },
-                        ),
-                      ),
-                    ],
+                          Positioned(
+                            bottom: 0, left: hPad, width: contentWidth,
+                            child: _TerminalNav(
+                              currentIndex: _currentIndex,
+                              onTap: (i) {
+                                HapticFeedback.selectionClick();
+                                _navigateTo(i);
+                              },
+                            ),
+                          ),
+                        ],
+                      );
+                    },
                   );
                 },
               ),

@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../models/quanta_state.dart';
 import '../theme/app_theme.dart';
 
@@ -150,18 +151,30 @@ class _SettingsScreenState extends State<SettingsScreen> {
           Container(
             decoration: AppDecor.card(),
             child: Column(children: [
-              const _LabelRow(label: 'Version', value: '1.0.0'),
+              const _LabelRow(label: 'Version', value: 'v1.0.0.0'),
               Container(height: 1, color: AppColors.border,
                   margin: const EdgeInsets.symmetric(horizontal: 12)),
               const _LabelRow(label: 'Developer', value: 'Ledian Leka'),
               Container(height: 1, color: AppColors.border,
                   margin: const EdgeInsets.symmetric(horizontal: 12)),
-              const _LabelRow(label: 'Website', value: 'ledian63s.github.io',
-                  valueColor: AppColors.accentLight),
+              _TappableLabelRow(
+                label: 'Website',
+                value: 'ledian63s.github.io',
+                valueColor: AppColors.accentLight,
+                onTap: () => launchUrl(
+                  Uri.parse('https://ledian63s.github.io'),
+                  mode: LaunchMode.externalApplication,
+                ),
+              ),
               Container(height: 1, color: AppColors.border,
                   margin: const EdgeInsets.symmetric(horizontal: 12)),
-              const _LabelRow(label: 'Built by traders, for traders', value: '✦',
-                  valueColor: AppColors.accent),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                child: Center(
+                  child: Text('Made with ♥ for traders',
+                    style: AppText.mono(size: 12, color: AppColors.muted)),
+                ),
+              ),
             ]),
           ),
         ]),
@@ -302,8 +315,7 @@ class _InputRowState extends State<_InputRow> {
 // ── Label row ───────────────────────────────────────────────────────────────
 class _LabelRow extends StatelessWidget {
   final String label, value;
-  final Color? valueColor;
-  const _LabelRow({required this.label, required this.value, this.valueColor});
+  const _LabelRow({required this.label, required this.value});
 
   @override
   Widget build(BuildContext context) {
@@ -317,8 +329,39 @@ class _LabelRow extends StatelessWidget {
         const DotLeader(),
         const SizedBox(width: 4),
         Text(value, style: AppText.mono(size: 13, weight: FontWeight.w700,
-            color: valueColor ?? AppColors.text)),
+            color: AppColors.text)),
       ]),
+    );
+  }
+}
+
+// ── Tappable label row ───────────────────────────────────────────────────────
+class _TappableLabelRow extends StatelessWidget {
+  final String label, value;
+  final Color? valueColor;
+  final VoidCallback onTap;
+  const _TappableLabelRow({required this.label, required this.value,
+      this.valueColor, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Clickable(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        child: Row(children: [
+          Text('> ', style: AppText.mono(size: 11, color: AppColors.subtle)),
+          Text(label, style: AppText.mono(
+              size: 13, weight: FontWeight.w500, color: AppColors.muted)),
+          const SizedBox(width: 4),
+          const DotLeader(),
+          const SizedBox(width: 4),
+          Text(value, style: AppText.mono(size: 13, weight: FontWeight.w700,
+              color: valueColor ?? AppColors.text)),
+          const SizedBox(width: 4),
+          Text('↗', style: AppText.mono(size: 11, color: AppColors.muted)),
+        ]),
+      ),
     );
   }
 }
