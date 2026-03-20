@@ -54,7 +54,59 @@ class QuantaApp extends StatelessWidget {
       theme: AppTheme.light(),
       darkTheme: AppTheme.dark(),
       themeMode: themeMode,
-      home: const MainShell(),
+      themeAnimationDuration: Duration.zero,
+      home: const _ThemeFade(child: MainShell()),
     );
+  }
+}
+
+class _ThemeFade extends StatefulWidget {
+  final Widget child;
+  const _ThemeFade({required this.child});
+  @override
+  State<_ThemeFade> createState() => _ThemeFadeState();
+}
+
+class _ThemeFadeState extends State<_ThemeFade>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _ctrl;
+  QuantaState? _state;
+  ThemeMode? _lastMode;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+        vsync: this, value: 1.0,
+        duration: const Duration(milliseconds: 300));
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _state?.removeListener(_onChanged);
+    _state = context.read<QuantaState>()..addListener(_onChanged);
+    _lastMode ??= _state!.themeMode;
+  }
+
+  void _onChanged() {
+    if (!mounted) return;
+    final mode = _state!.themeMode;
+    if (mode != _lastMode) {
+      _lastMode = mode;
+      _ctrl.forward(from: 0.0);
+    }
+  }
+
+  @override
+  void dispose() {
+    _state?.removeListener(_onChanged);
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FadeTransition(opacity: _ctrl, child: widget.child);
   }
 }

@@ -382,8 +382,8 @@ class AppTheme {
   static ThemeData _build({required bool dark}) {
     const accent = AppColors.accent;
     const accentLight = AppColors.accentLight;
-    final bg       = dark ? const Color(0xFF080601) : const Color(0xFFF5EFE0);
-    final card     = dark ? const Color(0xFF0D0A00) : const Color(0xFFFFFFFF);
+    final bg       = dark ? const Color(0xFF0C0A01) : const Color(0xFFF5EFE0);
+    final card     = dark ? const Color(0xFF181300) : const Color(0xFFFFFFFF);
     final text     = dark ? const Color(0xFFDDD5A0) : const Color(0xFF1A1500);
     final base     = dark ? ThemeData.dark() : ThemeData.light();
     return ThemeData(
