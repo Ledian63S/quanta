@@ -114,152 +114,155 @@ class _TerminalNumberState extends State<TerminalNumber>
   }
 }
 
-// ── Brick gauge — 2 rows × 5 cols ──────────────────────────────────────────
-class PacManGauge extends StatelessWidget {
+// ── Odometer gauge ──────────────────────────────────────────────────────────
+class PacManGauge extends StatefulWidget {
   final int contracts;
   final bool hasData;
-  static const _cols = 5;
-  static const _maxBricks = 10; // 2 rows × 5 cols
   const PacManGauge({super.key, required this.contracts, required this.hasData});
+  @override
+  State<PacManGauge> createState() => _OdometerState();
+}
+
+class _OdometerState extends State<PacManGauge> {
+  bool _goingUp = true;
+
+  // -1 = the special "dash" state (no data / zero)
+  List<int> _toDigits(int contracts, bool hasData) {
+    if (!hasData || contracts <= 0) return [-1];
+    return contracts.toString().split('').map(int.parse).toList();
+  }
+
+  @override
+  void didUpdateWidget(PacManGauge old) {
+    super.didUpdateWidget(old);
+    final oldVal = (old.hasData && old.contracts > 0) ? old.contracts : 0;
+    final newVal = (widget.hasData && widget.contracts > 0) ? widget.contracts : 0;
+    if (oldVal != newVal) {
+      setState(() => _goingUp = newVal >= oldVal);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final filled = hasData ? contracts.clamp(0, _maxBricks) : 0;
-    final overflow = hasData && contracts > _maxBricks ? contracts - _maxBricks : 0;
-
-    // Build a row of 5 bricks; offset shifts which global index they start at
-    Widget brickRow(int offset) => Row(
-      children: List.generate(_cols, (col) {
-        final idx = offset + col; // global brick index 0–9
-        return Expanded(
-          child: Padding(
-            padding: EdgeInsets.only(right: col < _cols - 1 ? 4 : 0),
-            child: _Brick(on: idx < filled, index: idx),
-          ),
-        );
-      }),
-    );
+    final digits = _toDigits(widget.contracts, widget.hasData);
 
     return SizedBox(
       height: 175,
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          // 2×5 brick grid on the left
-          Expanded(
-            child: Column(
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
               mainAxisSize: MainAxisSize.min,
-              children: [
-                brickRow(5), // top row: bricks 5–9
-                const SizedBox(height: 4),
-                brickRow(0), // bottom row: bricks 0–4
-                if (overflow > 0) ...[
-                  const SizedBox(height: 6),
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text('+$overflow',
-                        style: AppText.mono(size: 9, color: AppColors.accent)),
-                  ),
-                ],
-              ],
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: List.generate(digits.length, (i) {
+                final posFromRight = digits.length - i;
+                return _DigitWheel(
+                  key: ValueKey(posFromRight),
+                  digit: digits[i],
+                  goingUp: _goingUp,
+                );
+              }),
             ),
-          ),
-          const SizedBox(width: 16),
-          // Contract count on the right
-          Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              TerminalNumber(
-                  value: contracts, size: 72, color: AppColors.accent),
-              const SizedBox(height: 2),
-              Text('CONTRACTS',
-                  style: AppText.label(size: 9, color: AppColors.muted)),
-            ],
-          ),
-        ],
+            const SizedBox(height: 10),
+            Text('CONTRACTS', style: AppText.label(size: 9, color: AppColors.muted)),
+          ],
+        ),
       ),
     );
   }
 }
 
-class _Brick extends StatelessWidget {
-  final bool on;
-  final int index;
-  const _Brick({required this.on, required this.index});
+class _DigitWheel extends StatefulWidget {
+  final int digit;
+  final bool goingUp;
+  const _DigitWheel({super.key, required this.digit, required this.goingUp});
+  @override
+  State<_DigitWheel> createState() => _DigitWheelState();
+}
+
+class _DigitWheelState extends State<_DigitWheel>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _ctrl;
+  late Animation<double> _anim;
+  int _prevDigit = 0;
+  bool _goingUp = true;
+
+  static const _h = 80.0;
+
+  @override
+  void initState() {
+    super.initState();
+    _prevDigit = widget.digit;
+    _goingUp = widget.goingUp;
+    _ctrl = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 360));
+    _anim = CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut);
+  }
+
+  @override
+  void didUpdateWidget(_DigitWheel old) {
+    super.didUpdateWidget(old);
+    if (old.digit != widget.digit) {
+      _prevDigit = old.digit;
+      _goingUp = widget.goingUp;
+      _ctrl.forward(from: 0);
+    }
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  Widget _digit(int d) => Text(
+    d < 0 ? '--' : '$d',
+    style: GoogleFonts.jetBrainsMono(
+      fontSize: _h,
+      fontWeight: FontWeight.w700,
+      color: d < 0 ? AppColors.muted : AppColors.accent,
+      height: 1.0,
+    ),
+  );
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 52,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          // Empty shell — always visible, sharp corners
-          Container(
-            decoration: BoxDecoration(
-              color: AppColors.card,
-              border: Border.all(
-                color: AppColors.border.withValues(alpha: 0.6),
-                width: 1,
-              ),
-            ),
-          ),
-          // Filled brick — scales + fades in, staggered by index
-          TweenAnimationBuilder<double>(
-            tween: Tween(begin: 0, end: on ? 1.0 : 0.0),
-            duration: Duration(milliseconds: 90 + index * 28),
-            curve: Curves.easeOut,
-            builder: (_, t, __) {
-              if (t < 0.01) return const SizedBox.shrink();
-              return Opacity(
-                opacity: t,
-                child: Transform.scale(
-                  scale: 0.72 + 0.28 * t,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: AppColors.accent,
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.accent.withValues(alpha: 0.45 * t),
-                          blurRadius: 10,
-                          spreadRadius: 1,
-                        ),
-                      ],
-                    ),
-                    child: CustomPaint(painter: _BrickFacePainter()),
+    return ClipRect(
+      child: SizedBox(
+        height: _h,
+        child: AnimatedBuilder(
+          animation: _anim,
+          builder: (_, __) {
+            final t = _anim.value;
+            // Increasing → old rolls up (negative y), new comes from below
+            // Decreasing → old rolls down (positive y), new comes from above
+            final dir = _goingUp ? -1.0 : 1.0;
+            return Stack(
+              children: [
+                // Outgoing digit
+                FractionalTranslation(
+                  translation: Offset(0, dir * t),
+                  child: Opacity(
+                    opacity: (1 - t * 2).clamp(0.0, 1.0),
+                    child: _digit(_prevDigit),
                   ),
                 ),
-              );
-            },
-          ),
-        ],
+                // Incoming digit
+                FractionalTranslation(
+                  translation: Offset(0, dir * (t - 1)),
+                  child: Opacity(
+                    opacity: ((t - 0.5) * 2).clamp(0.0, 1.0),
+                    child: _digit(widget.digit),
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
       ),
     );
   }
-}
-
-class _BrickFacePainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final w = size.width;
-    final h = size.height;
-    // Top highlight
-    canvas.drawRect(Rect.fromLTWH(0, 0, w, 3),
-        Paint()..color = Colors.white.withValues(alpha: 0.30));
-    // Left highlight
-    canvas.drawRect(Rect.fromLTWH(0, 0, 3, h),
-        Paint()..color = Colors.white.withValues(alpha: 0.16));
-    // Bottom shadow
-    canvas.drawRect(Rect.fromLTWH(0, h - 3, w, 3),
-        Paint()..color = Colors.black.withValues(alpha: 0.28));
-    // Right shadow
-    canvas.drawRect(Rect.fromLTWH(w - 3, 0, 3, h),
-        Paint()..color = Colors.black.withValues(alpha: 0.18));
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter old) => false;
 }
 
 // ── Dot leader ─────────────────────────────────────────────────────────────
