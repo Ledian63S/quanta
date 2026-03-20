@@ -154,34 +154,49 @@ class _RiskGaugeState extends State<RiskGauge>
   Widget build(BuildContext context) {
     final ratio = widget.max > 0
         ? (widget.actual / widget.max).clamp(0.0, 1.0) : 0.0;
-    return SizedBox(
-      width: 250, height: 185,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          TweenAnimationBuilder<double>(
-            tween: Tween(begin: 0, end: ratio),
-            duration: const Duration(milliseconds: 500),
-            curve: Curves.easeOut,
-            builder: (_, r, __) => AnimatedBuilder(
-              animation: _pulse,
-              builder: (_, __) => CustomPaint(
-                size: const Size(250, 250),
-                painter: _GaugePainter(ratio: r, pulse: _pulse.value),
-              ),
+    // The arc (160°→20° clockwise through top) in a 250×250 canvas:
+    //   - top of arc (270° = 12 o'clock): y ≈ 20
+    //   - arc endpoints: y ≈ 161
+    //   - number center: y = 125
+    // Crop the bottom ~75px of empty space via ClipRect+OverflowBox,
+    // so the CustomPaint always paints with correct 250×250 geometry.
+    return ClipRect(
+      child: SizedBox(
+        width: 250,
+        height: 175,
+        child: OverflowBox(
+          maxWidth: 250,
+          maxHeight: 250,
+          alignment: Alignment.topCenter,
+          child: SizedBox(
+            width: 250,
+            height: 250,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                TweenAnimationBuilder<double>(
+                  tween: Tween(begin: 0, end: ratio),
+                  duration: const Duration(milliseconds: 500),
+                  curve: Curves.easeOut,
+                  builder: (_, r, __) => AnimatedBuilder(
+                    animation: _pulse,
+                    builder: (_, __) => CustomPaint(
+                      size: const Size(250, 250),
+                      painter: _GaugePainter(ratio: r, pulse: _pulse.value),
+                    ),
+                  ),
+                ),
+                Column(mainAxisSize: MainAxisSize.min, children: [
+                  TerminalNumber(value: widget.contracts, size: 82,
+                      color: AppColors.accent),
+                  const SizedBox(height: 4),
+                  Text('CONTRACTS',
+                      style: AppText.label(size: 10, color: AppColors.muted)),
+                ]),
+              ],
             ),
           ),
-          Align(
-            alignment: const Alignment(0, -0.15),
-            child: Column(mainAxisSize: MainAxisSize.min, children: [
-              TerminalNumber(value: widget.contracts, size: 82,
-                  color: AppColors.accent),
-              const SizedBox(height: 4),
-              Text('CONTRACTS',
-                  style: AppText.label(size: 10, color: AppColors.muted)),
-            ]),
-          ),
-        ],
+        ),
       ),
     );
   }
