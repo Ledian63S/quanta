@@ -19,6 +19,12 @@ void main() async {
       title: 'Quanta',
     );
     await windowManager.waitUntilReadyToShow(options, () async {
+      if (Platform.isMacOS) {
+        await windowManager.setTitleBarStyle(
+          TitleBarStyle.hidden,
+          windowButtonVisibility: false,
+        );
+      }
       await windowManager.show();
       await windowManager.focus();
     });
