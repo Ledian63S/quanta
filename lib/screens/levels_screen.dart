@@ -165,9 +165,8 @@ class _LevelsScreenState extends State<LevelsScreen> {
                 Text('STOP LOSS', style: AppText.label(size: 10)),
                 const SizedBox(height: 4),
                 Text(AppFormat.stopLoss(state.stopLossPoints),
-                    style: GoogleFonts.jetBrainsMono(
-                        fontSize: 32, fontWeight: FontWeight.w700,
-                        color: AppColors.muted, height: 1.0)),
+                    style: AppText.mono(size: 32, weight: FontWeight.w700,
+                        color: AppColors.muted)),
                 Text('pts  ·  fixed', style: AppText.label(size: 10, color: AppColors.subtle)),
               ])),
 
