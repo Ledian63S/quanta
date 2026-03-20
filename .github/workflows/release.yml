@@ -45,6 +45,78 @@ jobs:
           name: Quanta v${{ steps.version.outputs.display }}
           files: Quanta-macOS-v${{ steps.version.outputs.display }}.zip
 
+  build-windows:
+    name: Build Windows
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.41.5'
+          channel: stable
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Get version from pubspec
+        id: version
+        shell: bash
+        run: |
+          RAW=$(grep '^version:' pubspec.yaml | sed 's/version: //')
+          DISPLAY=$(echo $RAW | sed 's/+/./')
+          echo "display=$DISPLAY" >> $GITHUB_OUTPUT
+
+      - name: Build Windows
+        run: flutter build windows --release
+
+      - name: Zip app
+        shell: pwsh
+        run: |
+          Compress-Archive -Path "build\windows\x64\runner\Release\*" `
+            -DestinationPath "Quanta-Windows-v${{ steps.version.outputs.display }}.zip"
+
+      - name: Upload to release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Quanta v${{ steps.version.outputs.display }}
+          files: Quanta-Windows-v${{ steps.version.outputs.display }}.zip
+
+  build-ios:
+    name: Build iOS
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.41.5'
+          channel: stable
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Get version from pubspec
+        id: version
+        run: |
+          RAW=$(grep '^version:' pubspec.yaml | sed 's/version: //')
+          DISPLAY=$(echo $RAW | sed 's/+/./')
+          echo "display=$DISPLAY" >> $GITHUB_OUTPUT
+
+      - name: Build iOS (unsigned)
+        run: flutter build ios --release --no-codesign
+
+      - name: Zip app
+        run: |
+          cd build/ios/iphoneos
+          zip -r ~/Quanta-iOS-v${{ steps.version.outputs.display }}.zip Runner.app
+
+      - name: Upload to release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Quanta v${{ steps.version.outputs.display }}
+          files: ~/Quanta-iOS-v${{ steps.version.outputs.display }}.zip
+
   build-android:
     name: Build Android
     runs-on: ubuntu-latest
