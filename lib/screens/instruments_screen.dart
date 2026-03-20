@@ -31,31 +31,30 @@ class InstrumentsScreen extends StatelessWidget {
               Text('WATCHLIST', style: AppText.label()),
               const SizedBox(width: 8),
               Expanded(child: Container(height: 1, color: AppColors.border)),
+              const SizedBox(width: 8),
+              Text('DRAG TO REORDER', style: AppText.mono(size: 9, color: AppColors.subtle)),
             ]),
             const SizedBox(height: 10),
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(children: state.favoriteInstruments.map((inst) {
+            ReorderableListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              buildDefaultDragHandles: false,
+              onReorder: state.reorderFavorites,
+              itemCount: state.favoriteInstruments.length,
+              proxyDecorator: (child, index, animation) => Material(
+                color: Colors.transparent,
+                child: child,
+              ),
+              itemBuilder: (context, i) {
+                final inst = state.favoriteInstruments[i];
                 final isSelected = inst.ticker == state.selectedTicker;
-                return Container(
-                  margin: const EdgeInsets.only(right: 10),
-                  padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
-                  decoration: isSelected
-                      ? AppDecor.activeInstrument()
-                      : AppDecor.inactiveInstrument(),
-                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text(inst.ticker, style: AppText.mono(
-                      size: 14, weight: FontWeight.w700,
-                      color: isSelected ? AppColors.accent : AppColors.text,
-                    )),
-                    const SizedBox(height: 3),
-                    Text('\$${inst.pointValue}/PT', style: AppText.label(
-                      color: isSelected
-                          ? AppColors.accent.withValues(alpha: 0.6) : AppColors.muted,
-                    )),
-                  ]),
+                return _WatchlistItem(
+                  key: ValueKey(inst.ticker),
+                  instrument: inst,
+                  isSelected: isSelected,
+                  index: i,
                 );
-              }).toList()),
+              },
             ),
             const SizedBox(height: 24),
           ],
@@ -101,6 +100,70 @@ class InstrumentsScreen extends StatelessWidget {
           }),
         ]),
       ),
+    );
+  }
+}
+
+class _WatchlistItem extends StatelessWidget {
+  final Instrument instrument;
+  final bool isSelected;
+  final int index;
+  const _WatchlistItem({
+    super.key,
+    required this.instrument,
+    required this.isSelected,
+    required this.index,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(
+          color: isSelected
+              ? AppColors.accent.withValues(alpha: 0.5)
+              : AppColors.border,
+        ),
+      ),
+      child: Row(children: [
+        // Drag handle
+        ReorderableDragStartListener(
+          index: index,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+            child: Text('≡', style: AppText.mono(size: 16, color: AppColors.muted)),
+          ),
+        ),
+        // Left accent bar
+        Container(
+          width: 2, height: 40,
+          decoration: BoxDecoration(
+            color: isSelected ? AppColors.accent : AppColors.subtle,
+            borderRadius: BorderRadius.circular(1),
+          ),
+        ),
+        const SizedBox(width: 12),
+        // Ticker + name
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(instrument.ticker, style: AppText.mono(
+            size: 14, weight: FontWeight.w700,
+            color: isSelected ? AppColors.accentLight : AppColors.text,
+          )),
+          const SizedBox(height: 2),
+          Text(instrument.name, style: AppText.mono(size: 10, color: AppColors.muted)),
+        ])),
+        // Point value
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          child: Text('\$${instrument.pointValue}/PT', style: AppText.mono(
+            size: 12, weight: FontWeight.w700,
+            color: isSelected ? AppColors.accent : AppColors.muted,
+          )),
+        ),
+      ]),
     );
   }
 }

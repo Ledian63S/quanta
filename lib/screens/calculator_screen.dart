@@ -63,8 +63,6 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
               balanceFocus: _balanceFocus,
               riskFocus: _riskFocus,
               slFocus: _slFocus,
-              balanceFocused: _balanceFocused,
-              riskFocused: _riskFocused,
             ),
             const SizedBox(height: 20),
 
@@ -86,8 +84,17 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
               focusNode: _slFocus,
               focused: _slFocused,
               ticker: state.currentInstrument.ticker,
-              onChanged: (v) => state.setStopLoss(
-                  v.isEmpty ? 0 : (double.tryParse(v) ?? state.stopLossPoints)),
+              onChanged: (v) {
+                final normalized = v.replaceAll(',', '.');
+                state.setStopLoss(
+                    normalized.isEmpty ? 0 : (double.tryParse(normalized) ?? state.stopLossPoints));
+              },
+              onAdjust: (delta) {
+                final newVal = (state.stopLossPoints + delta).clamp(0.0, double.infinity);
+                _slController.text = newVal > 0 ? AppFormat.stopLoss(newVal) : '';
+                state.setStopLoss(newVal);
+                HapticFeedback.selectionClick();
+              },
             ),
             const SizedBox(height: 20),
 
@@ -135,12 +142,10 @@ class _AccountStrip extends StatelessWidget {
   final QuantaState state;
   final TextEditingController balanceController, riskController;
   final FocusNode balanceFocus, riskFocus, slFocus;
-  final bool balanceFocused, riskFocused;
   const _AccountStrip({
     required this.state,
     required this.balanceController, required this.riskController,
     required this.balanceFocus, required this.riskFocus, required this.slFocus,
-    required this.balanceFocused, required this.riskFocused,
   });
 
   @override
@@ -153,18 +158,24 @@ class _AccountStrip extends StatelessWidget {
           prefix: '\$',
           controller: balanceController,
           focusNode: balanceFocus,
-          focused: balanceFocused,
           onChanged: (v) => state.setBalance(double.tryParse(v) ?? state.accountBalance),
           onSubmitted: (_) => riskFocus.requestFocus(),
         ),
         Container(height: 1, color: AppColors.border),
         _AccountRow(
           label: 'RISK / TRADE',
-          prefix: '\$',
+          prefix: state.riskIsPercent ? '%' : '\$',
+          isPercent: state.riskIsPercent,
           controller: riskController,
           focusNode: riskFocus,
-          focused: riskFocused,
-          onChanged: (v) => state.setSessionRisk(double.tryParse(v) ?? state.riskAmount),
+          onChanged: (v) {
+            if (state.riskIsPercent) {
+              final pct = double.tryParse(v) ?? 0;
+              state.setSessionRisk(pct / 100 * state.accountBalance);
+            } else {
+              state.setSessionRisk(double.tryParse(v) ?? state.riskAmount);
+            }
+          },
           onSubmitted: (_) => slFocus.requestFocus(),
         ),
       ]),
@@ -172,50 +183,101 @@ class _AccountStrip extends StatelessWidget {
   }
 }
 
-class _AccountRow extends StatelessWidget {
+class _AccountRow extends StatefulWidget {
   final String label, prefix;
   final TextEditingController controller;
   final FocusNode focusNode;
-  final bool focused;
+  final bool isPercent;
   final ValueChanged<String> onChanged, onSubmitted;
   const _AccountRow({
     required this.label, required this.prefix, required this.controller,
-    required this.focusNode, required this.focused,
+    required this.focusNode,
     required this.onChanged, required this.onSubmitted,
+    this.isPercent = false,
   });
 
   @override
+  State<_AccountRow> createState() => _AccountRowState();
+}
+
+class _AccountRowState extends State<_AccountRow> {
+  bool _focused = false;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.focusNode.addListener(_onFocusChange);
+  }
+
+  void _onFocusChange() {
+    setState(() => _focused = widget.focusNode.hasFocus);
+  }
+
+  @override
+  void dispose() {
+    widget.focusNode.removeListener(_onFocusChange);
+    super.dispose();
+  }
+
+  static String _fmt(String raw) {
+    final v = double.tryParse(raw);
+    if (v == null) return raw;
+    return v.toStringAsFixed(0)
+        .replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+$)'), (m) => '${m[1]},');
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      child: Row(children: [
-        // Label
-        Text('> ', style: AppText.mono(size: 11,
-            color: focused ? AppColors.accent : AppColors.subtle)),
-        Text(label, style: AppText.label(
-            size: 10,
-            color: focused ? AppColors.accentLight : AppColors.muted)),
-        const Spacer(),
-        // Value input
-        Text(prefix, style: AppText.mono(size: 20, weight: FontWeight.w600,
-            color: focused ? AppColors.accent : AppColors.muted)),
-        IntrinsicWidth(child: TextField(
-          controller: controller,
-          focusNode: focusNode,
-          onChanged: onChanged,
-          onSubmitted: onSubmitted,
-          textInputAction: TextInputAction.next,
-          textAlign: TextAlign.right,
-          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[\d.]'))],
-          enableInteractiveSelection: false,
-          cursorColor: AppColors.accent,
-          style: AppText.mono(size: 20, weight: FontWeight.w600,
-              color: focused ? AppColors.accentLight : AppColors.text),
-          decoration: const InputDecoration(
-            border: InputBorder.none, isDense: true, contentPadding: EdgeInsets.zero),
-        )),
-      ]),
+    final displayText = widget.isPercent
+        ? '${widget.controller.text}%'
+        : '${widget.prefix}${_fmt(widget.controller.text)}';
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: _focused ? null : () {
+        setState(() => _focused = true);
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) widget.focusNode.requestFocus();
+        });
+      },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        child: Row(children: [
+          Text('> ', style: AppText.mono(size: 11,
+              color: _focused ? AppColors.accent : AppColors.subtle)),
+          Text(widget.label, style: AppText.label(
+              size: 10,
+              color: _focused ? AppColors.accentLight : AppColors.muted)),
+          const Spacer(),
+          if (_focused) ...[
+            if (!widget.isPercent)
+              Text(widget.prefix, style: AppText.mono(size: 20, weight: FontWeight.w600,
+                  color: AppColors.accent)),
+            IntrinsicWidth(child: TextField(
+              controller: widget.controller,
+              focusNode: widget.focusNode,
+              onChanged: widget.onChanged,
+              onSubmitted: widget.onSubmitted,
+              textInputAction: TextInputAction.next,
+              textAlign: TextAlign.right,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[\d.]'))],
+              enableInteractiveSelection: false,
+              autofocus: false,
+              cursorColor: AppColors.accent,
+              style: AppText.mono(size: 20, weight: FontWeight.w600,
+                  color: AppColors.accentLight),
+              decoration: const InputDecoration(
+                border: InputBorder.none, isDense: true, contentPadding: EdgeInsets.zero),
+            )),
+            if (widget.isPercent)
+              Text('%', style: AppText.mono(size: 20, weight: FontWeight.w600,
+                  color: AppColors.accent)),
+          ] else
+            Text(displayText,
+              style: AppText.mono(size: 20, weight: FontWeight.w600,
+                  color: AppColors.text)),
+        ]),
+      ),
     );
   }
 }
@@ -280,9 +342,11 @@ class _StopLossPanel extends StatelessWidget {
   final bool focused;
   final String ticker;
   final ValueChanged<String> onChanged;
+  final void Function(double delta) onAdjust;
   const _StopLossPanel({
     required this.controller, required this.focusNode,
-    required this.focused, required this.ticker, required this.onChanged,
+    required this.focused, required this.ticker,
+    required this.onChanged, required this.onAdjust,
   });
 
   @override
@@ -290,7 +354,7 @@ class _StopLossPanel extends StatelessWidget {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
       decoration: focused ? AppDecor.focusCard() : AppDecor.card(),
-      padding: const EdgeInsets.fromLTRB(14, 14, 14, 10),
+      padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         // Prompt line
         Row(children: [
@@ -313,7 +377,10 @@ class _StopLossPanel extends StatelessWidget {
           textInputAction: TextInputAction.done,
           textAlign: TextAlign.left,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[\d.]'))],
+          inputFormatters: [
+            FilteringTextInputFormatter.allow(RegExp(r'[\d.,]')),
+            _CommaToDotFormatter(),
+          ],
           enableInteractiveSelection: false,
           cursorColor: AppColors.accent,
           cursorWidth: 2,
@@ -335,8 +402,53 @@ class _StopLossPanel extends StatelessWidget {
             contentPadding: EdgeInsets.zero,
           ),
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: 12),
+
+        // Quick-adjust buttons
+        Row(children: [
+          for (final delta in [-1.0, -0.25, 0.25, 1.0]) ...[
+            Expanded(child: _AdjustButton(
+              label: delta > 0 ? '+${AppFormat.stopLoss(delta)}' : AppFormat.stopLoss(delta),
+              onTap: () => onAdjust(delta),
+            )),
+            if (delta != 1.0) const SizedBox(width: 6),
+          ],
+        ]),
       ]),
+    );
+  }
+}
+
+class _CommaToDotFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+      TextEditingValue oldValue, TextEditingValue newValue) {
+    final text = newValue.text.replaceAll(',', '.');
+    return newValue.copyWith(text: text);
+  }
+}
+
+class _AdjustButton extends StatelessWidget {
+  final String label;
+  final VoidCallback onTap;
+  const _AdjustButton({required this.label, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Clickable(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        decoration: BoxDecoration(
+          color: AppColors.elevated,
+          borderRadius: BorderRadius.circular(4),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Text(label,
+          textAlign: TextAlign.center,
+          style: AppText.mono(size: 12, weight: FontWeight.w600,
+              color: AppColors.muted)),
+      ),
     );
   }
 }
@@ -349,27 +461,74 @@ class _ResultPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final hasData = state.stopLossPoints > 0;
+    final noContracts = hasData && state.contracts == 0;
+    final riskPct = state.accountBalance > 0
+        ? state.actualRisk / state.accountBalance * 100 : 0.0;
+
     return Column(children: [
-      Center(
-        child: RiskGauge(
-          actual: hasData ? state.actualRisk : 0,
-          max: hasData ? state.effectiveRisk : 0,
-          contracts: hasData ? state.contracts : 0,
+      // Gauge — tap to copy contracts
+      Clickable(
+        onTap: hasData && !noContracts ? () {
+          HapticFeedback.mediumImpact();
+          Clipboard.setData(ClipboardData(text: '${state.contracts}'));
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('${state.contracts} CONTRACTS COPIED',
+                style: AppText.label(color: Colors.black)),
+            backgroundColor: AppColors.accent,
+            duration: const Duration(milliseconds: 1200),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+            margin: const EdgeInsets.fromLTRB(16, 0, 16, 100),
+          ));
+        } : null,
+        child: Center(
+          child: RiskGauge(
+            actual: hasData ? state.actualRisk : 0,
+            max: hasData ? state.effectiveRisk : 0,
+            contracts: hasData ? state.contracts : 0,
+          ),
         ),
       ),
+
+      // Zero-contracts warning
+      if (noContracts) ...[
+        const SizedBox(height: 10),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            color: AppColors.orange.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(4),
+            border: Border.all(color: AppColors.orange.withValues(alpha: 0.4)),
+          ),
+          child: Row(children: [
+            Text('! ', style: AppText.mono(size: 12,
+                weight: FontWeight.w700, color: AppColors.orange)),
+            Expanded(child: Text('STOP TOO LARGE — REDUCE SL OR INCREASE RISK',
+                style: AppText.label(size: 10, color: AppColors.orange))),
+          ]),
+        ),
+      ],
+
       const SizedBox(height: 16),
       Container(
         decoration: AppDecor.card(),
         padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
         child: Column(children: [
           _ReadoutRow('MAX RISK',
-              '\$${state.effectiveRisk.toStringAsFixed(0)}', AppColors.muted),
+              AppFormat.dollar(state.effectiveRisk), AppColors.muted),
           const SizedBox(height: 8),
           _ReadoutRow('ACTUAL  ',
-              '\$${state.actualRisk.toStringAsFixed(0)}', AppColors.green),
+              AppFormat.dollar(state.actualRisk), AppColors.green),
           const SizedBox(height: 8),
           _ReadoutRow('UNUSED  ',
-              '\$${state.unusedRisk.toStringAsFixed(0)}', AppColors.orange),
+              AppFormat.dollar(state.unusedRisk), AppColors.orange),
+          if (hasData && !noContracts) ...[
+            const SizedBox(height: 8),
+            Container(height: 1, color: AppColors.border),
+            const SizedBox(height: 8),
+            _ReadoutRow('RISK %  ',
+                AppFormat.pct(riskPct), AppColors.muted),
+          ],
         ]),
       ),
     ]);
@@ -384,7 +543,7 @@ class _ReadoutRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(children: [
-      Text(label, style: AppText.mono(size: 11, color: AppColors.muted)),
+      Text(label, style: AppText.mono(size: 12, color: AppColors.muted)),
       const SizedBox(width: 4),
       const DotLeader(),
       const SizedBox(width: 4),

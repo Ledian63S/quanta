@@ -155,7 +155,7 @@ class _RiskGaugeState extends State<RiskGauge>
     final ratio = widget.max > 0
         ? (widget.actual / widget.max).clamp(0.0, 1.0) : 0.0;
     return SizedBox(
-      width: 250, height: 250,
+      width: 250, height: 185,
       child: Stack(
         alignment: Alignment.center,
         children: [
@@ -171,13 +171,16 @@ class _RiskGaugeState extends State<RiskGauge>
               ),
             ),
           ),
-          Column(mainAxisSize: MainAxisSize.min, children: [
-            TerminalNumber(value: widget.contracts, size: 72,
-                color: AppColors.accent),
-            const SizedBox(height: 4),
-            Text('CONTRACTS',
-                style: AppText.label(size: 10, color: AppColors.muted)),
-          ]),
+          Align(
+            alignment: const Alignment(0, -0.15),
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              TerminalNumber(value: widget.contracts, size: 82,
+                  color: AppColors.accent),
+              const SizedBox(height: 4),
+              Text('CONTRACTS',
+                  style: AppText.label(size: 10, color: AppColors.muted)),
+            ]),
+          ),
         ],
       ),
     );
@@ -189,60 +192,53 @@ class _GaugePainter extends CustomPainter {
   final double pulse;
   _GaugePainter({required this.ratio, this.pulse = 0});
 
-  static const _start = 135 * pi / 180;
-  static const _sweep = 270 * pi / 180;
+  static const _start = 160 * pi / 180;
+  static const _sweep = 220 * pi / 180;
+
+  static const _numSegs = 20;
+  static const _gapSweep = 0.045;
 
   @override
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
     final radius = size.width * 0.42;
+    final rect = Rect.fromCircle(center: center, radius: radius);
 
-    // Track
-    canvas.drawArc(
-      Rect.fromCircle(center: center, radius: radius),
-      _start, _sweep, false,
-      Paint()
-        ..color = AppColors.border
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 12
-        ..strokeCap = StrokeCap.round,
-    );
+    const segSweep = (_sweep - _numSegs * _gapSweep) / _numSegs;
+    final filledSegs = (ratio * _numSegs).round().clamp(0, _numSegs);
+    final arcColor = _riskColor(ratio);
 
-    // Glow + fill
-    if (ratio > 0.01) {
-      final glowAlpha = 0.2 + pulse * 0.35;
-      final glowWidth = 26.0 + pulse * 16;
-      canvas.drawArc(
-        Rect.fromCircle(center: center, radius: radius),
-        _start, _sweep * ratio, false,
+    // Glow behind filled segments (single pass for performance)
+    if (filledSegs > 0 && ratio > 0.01) {
+      final glowSweep = filledSegs * (segSweep + _gapSweep) - _gapSweep;
+      canvas.drawArc(rect, _start, glowSweep, false,
         Paint()
-          ..color = AppColors.accent.withValues(alpha: glowAlpha)
+          ..color = arcColor.withValues(alpha: 0.18 + pulse * 0.3)
           ..style = PaintingStyle.stroke
-          ..strokeWidth = glowWidth
-          ..strokeCap = StrokeCap.round
-          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 12),
+          ..strokeWidth = 28 + pulse * 14
+          ..strokeCap = StrokeCap.butt
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 10),
       );
-      canvas.drawArc(
-        Rect.fromCircle(center: center, radius: radius),
-        _start, _sweep * ratio, false,
+    }
+
+    // Draw each segment
+    for (int i = 0; i < _numSegs; i++) {
+      final segStart = _start + i * (segSweep + _gapSweep) + _gapSweep / 2;
+      final filled = i < filledSegs;
+      canvas.drawArc(rect, segStart, segSweep, false,
         Paint()
-          ..color = AppColors.accent
+          ..color = filled ? arcColor : AppColors.border
           ..style = PaintingStyle.stroke
           ..strokeWidth = 12
-          ..strokeCap = StrokeCap.round,
+          ..strokeCap = StrokeCap.butt,
       );
     }
+  }
 
-    // Tick marks at 0%, 25%, 50%, 75%, 100%
-    final tickPaint = Paint()
-      ..color = AppColors.border
-      ..strokeWidth = 1.5;
-    for (int i = 0; i <= 4; i++) {
-      final angle = _start + _sweep * (i / 4);
-      final inner = center + Offset(cos(angle), sin(angle)) * (radius - 12);
-      final outer = center + Offset(cos(angle), sin(angle)) * (radius + 8);
-      canvas.drawLine(inner, outer, tickPaint);
-    }
+  static Color _riskColor(double r) {
+    if (r < 0.7) return AppColors.accent;
+    final t = ((r - 0.7) / 0.3).clamp(0.0, 1.0);
+    return Color.lerp(AppColors.accent, AppColors.orange, t)!;
   }
 
   @override
@@ -401,7 +397,7 @@ class AppText {
     GoogleFonts.jetBrainsMono(fontSize: size, fontWeight: weight, color: color);
 
   // Section labels — all caps, tracked
-  static TextStyle label({double size = 10, Color? color}) =>
+  static TextStyle label({double size = 11, Color? color}) =>
     GoogleFonts.jetBrainsMono(
       fontSize: size,
       fontWeight: FontWeight.w700,
@@ -410,13 +406,28 @@ class AppText {
     );
 
   // Body — also monospace for terminal feel
-  static TextStyle body({double size = 13, FontWeight weight = FontWeight.w400, Color? color}) =>
+  static TextStyle body({double size = 14, FontWeight weight = FontWeight.w400, Color? color}) =>
     GoogleFonts.jetBrainsMono(fontSize: size, fontWeight: weight, color: color);
 
   // Display (unused but kept for compat)
   static TextStyle display({double size = 80, FontWeight weight = FontWeight.w700, Color? color}) =>
     GoogleFonts.jetBrainsMono(fontSize: size, fontWeight: weight,
         color: color, height: 1.0);
+}
+
+// ── Number formatting ──────────────────────────────────────────────────────
+class AppFormat {
+  static String dollar(double v) =>
+      '\$${v.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+$)'), (m) => '${m[1]},')}';
+
+  static String pct(double v) => '${v.toStringAsFixed(1)}%';
+
+  // Format stop loss — strip unnecessary trailing zeros
+  static String stopLoss(double v) {
+    if (v % 1 == 0) return v.toStringAsFixed(0);
+    if ((v * 10) % 1 == 0) return v.toStringAsFixed(1);
+    return v.toStringAsFixed(2);
+  }
 }
 
 // ── Decorations ────────────────────────────────────────────────────────────
