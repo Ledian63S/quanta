@@ -23,6 +23,13 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      - name: Get version from pubspec
+        id: version
+        run: |
+          RAW=$(grep '^version:' pubspec.yaml | sed 's/version: //')
+          DISPLAY=$(echo $RAW | sed 's/+/./')
+          echo "display=$DISPLAY" >> $GITHUB_OUTPUT
+
       - name: Build macOS
         run: flutter build macos --release
 
@@ -30,12 +37,13 @@ jobs:
         run: |
           ditto -c -k --sequesterRsrc --keepParent \
             build/macos/Build/Products/Release/Quanta.app \
-            Quanta-macOS-${{ github.ref_name }}.zip
+            Quanta-macOS-v${{ steps.version.outputs.display }}.zip
 
       - name: Upload to release
         uses: softprops/action-gh-release@v2
         with:
-          files: Quanta-macOS-${{ github.ref_name }}.zip
+          name: Quanta v${{ steps.version.outputs.display }}
+          files: Quanta-macOS-v${{ steps.version.outputs.display }}.zip
 
   build-android:
     name: Build Android
@@ -56,13 +64,21 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      - name: Get version from pubspec
+        id: version
+        run: |
+          RAW=$(grep '^version:' pubspec.yaml | sed 's/version: //')
+          DISPLAY=$(echo $RAW | sed 's/+/./')
+          echo "display=$DISPLAY" >> $GITHUB_OUTPUT
+
       - name: Build APK
         run: flutter build apk --release
 
       - name: Rename APK
-        run: mv build/app/outputs/flutter-apk/app-release.apk Quanta-Android-${{ github.ref_name }}.apk
+        run: mv build/app/outputs/flutter-apk/app-release.apk Quanta-Android-v${{ steps.version.outputs.display }}.apk
 
       - name: Upload to release
         uses: softprops/action-gh-release@v2
         with:
-          files: Quanta-Android-${{ github.ref_name }}.apk
+          name: Quanta v${{ steps.version.outputs.display }}
+          files: Quanta-Android-v${{ steps.version.outputs.display }}.apk
