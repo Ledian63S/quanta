@@ -17,17 +17,6 @@ class DesktopTitleBar extends StatelessWidget {
         _TitleBtn(label: '×', onTap: () => windowManager.close()),
         const SizedBox(width: 4),
         _TitleBtn(label: '−', onTap: () => windowManager.minimize()),
-        const SizedBox(width: 4),
-        _TitleBtn(
-          label: '□',
-          onTap: () async {
-            if (await windowManager.isMaximized()) {
-              await windowManager.restore();
-            } else {
-              await windowManager.maximize();
-            }
-          },
-        ),
       ],
     );
 

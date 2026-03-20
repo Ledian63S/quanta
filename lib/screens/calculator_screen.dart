@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -127,8 +128,8 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
         ),
       ),
 
-      // Done button — shows whenever a field is focused, floats above keyboard
-      Positioned(
+      // Done button — mobile only (desktop uses Tab/Enter to dismiss focus)
+      if (!Platform.isMacOS && !Platform.isWindows) Positioned(
         bottom: keyboardHeight > 0 ? keyboardHeight + 12 : 100,
         right: 16,
         child: AnimatedOpacity(

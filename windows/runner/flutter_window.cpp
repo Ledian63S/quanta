@@ -68,7 +68,9 @@ FlutterWindow::MessageHandler(HWND hwnd, UINT const message,
     case WM_GETMINMAXINFO: {
       MINMAXINFO* mmi = reinterpret_cast<MINMAXINFO*>(lparam);
       mmi->ptMinTrackSize.x = 430;
-      mmi->ptMinTrackSize.y = 700;
+      mmi->ptMinTrackSize.y = 860;
+      mmi->ptMaxTrackSize.x = 430;
+      mmi->ptMaxTrackSize.y = 860;
       return 0;
     }
   }

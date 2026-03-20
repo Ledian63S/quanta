@@ -148,7 +148,7 @@ class _OdometerState extends State<PacManGauge> {
     final digits = _toDigits(widget.contracts, widget.hasData);
 
     return SizedBox(
-      height: 175,
+      height: 210,
       child: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -189,7 +189,7 @@ class _DigitWheelState extends State<_DigitWheel>
   int _prevDigit = 0;
   bool _goingUp = true;
 
-  static const _h = 80.0;
+  static const _h = 100.0;
 
   @override
   void initState() {
