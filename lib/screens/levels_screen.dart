@@ -166,7 +166,7 @@ class _LevelsScreenState extends State<LevelsScreen> {
                 const SizedBox(height: 4),
                 Text(AppFormat.stopLoss(state.stopLossPoints),
                     style: GoogleFonts.jetBrainsMono(
-                        fontSize: 48, fontWeight: FontWeight.w700,
+                        fontSize: 32, fontWeight: FontWeight.w700,
                         color: AppColors.muted, height: 1.0)),
                 Text('pts  ·  fixed', style: AppText.label(size: 10, color: AppColors.subtle)),
               ])),
@@ -178,7 +178,7 @@ class _LevelsScreenState extends State<LevelsScreen> {
                 const SizedBox(height: 4),
                 Text('$contracts',
                     textAlign: TextAlign.center,
-                    style: AppText.mono(size: 40, weight: FontWeight.w700,
+                    style: AppText.mono(size: 32, weight: FontWeight.w700,
                         color: AppColors.accentLight)),
               ])),
 
@@ -188,7 +188,7 @@ class _LevelsScreenState extends State<LevelsScreen> {
                 Text('ACTUAL RISK', style: AppText.label(size: 10)),
                 const SizedBox(height: 4),
                 Text(AppFormat.dollar(actualRisk),
-                    style: AppText.mono(size: 26, weight: FontWeight.w700,
+                    style: AppText.mono(size: 32, weight: FontWeight.w700,
                         color: AppColors.green)),
               ])),
             ]),
@@ -317,7 +317,7 @@ class _LevelsScreenState extends State<LevelsScreen> {
                                   Expanded(child: Row(children: [
                                     Text(AppFormat.dollar(risk),
                                         style: AppText.mono(
-                                          size: isSelected ? 16 : 14,
+                                          size: isSelected ? 18 : 14,
                                           weight: isSelected
                                               ? FontWeight.w700 : FontWeight.w400,
                                           color: isSelected
@@ -338,7 +338,7 @@ class _LevelsScreenState extends State<LevelsScreen> {
                                   Expanded(child: Text('$c',
                                       textAlign: TextAlign.center,
                                       style: AppText.mono(
-                                        size: isSelected ? 16 : 14,
+                                        size: isSelected ? 18 : 14,
                                         weight: FontWeight.w700,
                                         color: isSelected
                                             ? AppColors.accentLight : AppColors.subtle,
@@ -347,7 +347,7 @@ class _LevelsScreenState extends State<LevelsScreen> {
                                   Expanded(child: Text(AppFormat.dollar(ar),
                                       textAlign: TextAlign.right,
                                       style: AppText.mono(
-                                        size: isSelected ? 16 : 14,
+                                        size: isSelected ? 18 : 14,
                                         weight: isSelected
                                             ? FontWeight.w600 : FontWeight.w400,
                                         color: isSelected
