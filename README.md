@@ -10,9 +10,10 @@ A terminal-styled futures position size calculator built for **Quantower** trade
 ## Screenshots
 
 <p align="center">
-  <img src="docs/screenshots/calc.png" width="200" alt="Calculator">
-  <img src="docs/screenshots/levels.png" width="200" alt="Levels">
-  <img src="docs/screenshots/settings.png" width="200" alt="Settings">
+  <img src="docs/screenshots/calc.png" width="180" alt="Calculator">
+  <img src="docs/screenshots/levels.png" width="180" alt="Levels">
+  <img src="docs/screenshots/markets.png" width="180" alt="Markets">
+  <img src="docs/screenshots/settings.png" width="180" alt="Settings">
 </p>
 
 ---
