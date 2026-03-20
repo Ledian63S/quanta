@@ -62,6 +62,7 @@ class _LevelsScreenState extends State<LevelsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    Theme.of(context); // depend on theme so colors repaint on brightness change
     final state = context.watch<QuantaState>();
     final hasData = state.stopLossPoints > 0;
 

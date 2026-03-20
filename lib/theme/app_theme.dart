@@ -144,6 +144,7 @@ class _OdometerState extends State<PacManGauge> {
 
   @override
   Widget build(BuildContext context) {
+    Theme.of(context); // depend on theme so colors update on brightness change
     final digits = _toDigits(widget.contracts, widget.hasData);
 
     return SizedBox(
@@ -228,6 +229,7 @@ class _DigitWheelState extends State<_DigitWheel>
 
   @override
   Widget build(BuildContext context) {
+    Theme.of(context); // depend on theme so colors update on brightness change
     return ClipRect(
       child: SizedBox(
         height: _h,

@@ -39,6 +39,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    Theme.of(context); // depend on theme so StatelessWidget children repaint on brightness change
     final state = context.watch<QuantaState>();
     final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
     return Stack(children: [
@@ -245,6 +246,7 @@ class _InputRowState extends State<_InputRow> {
 
   @override
   Widget build(BuildContext context) {
+    Theme.of(context); // depend on theme so colors update on brightness change
     final displayText = widget.isPercent
         ? '${_fmt(widget.controller.text, isPercent: true)}%'
         : '${widget.prefix}${_fmt(widget.controller.text)}';

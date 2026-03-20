@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'instrument.dart';
 import '../theme/app_theme.dart';
 
-class QuantaState extends ChangeNotifier {
+class QuantaState extends ChangeNotifier with WidgetsBindingObserver {
   double accountBalance = 50000;
   double riskAmount = 300; // persisted setting
   double? _sessionRisk; // temporary override, not persisted
@@ -154,6 +154,18 @@ class QuantaState extends ChangeNotifier {
     _save();
   }
 
+  @override
+  void didChangePlatformBrightness() {
+    _syncIsDark();
+    notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
   void _syncIsDark() {
     final platformDark = WidgetsBinding
         .instance.platformDispatcher.platformBrightness == Brightness.dark;
@@ -188,6 +200,7 @@ class QuantaState extends ChangeNotifier {
     } catch (_) {
       // Use defaults on any error
     }
+    WidgetsBinding.instance.addObserver(this);
     _syncIsDark();
     notifyListeners();
   }

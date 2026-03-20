@@ -62,6 +62,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
 
   @override
   Widget build(BuildContext context) {
+    Theme.of(context); // depend on theme so StatelessWidget children repaint on brightness change
     final state = context.watch<QuantaState>();
     final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
 
@@ -255,6 +256,7 @@ class _AccountRowState extends State<_AccountRow> {
 
   @override
   Widget build(BuildContext context) {
+    Theme.of(context); // depend on theme so colors update on brightness change
     final displayText = widget.isPercent
         ? '${widget.controller.text}%'
         : '${widget.prefix}${_fmt(widget.controller.text)}';
