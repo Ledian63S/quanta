@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Changelog — Quanta</title>
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --accent:  #D4AF37;
+      --accent2: #F0CC60;
+      --green:   #4ADE80;
+      --font:    'JetBrains Mono', monospace;
+      --transition: 0.35s ease;
+    }
+
+    [data-theme="dark"] {
+      --bg:      #000000;
+      --card:    #0C0C0C;
+      --elev:    #141414;
+      --border:  #242018;
+      --text:    #F0ECD8;
+      --muted:   #807060;
+      --subtle:  #383028;
+      --scanline: rgba(0,0,0,0.06);
+    }
+
+    [data-theme="light"] {
+      --bg:      #E8E4DF;
+      --card:    #F8F6F3;
+      --elev:    #F0ECE8;
+      --border:  #B8B0A6;
+      --text:    #080808;
+      --muted:   #4A4642;
+      --subtle:  #A8A098;
+      --scanline: rgba(0,0,0,0.025);
+      --accent:  #9A7D1A;
+      --accent2: #C4A030;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 14px;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      transition: background var(--transition), color var(--transition);
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: repeating-linear-gradient(
+        0deg, transparent, transparent 2px,
+        var(--scanline) 2px, var(--scanline) 3px
+      );
+      pointer-events: none;
+      z-index: 9999;
+    }
+
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 24px;
+      background: color-mix(in srgb, var(--bg) 92%, transparent);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      transition: background var(--transition), border-color var(--transition);
+    }
+
+    .nav-logo {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      color: var(--text);
+      text-decoration: none;
+    }
+    .nav-logo span { color: var(--accent); }
+    .nav-logo img { width: 22px; height: 22px; vertical-align: middle; margin-right: 8px; border-radius: 5px; }
+
+    .nav-right { display: flex; align-items: center; gap: 20px; }
+    .nav-links { display: flex; gap: 20px; align-items: center; }
+    .nav-links a {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1.8px;
+      color: var(--muted);
+      text-decoration: none;
+      transition: color 0.15s;
+    }
+    .nav-links a:hover, .nav-links a.active { color: var(--accent); }
+
+    .theme-toggle {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 5px 10px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: background var(--transition), border-color var(--transition);
+    }
+    .theme-toggle:hover { border-color: var(--accent); }
+    .toggle-track {
+      width: 32px; height: 16px;
+      background: var(--elev);
+      border-radius: 8px;
+      position: relative;
+      transition: background var(--transition);
+    }
+    [data-theme="light"] .toggle-track { background: var(--accent); }
+    .toggle-thumb {
+      width: 12px; height: 12px;
+      background: var(--muted);
+      border-radius: 50%;
+      position: absolute;
+      top: 2px; left: 2px;
+      transition: transform 0.25s ease, background 0.25s;
+    }
+    [data-theme="light"] .toggle-thumb { transform: translateX(16px); background: #fff; }
+    .toggle-icon { font-size: 12px; user-select: none; color: var(--muted); }
+
+    .container { max-width: 720px; margin: 0 auto; padding: 72px 24px 96px; }
+
+    .page-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 2.5px;
+      color: var(--muted);
+      margin-bottom: 48px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .page-label::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    .release {
+      margin-bottom: 48px;
+      padding-bottom: 48px;
+      border-bottom: 1px solid var(--border);
+    }
+    .release:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+
+    .release-header {
+      display: flex;
+      align-items: baseline;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    .release-version {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      color: var(--accent);
+    }
+
+    .release-date {
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 1px;
+    }
+
+    .release-badge {
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      color: var(--accent);
+      border: 1px solid rgba(212,175,55,0.3);
+      background: rgba(212,175,55,0.06);
+      padding: 2px 8px;
+      border-radius: 2px;
+    }
+
+    .release-changes {
+      list-style: none;
+    }
+    .release-changes li {
+      font-size: 13px;
+      color: var(--muted);
+      padding: 5px 0;
+      padding-left: 20px;
+      position: relative;
+      transition: color var(--transition);
+    }
+    .release-changes li::before {
+      content: '>';
+      position: absolute;
+      left: 0;
+      color: var(--subtle);
+      font-weight: 700;
+    }
+    .release-changes li strong {
+      color: var(--text);
+      font-weight: 600;
+    }
+
+    footer {
+      padding: 48px 24px;
+      border-top: 1px solid var(--border);
+      text-align: center;
+    }
+    .footer-logo { font-size: 20px; font-weight: 700; letter-spacing: 4px; color: var(--accent); margin-bottom: 14px; }
+    .footer-links { display: flex; justify-content: center; gap: 24px; flex-wrap: wrap; margin-bottom: 20px; }
+    .footer-links a { font-size: 11px; font-weight: 600; letter-spacing: 1.4px; color: var(--muted); text-decoration: none; transition: color 0.15s; }
+    .footer-links a:hover { color: var(--accent); }
+    .footer-copy { font-size: 11px; color: var(--subtle); letter-spacing: 0.5px; }
+
+    @media (max-width: 640px) {
+      .nav-links { display: none; }
+      .container { padding: 48px 20px 72px; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav>
+    <a class="nav-logo" href="index.html"><img src="icon.png" alt="Quanta"><span>> </span>QUANTA</a>
+    <div class="nav-right">
+      <div class="nav-links">
+        <a href="index.html#screenshots">SCREENS</a>
+        <a href="index.html#features">FEATURES</a>
+        <a href="changelog.html" class="active">CHANGELOG</a>
+        <a href="https://github.com/Ledian63S/quanta" target="_blank">GITHUB</a>
+      </div>
+      <button class="theme-toggle" id="theme-toggle" aria-label="Toggle theme">
+        <span class="toggle-icon">☀</span>
+        <div class="toggle-track"><div class="toggle-thumb"></div></div>
+        <span class="toggle-icon">◑</span>
+      </button>
+    </div>
+  </nav>
+
+  <div class="container">
+    <div class="page-label">CHANGELOG</div>
+
+    <div class="release">
+      <div class="release-header">
+        <span class="release-version">v1.2.3</span>
+        <span class="release-date">2026-03-21</span>
+        <span class="release-badge">LATEST</span>
+      </div>
+      <ul class="release-changes">
+        <li><strong>Contract override</strong> — +/− buttons to manually set contract count, updates actual risk live</li>
+        <li><strong>MANUAL indicator</strong> — blinking label in the result header when override is active</li>
+        <li><strong>Double-tap to reset</strong> — double-tap the contracts display to return to auto-calculated value</li>
+        <li><strong>Nearest contract</strong> — switched from floor() to round() for closest-to-target calculation</li>
+        <li><strong>Levels screen sync</strong> — wheel animates to reflect contract override</li>
+        <li><strong>VOID palette only</strong> — removed palette switcher, hardcoded VOID as the single theme</li>
+        <li><strong>iOS persistence fix</strong> — replaced shared_preferences with dart:io JSON storage</li>
+      </ul>
+    </div>
+
+    <div class="release">
+      <div class="release-header">
+        <span class="release-version">v1.2.2</span>
+        <span class="release-date">2026-03-01</span>
+      </div>
+      <ul class="release-changes">
+        <li><strong>Windows fix</strong> — corrected ICO format for RC compiler compatibility</li>
+        <li><strong>UI polish</strong> — adaptive Android icon, row height adjustments, nav CSS cleanup</li>
+      </ul>
+    </div>
+
+    <div class="release">
+      <div class="release-header">
+        <span class="release-version">v1.2.1</span>
+        <span class="release-date">2026-02-20</span>
+      </div>
+      <ul class="release-changes">
+        <li><strong>Levels screen</strong> — uniform hero numbers, consistent font sizes, progressive row fade</li>
+        <li><strong>App icon</strong> — updated Q logo across all platforms</li>
+        <li><strong>Desktop fixes</strong> — balance/risk comma formatting, centered README header</li>
+      </ul>
+    </div>
+
+    <div class="release">
+      <div class="release-header">
+        <span class="release-version">v1.2.0</span>
+        <span class="release-date">2026-02-10</span>
+      </div>
+      <ul class="release-changes">
+        <li><strong>Lightbox</strong> — click screenshots to expand with left/right navigation</li>
+        <li><strong>Dark/light website</strong> — theme toggle with theme-aware screenshots</li>
+        <li><strong>Scroll animations</strong> — fade-in on scroll for screenshot and feature cards</li>
+      </ul>
+    </div>
+
+    <div class="release">
+      <div class="release-header">
+        <span class="release-version">v1.1.0</span>
+        <span class="release-date">2026-01-15</span>
+      </div>
+      <ul class="release-changes">
+        <li><strong>Color palettes</strong> — VOID, MATRIX, EMBER, ARCTIC themes</li>
+        <li><strong>Smooth theme transition</strong> — animated palette switching</li>
+        <li><strong>Stop loss reset fix</strong> — SL no longer clears on tab navigation</li>
+        <li><strong>Odometer display</strong> — slot-machine style contracts number with direction animation</li>
+      </ul>
+    </div>
+
+    <div class="release">
+      <div class="release-header">
+        <span class="release-version">v1.0.0</span>
+        <span class="release-date">2025-12-01</span>
+      </div>
+      <ul class="release-changes">
+        <li><strong>First release</strong> — Calculator, Levels, Markets, and Settings screens</li>
+        <li><strong>Multi-platform</strong> — macOS, Windows, iOS, Android</li>
+        <li><strong>Levels wheel</strong> — scrollable risk ladder at fixed stop loss</li>
+        <li><strong>Instrument favorites</strong> — reorderable watchlist with quick instrument switching</li>
+        <li><strong>Risk modes</strong> — fixed dollar or percentage of account balance</li>
+      </ul>
+    </div>
+
+  </div>
+
+  <footer>
+    <div class="footer-logo">QUANTA</div>
+    <div class="footer-links">
+      <a href="https://github.com/Ledian63S/quanta/releases/latest">DOWNLOAD</a>
+      <a href="changelog.html">CHANGELOG</a>
+      <a href="https://github.com/Ledian63S/quanta">GITHUB</a>
+      <a href="https://github.com/Ledian63S/quanta/issues">ISSUES</a>
+    </div>
+    <p class="footer-copy">Made with ♥ for traders<br><span id="footer-version"></span></p>
+  </footer>
+
+  <script>
+    const html = document.documentElement;
+    const saved = localStorage.getItem('theme');
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    html.setAttribute('data-theme', saved || (prefersDark ? 'dark' : 'light'));
+
+    document.getElementById('theme-toggle').addEventListener('click', () => {
+      const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      html.setAttribute('data-theme', next);
+      localStorage.setItem('theme', next);
+    });
+
+    fetch('https://api.github.com/repos/Ledian63S/quanta/releases/latest')
+      .then(r => r.json())
+      .then(release => {
+        const el = document.getElementById('footer-version');
+        if (el) el.textContent = release.tag_name;
+      })
+      .catch(() => {});
+  </script>
+</body>
+</html>

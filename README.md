@@ -1,7 +1,7 @@
 <p align="center">
   <img src="assets/icon_rounded.png" width="96" height="96" alt="Quanta Logo">
   <h1 align="center">Quanta — Position Size Calculator</h1>
-  <p align="center">A terminal-styled futures position size calculator built for <strong>Quantower</strong> traders. Enter your account balance, risk per trade, and stop loss — get the exact number of contracts instantly. Always whole numbers, never fractional.</p>
+  <p align="center">A terminal-styled futures position size calculator built for <strong>Quantower</strong> traders. Enter your account balance, risk per trade, and stop loss — get the exact number of contracts instantly. Override manually with +/− and see actual risk update live.</p>
   <p align="center">
     <a href="https://github.com/Ledian63S/quanta/releases"><img src="https://img.shields.io/github/v/release/Ledian63S/quanta?style=flat-square" alt="Release"></a>
     <a href="https://github.com/Ledian63S/quanta/releases"><img src="https://img.shields.io/badge/platform-iOS%20%7C%20Android%20%7C%20macOS%20%7C%20Windows-lightgrey?style=flat-square" alt="Platform"></a>
@@ -37,13 +37,13 @@ Get the latest release for your platform from the [Releases page](https://github
 ## Features
 
 - **Instant calculation** — contracts update live as you type
-- **Always floors** — no rounding up, no fractional contracts
-- **Levels table** — see contracts and actual risk for stop levels ±3 points from your entry
-- **Instrument management** — star favorites, only they appear in the calculator
-- **Risk modes** — set risk as a fixed dollar amount or % of balance
+- **Contract override** — tap +/− to manually adjust, double-tap to reset to auto
+- **Nearest contract** — rounds to the closest whole number, never fractional
+- **Levels table** — scroll through a full risk ladder at your fixed stop loss
+- **Instrument favorites** — star instruments, only favorites appear in the calculator
+- **Risk modes** — fixed dollar amount or % of account balance
 - **Persistent settings** — balance, risk, and instrument remembered across sessions
-- **Dark / Light / Auto theme** — follows system or manually set
-- **Terminal aesthetic** — amber-on-dark UI with scanline overlay
+- **VOID theme** — gold-on-black terminal aesthetic with scanline overlay
 
 ---
 
@@ -54,9 +54,8 @@ Get the latest release for your platform from the [Releases page](https://github
 | ES | E-mini S&P 500 | $50 |
 | NQ | E-mini Nasdaq-100 | $20 |
 | GC | Gold Futures | $10 |
-| CL | Crude Oil | $10 |
-| 6E | Euro FX | $12.50 |
-| 6B | British Pound | $6.25 |
+| 6E | Euro FX | $12.50/pip |
+| 6B | British Pound | $6.25/pip |
 | MES | Micro E-mini S&P 500 | $5 |
 | MNQ | Micro E-mini Nasdaq-100 | $2 |
 | MGC | Micro Gold | $1 |
@@ -66,9 +65,8 @@ Get the latest release for your platform from the [Releases page](https://github
 ## Calculation
 
 ```
-contracts  = floor(riskAmount / (stopLossPoints × pointValue))
+contracts  = round( riskAmount / ( stopLossPoints × pointValue ) )
 actualRisk = contracts × stopLossPoints × pointValue
-unused     = riskAmount − actualRisk
 ```
 
 ---

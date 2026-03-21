@@ -127,7 +127,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
               Expanded(child: Container(height: 1, color: AppColors.border)),
               if (state.hasSessionContracts) ...[
                 const SizedBox(width: 8),
-                Text('MANUAL', style: AppText.label(color: AppColors.accent)),
+                const _BlinkingLabel('MANUAL'),
               ],
             ]),
             const SizedBox(height: 8),
@@ -468,16 +468,22 @@ class _StopLossPanel extends StatelessWidget {
         ),
         const SizedBox(height: 8),
 
-        // Quick-adjust buttons
-        Row(children: [
-          for (final delta in [-1.0, -0.25, 0.25, 1.0]) ...[
-            Expanded(child: _AdjustButton(
-              label: delta > 0 ? '+${AppFormat.stopLoss(delta)}' : AppFormat.stopLoss(delta),
-              onTap: () => onAdjust(delta),
-            )),
-            if (delta != 1.0) const SizedBox(width: 6),
-          ],
-        ]),
+        // Quick-adjust buttons — steps are per-instrument
+        Builder(builder: (context) {
+          final steps = context.read<QuantaState>().currentInstrument.steps;
+          final deltas = [-steps[1], -steps[0], steps[0], steps[1]];
+          return Row(children: [
+            for (int i = 0; i < deltas.length; i++) ...[
+              Expanded(child: _AdjustButton(
+                label: deltas[i] > 0
+                    ? '+${AppFormat.stopLoss(deltas[i])}'
+                    : AppFormat.stopLoss(deltas[i]),
+                onTap: () => onAdjust(deltas[i]),
+              )),
+              if (i < deltas.length - 1) const SizedBox(width: 6),
+            ],
+          ]);
+        }),
       ]),
     );
   }
@@ -693,7 +699,7 @@ class _ContractBtnState extends State<_ContractBtn> {
       onLongPressEnd: (_) => _stopRepeat(),
       onLongPressCancel: _stopRepeat,
       child: SizedBox(
-        width: 110, height: 88,
+        width: 72, height: 72,
         child: Align(
           alignment: widget.alignment,
           child: Text(widget.label, style: AppText.mono(
@@ -706,6 +712,60 @@ class _ContractBtnState extends State<_ContractBtn> {
   }
 }
 
+
+// ── Blinking label ─────────────────────────────────────────────────────────
+class _BlinkingLabel extends StatefulWidget {
+  final String text;
+  const _BlinkingLabel(this.text);
+  @override
+  State<_BlinkingLabel> createState() => _BlinkingLabelState();
+}
+
+class _BlinkingLabelState extends State<_BlinkingLabel>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _ctrl;
+  late Animation<double> _glow;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2800),
+    )..repeat();
+    // Double flick → settle to glow → pause → repeat
+    _glow = TweenSequence<double>([
+      TweenSequenceItem(tween: Tween(begin: 0.2, end: 1.0), weight: 6),  // flick 1 up
+      TweenSequenceItem(tween: Tween(begin: 1.0, end: 0.2), weight: 6),  // flick 1 down
+      TweenSequenceItem(tween: Tween(begin: 0.2, end: 1.0), weight: 6),  // flick 2 up
+      TweenSequenceItem(tween: Tween(begin: 1.0, end: 0.5), weight: 8),  // settle to glow
+      TweenSequenceItem(tween: Tween(begin: 0.5, end: 0.5), weight: 54), // hold glow
+      TweenSequenceItem(tween: Tween(begin: 0.5, end: 0.2), weight: 20), // fade before restart
+    ]).animate(_ctrl);
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _glow,
+      builder: (_, __) => Text(widget.text,
+          style: AppText.label(size: 9, color: AppColors.accent).copyWith(
+            shadows: [
+              Shadow(color: AppColors.accent.withValues(alpha: _glow.value),
+                  blurRadius: 10),
+              Shadow(color: AppColors.accent.withValues(alpha: _glow.value * 0.4),
+                  blurRadius: 22),
+            ],
+          )),
+    );
+  }
+}
 
 class _ReadoutRow extends StatelessWidget {
   final String label, value;

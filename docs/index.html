@@ -342,6 +342,7 @@
       border: 1px solid var(--border);
       box-shadow: 0 8px 32px rgba(0,0,0,0.35);
       display: block;
+      cursor: zoom-in;
       transition: transform 0.3s ease, box-shadow 0.3s ease,
                   border-color var(--transition), opacity 0.3s ease;
     }
@@ -528,8 +529,6 @@
     @keyframes lbFadeIn { from { opacity: 0; } to { opacity: 1; } }
     @keyframes lbZoomIn { from { transform: scale(0.92); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 
-    .screenshot-item img { cursor: zoom-in; }
-
     /* ── Responsive ── */
     @media (max-width: 768px) {
       nav { position: static; }
@@ -566,6 +565,7 @@
       <div class="nav-links">
         <a href="#screenshots">SCREENS</a>
         <a href="#features">FEATURES</a>
+        <a href="changelog.html">CHANGELOG</a>
         <a href="https://github.com/Ledian63S/quanta" target="_blank">GITHUB</a>
       </div>
       <button class="theme-toggle" id="theme-toggle" aria-label="Toggle theme">
@@ -629,9 +629,9 @@
           <p class="feature-desc">Contracts update live as you type. No submit button, no delay.</p>
         </div>
         <div class="feature-card">
-          <div class="feature-icon">⌊ ⌋</div>
-          <div class="feature-title">ALWAYS FLOOR</div>
-          <p class="feature-desc">Results are always floored — never rounds up, never gives you fractional contracts.</p>
+          <div class="feature-icon">±</div>
+          <div class="feature-title">CONTRACT OVERRIDE</div>
+          <p class="feature-desc">Nearest contract auto-calculated. Override manually with +/− and see actual risk update live.</p>
         </div>
         <div class="feature-card">
           <div class="feature-icon">≡</div>
@@ -645,9 +645,8 @@
         </div>
       </div>
       <div class="formula-block">
-        <pre><span>contracts  =</span> floor( riskAmount / ( stopLossPoints × pointValue ) )
-<span>actualRisk =</span> contracts × stopLossPoints × pointValue
-<span>unused     =</span> riskAmount − actualRisk</pre>
+        <pre><span>contracts  =</span> round( riskAmount / ( stopLossPoints × pointValue ) )
+<span>actualRisk =</span> contracts × stopLossPoints × pointValue</pre>
       </div>
     </div>
   </section>
@@ -656,6 +655,7 @@
     <div class="footer-logo">QUANTA</div>
     <div class="footer-links">
       <a href="https://github.com/Ledian63S/quanta/releases/latest">DOWNLOAD</a>
+      <a href="changelog.html">CHANGELOG</a>
       <a href="https://github.com/Ledian63S/quanta">GITHUB</a>
       <a href="https://github.com/Ledian63S/quanta/issues">ISSUES</a>
     </div>
