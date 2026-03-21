@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -124,6 +125,10 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
               Text('RESULT', style: AppText.label()),
               const SizedBox(width: 8),
               Expanded(child: Container(height: 1, color: AppColors.border)),
+              if (state.hasSessionContracts) ...[
+                const SizedBox(width: 8),
+                Text('MANUAL', style: AppText.label(color: AppColors.accent)),
+              ],
             ]),
             const SizedBox(height: 8),
             _ResultPanel(state: state),
@@ -519,34 +524,67 @@ class _ResultPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    Theme.of(context);
     final hasData = state.stopLossPoints > 0;
-    final noContracts = hasData && state.contracts == 0;
+    final noContracts = hasData && state.effectiveContracts == 0;
+    final isOver = hasData && state.isOverRisk;
     final riskPct = state.accountBalance > 0
         ? state.actualRisk / state.accountBalance * 100 : 0.0;
 
     return Column(children: [
-      // Gauge — tap to copy contracts
-      Clickable(
-        onTap: hasData && !noContracts ? () {
-          HapticFeedback.mediumImpact();
-          Clipboard.setData(ClipboardData(text: '${state.contracts}'));
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text('${state.contracts} CONTRACTS COPIED',
-                style: AppText.label(color: Colors.black)),
-            backgroundColor: AppColors.accent,
-            duration: const Duration(milliseconds: 1200),
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-            margin: const EdgeInsets.fromLTRB(16, 0, 16, 100),
-          ));
-        } : null,
-        child: PacManGauge(
-          contracts: hasData ? state.contracts : 0,
-          hasData: hasData,
-        ),
+
+      // ── Contracts + / - ──────────────────────────────────────────
+      Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            _ContractBtn('−',
+              enabled: hasData && state.effectiveContracts > 0,
+              alignment: Alignment.centerRight,
+              onTap: () {
+                HapticFeedback.selectionClick();
+                state.setSessionContracts(state.effectiveContracts - 1);
+              },
+            ),
+            const SizedBox(width: 20),
+            Clickable(
+              onTap: hasData && !noContracts ? () {
+                HapticFeedback.mediumImpact();
+                Clipboard.setData(ClipboardData(text: '${state.effectiveContracts}'));
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                  content: Text('${state.effectiveContracts} CONTRACTS COPIED',
+                      style: AppText.label(color: Colors.black)),
+                  backgroundColor: AppColors.accent,
+                  duration: const Duration(milliseconds: 1200),
+                  behavior: SnackBarBehavior.floating,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                  margin: const EdgeInsets.fromLTRB(16, 0, 16, 100),
+                ));
+              } : null,
+              onDoubleTap: state.hasSessionContracts ? () {
+                HapticFeedback.mediumImpact();
+                state.resetSessionContracts();
+              } : null,
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                ContractsOdometer(
+                  contracts: hasData ? state.effectiveContracts : 0,
+                  hasData: hasData,
+                ),
+              ]),
+            ),
+            const SizedBox(width: 20),
+            _ContractBtn('+',
+              enabled: hasData,
+              alignment: Alignment.centerLeft,
+              onTap: () {
+                HapticFeedback.selectionClick();
+                state.setSessionContracts(state.effectiveContracts + 1);
+              },
+            ),
+          ],
       ),
 
-      // Zero-contracts warning
+      // ── Zero-contracts warning ───────────────────────────────────
       if (noContracts) ...[
         const SizedBox(height: 10),
         Container(
@@ -574,7 +612,8 @@ class _ResultPanel extends StatelessWidget {
               AppFormat.dollar(state.effectiveRisk), AppColors.muted),
           const SizedBox(height: 8),
           _ReadoutRow('ACTUAL  ',
-              AppFormat.dollar(state.actualRisk), AppColors.green,
+              AppFormat.dollar(state.actualRisk),
+              isOver ? AppColors.orange : AppColors.green,
               onTap: hasData && !noContracts ? () {
                 HapticFeedback.lightImpact();
                 Clipboard.setData(ClipboardData(
@@ -590,9 +629,15 @@ class _ResultPanel extends StatelessWidget {
                   margin: const EdgeInsets.fromLTRB(16, 0, 16, 100),
                 ));
               } : null),
-          const SizedBox(height: 8),
-          _ReadoutRow('UNUSED  ',
-              AppFormat.dollar(state.unusedRisk), AppColors.orange),
+          AnimatedSize(
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeInOut,
+            child: isOver ? Column(children: [
+              const SizedBox(height: 8),
+              _ReadoutRow('OVER    ',
+                  '+${AppFormat.dollar(state.overRisk)}', AppColors.orange),
+            ]) : const SizedBox.shrink(),
+          ),
           if (hasData && !noContracts) ...[
             const SizedBox(height: 8),
             Container(height: 1, color: AppColors.border),
@@ -605,6 +650,62 @@ class _ResultPanel extends StatelessWidget {
     ]);
   }
 }
+
+// ── Contract +/- button (tap + long-press repeat) ─────────────────────────
+class _ContractBtn extends StatefulWidget {
+  final String label;
+  final bool enabled;
+  final VoidCallback onTap;
+  final Alignment alignment;
+  const _ContractBtn(this.label, {required this.enabled, required this.onTap, this.alignment = Alignment.center});
+  @override
+  State<_ContractBtn> createState() => _ContractBtnState();
+}
+
+class _ContractBtnState extends State<_ContractBtn> {
+  Timer? _timer;
+
+  void _startRepeat() {
+    widget.onTap();
+    _timer = Timer.periodic(const Duration(milliseconds: 120), (_) {
+      if (mounted) widget.onTap();
+    });
+  }
+
+  void _stopRepeat() {
+    _timer?.cancel();
+    _timer = null;
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    Theme.of(context);
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: widget.enabled ? widget.onTap : null,
+      onLongPressStart: widget.enabled ? (_) => _startRepeat() : null,
+      onLongPressEnd: (_) => _stopRepeat(),
+      onLongPressCancel: _stopRepeat,
+      child: SizedBox(
+        width: 110, height: 88,
+        child: Align(
+          alignment: widget.alignment,
+          child: Text(widget.label, style: AppText.mono(
+            size: 28, weight: FontWeight.w300,
+            color: widget.enabled ? AppColors.muted : AppColors.subtle.withValues(alpha: 0.3),
+          )),
+        ),
+      ),
+    );
+  }
+}
+
 
 class _ReadoutRow extends StatelessWidget {
   final String label, value;

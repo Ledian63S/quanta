@@ -10,6 +10,9 @@ class QuantaState extends ChangeNotifier with WidgetsBindingObserver {
   double riskAmount = 300; // persisted setting
   double? _sessionRisk; // temporary override, not persisted
   double get effectiveRisk => _sessionRisk ?? riskAmount;
+  int? _sessionContracts; // manual override via +/- buttons
+  int get effectiveContracts => _sessionContracts ?? contracts;
+  bool get hasSessionContracts => _sessionContracts != null;
   String selectedTicker = 'MNQ';
   double stopLossPoints = 0;
   List<String> favorites = ['MNQ'];
@@ -36,16 +39,17 @@ class QuantaState extends ChangeNotifier with WidgetsBindingObserver {
   double get riskPercent =>
       accountBalance > 0 ? riskAmount / accountBalance * 100 : 0;
 
-  // Core calculation — ALWAYS floor, never round
+  // Core calculation — round to nearest contract
   int get contracts => stopLossPoints > 0
       ? (effectiveRisk / (stopLossPoints * currentInstrument.pointValue))
-          .floor()
+          .round()
       : 0;
 
   double get actualRisk =>
-      contracts * stopLossPoints * currentInstrument.pointValue;
+      effectiveContracts * stopLossPoints * currentInstrument.pointValue;
 
-  double get unusedRisk => effectiveRisk - actualRisk;
+  double get overRisk => actualRisk - effectiveRisk;
+  bool get isOverRisk => actualRisk > effectiveRisk;
 
   // Risk ladder for Levels screen — scroll risk amounts at fixed stop loss
   List<double> get nearbyRiskLevels {
@@ -60,7 +64,7 @@ class QuantaState extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   int contractsForRisk(double risk) => stopLossPoints > 0
-      ? (risk / (stopLossPoints * currentInstrument.pointValue)).floor() : 0;
+      ? (risk / (stopLossPoints * currentInstrument.pointValue)).round() : 0;
 
   double actualRiskForRisk(double risk) =>
       contractsForRisk(risk) * stopLossPoints * currentInstrument.pointValue;
@@ -80,25 +84,39 @@ class QuantaState extends ChangeNotifier with WidgetsBindingObserver {
 
   void setRisk(double value) {
     riskAmount = value.clamp(0.01, 1000000);
-    _sessionRisk = null; // clear session override when persisted risk changes
+    _sessionRisk = null;
+    _sessionContracts = null;
     notifyListeners();
     _save();
   }
 
   void setSessionRisk(double value) {
     _sessionRisk = value.clamp(0.01, 1000000);
+    _sessionContracts = null;
+    notifyListeners();
+  }
+
+  void setSessionContracts(int value) {
+    _sessionContracts = value.clamp(0, 999);
+    notifyListeners();
+  }
+
+  void resetSessionContracts() {
+    _sessionContracts = null;
     notifyListeners();
   }
 
   void setInstrument(String ticker) {
     selectedTicker = ticker;
     stopLossPoints = 0;
+    _sessionContracts = null;
     notifyListeners();
     _save();
   }
 
   void setStopLoss(double value) {
     stopLossPoints = value.clamp(0, 100000);
+    _sessionContracts = null;
     notifyListeners();
   }
 

@@ -20,6 +20,7 @@ class _LevelsScreenState extends State<LevelsScreen> {
   int _selectedIndex = 0;
   double? _prevEffectiveRisk;
   double? _prevStopLoss;
+  int? _prevEffectiveContracts;
   bool _prevHasData = false;
   DateTime _programmaticScrollUntil = DateTime(0);
 
@@ -73,6 +74,7 @@ class _LevelsScreenState extends State<LevelsScreen> {
       _selectedIndex = 0;
       _prevEffectiveRisk = null;
       _prevStopLoss = null;
+      _prevEffectiveContracts = null;
       _prevHasData = false;
     }
 
@@ -115,19 +117,28 @@ class _LevelsScreenState extends State<LevelsScreen> {
 
     final levels = state.nearbyRiskLevels;
 
-    // Initialize or animate when effective risk, stop loss, or data state changes
+    // Use actualRisk as target when contracts are manually overridden, otherwise effectiveRisk
+    final wheelTarget = state.hasSessionContracts ? state.actualRisk : state.effectiveRisk;
+
+    // Initialize or animate when effective risk, stop loss, contracts override, or data state changes
     final effectiveRiskChanged = _prevEffectiveRisk != state.effectiveRisk;
     final stopLossChanged = _prevStopLoss != state.stopLossPoints;
+    final contractsChanged = _prevEffectiveContracts != state.effectiveContracts;
     final dataJustAppeared = !_prevHasData && hasData;
 
     if (dataJustAppeared || stopLossChanged || (effectiveRiskChanged && _wheelController == null)) {
       _prevEffectiveRisk = state.effectiveRisk;
       _prevStopLoss = state.stopLossPoints;
+      _prevEffectiveContracts = state.effectiveContracts;
       _prevHasData = true;
-      _initWheel(levels, state.effectiveRisk);
+      _initWheel(levels, wheelTarget);
     } else if (effectiveRiskChanged && _wheelController != null) {
       _prevEffectiveRisk = state.effectiveRisk;
-      _animateToRisk(levels, state.effectiveRisk);
+      _prevEffectiveContracts = state.effectiveContracts;
+      _animateToRisk(levels, wheelTarget);
+    } else if (contractsChanged && _wheelController != null) {
+      _prevEffectiveContracts = state.effectiveContracts;
+      _animateToRisk(levels, wheelTarget);
     }
 
     final safeIndex = _selectedIndex.clamp(0, levels.length - 1);

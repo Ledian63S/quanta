@@ -7,7 +7,8 @@ import 'package:google_fonts/google_fonts.dart';
 class Clickable extends StatefulWidget {
   final Widget child;
   final VoidCallback? onTap;
-  const Clickable({super.key, required this.child, this.onTap});
+  final VoidCallback? onDoubleTap;
+  const Clickable({super.key, required this.child, this.onTap, this.onDoubleTap});
   @override
   State<Clickable> createState() => _ClickableState();
 }
@@ -21,6 +22,7 @@ class _ClickableState extends State<Clickable> {
       onExit: (_) => setState(() => _hovered = false),
       child: GestureDetector(
         onTap: widget.onTap,
+        onDoubleTap: widget.onDoubleTap,
         child: AnimatedOpacity(
           duration: const Duration(milliseconds: 100),
           opacity: _hovered ? 0.65 : 1.0,
@@ -115,15 +117,15 @@ class _TerminalNumberState extends State<TerminalNumber>
 }
 
 // ── Odometer gauge ──────────────────────────────────────────────────────────
-class PacManGauge extends StatefulWidget {
+class ContractsOdometer extends StatefulWidget {
   final int contracts;
   final bool hasData;
-  const PacManGauge({super.key, required this.contracts, required this.hasData});
+  const ContractsOdometer({super.key, required this.contracts, required this.hasData});
   @override
-  State<PacManGauge> createState() => _OdometerState();
+  State<ContractsOdometer> createState() => _ContractsOdometerState();
 }
 
-class _OdometerState extends State<PacManGauge> {
+class _ContractsOdometerState extends State<ContractsOdometer> {
   bool _goingUp = true;
 
   // -1 = the special "dash" state (no data / zero)
@@ -133,7 +135,7 @@ class _OdometerState extends State<PacManGauge> {
   }
 
   @override
-  void didUpdateWidget(PacManGauge old) {
+  void didUpdateWidget(ContractsOdometer old) {
     super.didUpdateWidget(old);
     final oldVal = (old.hasData && old.contracts > 0) ? old.contracts : 0;
     final newVal = (widget.hasData && widget.contracts > 0) ? widget.contracts : 0;
