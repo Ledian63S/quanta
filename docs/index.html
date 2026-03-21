@@ -16,33 +16,35 @@
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --accent:  #E8A000;
-      --accent2: #FFBF3C;
+      --accent:  #D4AF37;
+      --accent2: #F0CC60;
       --green:   #4ADE80;
       --font:    'JetBrains Mono', monospace;
       --transition: 0.35s ease;
     }
 
     [data-theme="dark"] {
-      --bg:      #0C0A01;
-      --card:    #181300;
-      --elev:    #221C00;
-      --border:  #484030;
-      --text:    #DDD5A0;
-      --muted:   #8C8048;
-      --subtle:  #504830;
+      --bg:      #000000;
+      --card:    #0C0C0C;
+      --elev:    #141414;
+      --border:  #242018;
+      --text:    #F0ECD8;
+      --muted:   #807060;
+      --subtle:  #383028;
       --scanline: rgba(0,0,0,0.06);
     }
 
     [data-theme="light"] {
-      --bg:      #F5EFE0;
-      --card:    #FFFFFF;
-      --elev:    #F0E8D0;
-      --border:  #DDD5B0;
-      --text:    #1A1500;
-      --muted:   #8A7A40;
-      --subtle:  #CCC5A0;
+      --bg:      #E8E4DF;
+      --card:    #F8F6F3;
+      --elev:    #F0ECE8;
+      --border:  #B8B0A6;
+      --text:    #080808;
+      --muted:   #4A4642;
+      --subtle:  #A8A098;
       --scanline: rgba(0,0,0,0.025);
+      --accent:  #9A7D1A;
+      --accent2: #C4A030;
     }
 
     html { scroll-behavior: smooth; }
@@ -169,8 +171,8 @@
       font-weight: 700;
       letter-spacing: 2px;
       color: var(--accent);
-      border: 1px solid rgba(232,160,0,0.3);
-      background: rgba(232,160,0,0.06);
+      border: 1px solid rgba(212,175,55,0.3);
+      background: rgba(212,175,55,0.06);
       padding: 5px 14px;
       border-radius: 2px;
       margin-bottom: 32px;
@@ -234,7 +236,7 @@
     .download-primary:hover {
       background: var(--accent2);
       transform: translateY(-2px);
-      box-shadow: 0 8px 24px rgba(232,160,0,0.25);
+      box-shadow: 0 8px 24px rgba(212,175,55,0.25);
     }
 
     .platform-grid {
@@ -264,14 +266,14 @@
     }
     .platform-btn:hover {
       color: var(--accent);
-      border-color: rgba(232,160,0,0.5);
-      background: rgba(232,160,0,0.06);
+      border-color: rgba(212,175,55,0.5);
+      background: rgba(212,175,55,0.06);
       transform: translateY(-1px);
     }
     .platform-btn.active {
       color: var(--accent);
-      border-color: rgba(232,160,0,0.5);
-      background: rgba(232,160,0,0.06);
+      border-color: rgba(212,175,55,0.5);
+      background: rgba(212,175,55,0.06);
     }
 
     .version-tag {
@@ -381,8 +383,8 @@
     .feature-card:nth-child(3) { transition-delay: 0.16s; }
     .feature-card:nth-child(4) { transition-delay: 0.24s; }
     .feature-card:hover {
-      border-color: rgba(232,160,0,0.35);
-      box-shadow: 0 4px 20px rgba(232,160,0,0.07);
+      border-color: rgba(212,175,55,0.35);
+      box-shadow: 0 4px 20px rgba(212,175,55,0.07);
     }
 
     .feature-icon {
@@ -474,7 +476,6 @@
       z-index: 10000;
       align-items: center;
       justify-content: center;
-      cursor: zoom-out;
       backdrop-filter: blur(6px);
       animation: lbFadeIn 0.2s ease;
     }
@@ -485,6 +486,7 @@
       border-radius: 12px;
       box-shadow: 0 32px 80px rgba(0,0,0,0.7);
       animation: lbZoomIn 0.25s ease;
+      cursor: default;
     }
     .lightbox-close {
       position: absolute;
@@ -497,6 +499,32 @@
       transition: color 0.15s;
     }
     .lightbox-close:hover { color: var(--accent); }
+    .lightbox-arrow {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 28px;
+      color: rgba(255,255,255,0.4);
+      cursor: pointer;
+      font-family: var(--font);
+      line-height: 1;
+      padding: 16px;
+      transition: color 0.15s;
+      user-select: none;
+    }
+    .lightbox-arrow:hover { color: var(--accent); }
+    .lightbox-arrow.prev { left: 16px; }
+    .lightbox-arrow.next { right: 16px; }
+    .lightbox-counter {
+      position: absolute;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 10px;
+      font-family: var(--font);
+      letter-spacing: 2px;
+      color: rgba(255,255,255,0.35);
+    }
     @keyframes lbFadeIn { from { opacity: 0; } to { opacity: 1; } }
     @keyframes lbZoomIn { from { transform: scale(0.92); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 
@@ -526,7 +554,10 @@
   <!-- Lightbox -->
   <div class="lightbox" id="lightbox">
     <span class="lightbox-close" id="lightbox-close">✕</span>
+    <span class="lightbox-arrow prev" id="lightbox-prev">‹</span>
     <img id="lightbox-img" src="" alt="">
+    <span class="lightbox-arrow next" id="lightbox-next">›</span>
+    <span class="lightbox-counter" id="lightbox-counter"></span>
   </div>
 
   <nav>
@@ -714,26 +745,53 @@
     document.querySelectorAll('.screenshot-item, .feature-card').forEach(el => observer.observe(el));
 
     // ── Lightbox ───────────────────────────────────────────────────────────
-    const lightbox    = document.getElementById('lightbox');
-    const lightboxImg = document.getElementById('lightbox-img');
+    const lightbox      = document.getElementById('lightbox');
+    const lightboxImg   = document.getElementById('lightbox-img');
+    const lightboxCount = document.getElementById('lightbox-counter');
+    let lbImages = [];
+    let lbIndex  = 0;
 
-    document.querySelectorAll('.screenshot-item img').forEach(img => {
-      img.addEventListener('click', () => {
-        lightboxImg.src = img.src;
-        lightboxImg.alt = img.alt;
-        lightbox.classList.add('open');
-        document.body.style.overflow = 'hidden';
-      });
-    });
+    function openLightbox(index) {
+      lbIndex = index;
+      const img = lbImages[lbIndex];
+      lightboxImg.src = img.src;
+      lightboxImg.alt = img.alt;
+      lightboxCount.textContent = `${lbIndex + 1} / ${lbImages.length}`;
+      lightbox.classList.add('open');
+      document.body.style.overflow = 'hidden';
+    }
 
     function closeLightbox() {
       lightbox.classList.remove('open');
       document.body.style.overflow = '';
     }
 
+    function lbNav(dir) {
+      lbIndex = (lbIndex + dir + lbImages.length) % lbImages.length;
+      lightboxImg.style.opacity = '0';
+      setTimeout(() => {
+        lightboxImg.src = lbImages[lbIndex].src;
+        lightboxImg.alt = lbImages[lbIndex].alt;
+        lightboxCount.textContent = `${lbIndex + 1} / ${lbImages.length}`;
+        lightboxImg.style.opacity = '1';
+      }, 150);
+    }
+
+    document.querySelectorAll('.screenshot-item img').forEach((img, i) => {
+      lbImages.push(img);
+      img.addEventListener('click', () => openLightbox(i));
+    });
+
     document.getElementById('lightbox-close').addEventListener('click', closeLightbox);
+    document.getElementById('lightbox-prev').addEventListener('click', e => { e.stopPropagation(); lbNav(-1); });
+    document.getElementById('lightbox-next').addEventListener('click', e => { e.stopPropagation(); lbNav(1); });
     lightbox.addEventListener('click', e => { if (e.target === lightbox) closeLightbox(); });
-    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLightbox(); });
+    document.addEventListener('keydown', e => {
+      if (!lightbox.classList.contains('open')) return;
+      if (e.key === 'Escape')      closeLightbox();
+      if (e.key === 'ArrowLeft')   lbNav(-1);
+      if (e.key === 'ArrowRight')  lbNav(1);
+    });
   </script>
 </body>
 </html>

@@ -334,32 +334,56 @@ class _GrainPainter extends CustomPainter {
   @override bool shouldRepaint(covariant CustomPainter old) => false;
 }
 
-// ── Colors ─────────────────────────────────────────────────────────────────
+// ── Colors (VOID palette) ───────────────────────────────────────────────────
 class AppColors {
   static bool isDark = true;
 
+  // Dark
+  static const Color _dBg       = Color(0xFF000000);
+  static const Color _dCard     = Color(0xFF0C0C0C);
+  static const Color _dElevated = Color(0xFF141414);
+  static const Color _dHigh     = Color(0xFF1C1C1C);
+  static const Color _dText     = Color(0xFFF0ECD8);
+  static const Color _dMuted    = Color(0xFF807060);
+  static const Color _dSubtle   = Color(0xFF383028);
+  static const Color _dBorder   = Color(0xFF242018);
+  static const Color _dAccent   = Color(0xFFD4AF37);
+  static const Color _dAccentL  = Color(0xFFF0CC60);
+
+  // Light
+  static const Color _lBg       = Color(0xFFE8E4DF);
+  static const Color _lCard     = Color(0xFFF8F6F3);
+  static const Color _lElevated = Color(0xFFF0ECE8);
+  static const Color _lHigh     = Color(0xFFE6E0D8);
+  static const Color _lText     = Color(0xFF080808);
+  static const Color _lMuted    = Color(0xFF4A4642);
+  static const Color _lSubtle   = Color(0xFFA8A098);
+  static const Color _lBorder   = Color(0xFFB8B0A6);
+  static const Color _lAccent   = Color(0xFF9A7D1A);
+  static const Color _lAccentL  = Color(0xFFC4A030);
+
   // Backgrounds
-  static Color get bg       => isDark ? const Color(0xFF0C0A01) : const Color(0xFFF5EFE0);
-  static Color get card     => isDark ? const Color(0xFF181300) : const Color(0xFFFFFFFF);
-  static Color get elevated => isDark ? const Color(0xFF221C00) : const Color(0xFFF0E8D0);
-  static Color get high     => isDark ? const Color(0xFF2C2500) : const Color(0xFFE8DFC0);
+  static Color get bg       => isDark ? _dBg       : _lBg;
+  static Color get card     => isDark ? _dCard     : _lCard;
+  static Color get elevated => isDark ? _dElevated : _lElevated;
+  static Color get high     => isDark ? _dHigh     : _lHigh;
 
   // Text
-  static Color get text     => isDark ? const Color(0xFFDDD5A0) : const Color(0xFF1A1500);
-  static Color get muted    => isDark ? const Color(0xFF8C8048) : const Color(0xFF8A7A40);
-  static Color get subtle   => isDark ? const Color(0xFF504830) : const Color(0xFFCCC5A0);
+  static Color get text   => isDark ? _dText   : _lText;
+  static Color get muted  => isDark ? _dMuted  : _lMuted;
+  static Color get subtle => isDark ? _dSubtle : _lSubtle;
 
-  // Accent — same amber in both modes
-  static const accent      = Color(0xFFE8A000);
-  static const accentLight = Color(0xFFFFBF3C);
-  static const accentBlue  = Color(0xFFE8A000);
+  // Accent
+  static Color get accent      => isDark ? _dAccent  : _lAccent;
+  static Color get accentLight => isDark ? _dAccentL : _lAccentL;
+  static Color get accentBlue  => isDark ? _dAccent  : _lAccent;
 
-  // Status colors — darker in light mode for contrast
+  // Status colors
   static Color get green  => isDark ? const Color(0xFF4ADE80) : const Color(0xFF1A8040);
   static Color get orange => isDark ? const Color(0xFFFF6B35) : const Color(0xFFCC4000);
 
   // Border
-  static Color get border => isDark ? const Color(0xFF484030) : const Color(0xFFDDD5B0);
+  static Color get border => isDark ? _dBorder : _lBorder;
 
   // Legacy aliases
   static Color get darkBg     => bg;
@@ -380,11 +404,11 @@ class AppTheme {
   static ThemeData dark() => _build(dark: true);
 
   static ThemeData _build({required bool dark}) {
-    const accent = AppColors.accent;
-    const accentLight = AppColors.accentLight;
-    final bg       = dark ? const Color(0xFF0C0A01) : const Color(0xFFF5EFE0);
-    final card     = dark ? const Color(0xFF181300) : const Color(0xFFFFFFFF);
-    final text     = dark ? const Color(0xFFDDD5A0) : const Color(0xFF1A1500);
+    final accent = AppColors.accent;
+    final accentLight = AppColors.accentLight;
+    final bg   = AppColors.bg;
+    final card = AppColors.card;
+    final text = AppColors.text;
     final base     = dark ? ThemeData.dark() : ThemeData.light();
     return ThemeData(
       brightness: dark ? Brightness.dark : Brightness.light,
@@ -394,7 +418,7 @@ class AppTheme {
               primary: accent, secondary: accentLight, surface: card)
           : ColorScheme.light(
               primary: accent, secondary: accentLight, surface: card),
-      textSelectionTheme: const TextSelectionThemeData(
+      textSelectionTheme: TextSelectionThemeData(
         cursorColor: AppColors.accent,
       ),
       textTheme: GoogleFonts.jetBrainsMonoTextTheme(base.textTheme).apply(

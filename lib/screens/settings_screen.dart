@@ -227,6 +227,7 @@ class _SectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    Theme.of(context);
     return Row(children: [
       Text(title, style: AppText.label()),
       const SizedBox(width: 8),
@@ -329,6 +330,7 @@ class _LabelRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    Theme.of(context);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
       child: Row(children: [
@@ -355,6 +357,7 @@ class _TappableLabelRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    Theme.of(context);
     return Clickable(
       onTap: onTap,
       child: Padding(
@@ -385,6 +388,7 @@ class _ToggleRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    Theme.of(context);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       child: Row(children: [
@@ -405,6 +409,7 @@ class _AppToggle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    Theme.of(context);
     return Clickable(
       onTap: () {
         HapticFeedback.selectionClick();
@@ -457,6 +462,7 @@ class _AppearanceRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    Theme.of(context);
     return Padding(
       padding: const EdgeInsets.all(10),
       child: Row(

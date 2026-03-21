@@ -1,7 +1,6 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../models/quanta_state.dart';
 import '../theme/app_theme.dart';
@@ -165,7 +164,7 @@ class _LevelsScreenState extends State<LevelsScreen> {
                 Text('STOP LOSS', style: AppText.label(size: 10)),
                 const SizedBox(height: 4),
                 Text(AppFormat.stopLoss(state.stopLossPoints),
-                    style: AppText.mono(size: 32, weight: FontWeight.w700,
+                    style: AppText.mono(size: 34, weight: FontWeight.w700,
                         color: AppColors.muted)),
                 Text('pts  ·  fixed', style: AppText.label(size: 10, color: AppColors.subtle)),
               ])),
@@ -177,7 +176,7 @@ class _LevelsScreenState extends State<LevelsScreen> {
                 const SizedBox(height: 4),
                 Text('$contracts',
                     textAlign: TextAlign.center,
-                    style: AppText.mono(size: 32, weight: FontWeight.w700,
+                    style: AppText.mono(size: 34, weight: FontWeight.w700,
                         color: AppColors.accentLight)),
               ])),
 
@@ -187,7 +186,7 @@ class _LevelsScreenState extends State<LevelsScreen> {
                 Text('ACTUAL RISK', style: AppText.label(size: 10)),
                 const SizedBox(height: 4),
                 Text(AppFormat.dollar(actualRisk),
-                    style: AppText.mono(size: 32, weight: FontWeight.w700,
+                    style: AppText.mono(size: 34, weight: FontWeight.w700,
                         color: AppColors.green)),
               ])),
             ]),
@@ -326,7 +325,7 @@ class _LevelsScreenState extends State<LevelsScreen> {
                                       const SizedBox(width: 4),
                                       Container(
                                         width: 4, height: 4,
-                                        decoration: const BoxDecoration(
+                                        decoration: BoxDecoration(
                                           color: AppColors.accent,
                                           shape: BoxShape.circle,
                                         ),
