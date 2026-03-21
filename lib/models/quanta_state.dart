@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
 import 'instrument.dart';
 import '../theme/app_theme.dart';
 
@@ -161,6 +162,15 @@ class QuantaState extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.hidden ||
+        state == AppLifecycleState.detached) {
+      _saveSync();
+    }
+  }
+
+  @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
@@ -173,14 +183,16 @@ class QuantaState extends ChangeNotifier with WidgetsBindingObserver {
         (themeMode == ThemeMode.system && platformDark);
   }
 
-  static File _prefsFile() {
-    final home = Platform.environment['HOME'] ?? '';
-    return File('$home/Documents/quanta_prefs.json');
+  static Future<File> _prefsFile() async {
+    final dir = Platform.isMacOS
+        ? Directory('${Platform.environment['HOME']}/Documents')
+        : await getApplicationDocumentsDirectory();
+    return File('${dir.path}/quanta_prefs.json');
   }
 
   Future<void> load() async {
     try {
-      final file = _prefsFile();
+      final file = await _prefsFile();
       if (await file.exists()) {
         final data = jsonDecode(await file.readAsString()) as Map<String, dynamic>;
         rememberBalance = data['rememberBalance'] as bool? ?? true;
@@ -205,11 +217,7 @@ class QuantaState extends ChangeNotifier with WidgetsBindingObserver {
     notifyListeners();
   }
 
-  Future<void> _save() async {
-    try {
-      final file = _prefsFile();
-      await file.parent.create(recursive: true);
-      final data = <String, dynamic>{
+  Map<String, dynamic> _buildSaveData() => {
         'rememberBalance': rememberBalance,
         'rememberRisk': rememberRisk,
         'rememberInstrument': rememberInstrument,
@@ -220,9 +228,17 @@ class QuantaState extends ChangeNotifier with WidgetsBindingObserver {
         'riskIsPercent': riskIsPercent,
         'themeMode': themeMode.name,
       };
-      await file.writeAsString(jsonEncode(data));
+
+  Future<void> _save() async {
+    try {
+      final file = await _prefsFile();
+      await file.writeAsString(jsonEncode(_buildSaveData()));
     } catch (_) {
       // Ignore save errors
     }
+  }
+
+  void _saveSync() {
+    _save(); // lifecycle save — async is fine, OS gives the app time on background
   }
 }
