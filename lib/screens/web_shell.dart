@@ -1,8 +1,10 @@
 import 'dart:ui';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import '../theme/app_theme.dart';
+import '../utils/window_utils.dart';
 import 'web_calc_screen.dart';
 import 'levels_screen.dart';
 import 'instruments_screen.dart';
@@ -65,7 +67,35 @@ class _WebShellState extends State<WebShell> {
           ]);
         }
 
-        // ── Desktop: centered floating macOS window ────────────────────────
+        final isNativeDesktop = !kIsWeb && (defaultTargetPlatform == TargetPlatform.macOS ||
+            defaultTargetPlatform == TargetPlatform.windows);
+
+        final sidebarAndContent = Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _Sidebar(
+              items: _items,
+              currentIndex: _tab,
+              isDark: d,
+              onTap: _setTab,
+              showTrafficLights: isNativeDesktop,
+            ),
+            VerticalDivider(
+              width: 1, thickness: 1,
+              color: d
+                  ? Colors.white.withValues(alpha: 0.06)
+                  : Colors.black.withValues(alpha: 0.07),
+            ),
+            Expanded(child: _screen()),
+          ],
+        );
+
+        // ── Native desktop: fill window, no outer border/background ───────────
+        if (isNativeDesktop) {
+          return sidebarAndContent;
+        }
+
+        // ── Web: centered floating macOS window ───────────────────────────────
         return Container(
           color: _desktopBg(d),
           child: Center(
@@ -78,24 +108,7 @@ class _WebShellState extends State<WebShell> {
                 ),
                 child: _FloatingWindow(
                   isDark: d,
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      _Sidebar(
-                        items: _items,
-                        currentIndex: _tab,
-                        isDark: d,
-                        onTap: _setTab,
-                      ),
-                      VerticalDivider(
-                        width: 1, thickness: 1,
-                        color: d
-                            ? Colors.white.withValues(alpha: 0.06)
-                            : Colors.black.withValues(alpha: 0.07),
-                      ),
-                      Expanded(child: _screen()),
-                    ],
-                  ),
+                  child: sidebarAndContent,
                 ),
               ),
             ),
@@ -152,10 +165,12 @@ class _Sidebar extends StatefulWidget {
   final int currentIndex;
   final bool isDark;
   final ValueChanged<int> onTap;
+  final bool showTrafficLights;
 
   const _Sidebar({
     required this.items, required this.currentIndex,
     required this.isDark, required this.onTap,
+    this.showTrafficLights = false,
   });
   @override
   State<_Sidebar> createState() => _SidebarState();
@@ -184,6 +199,12 @@ class _SidebarState extends State<_Sidebar> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+
+          // ── Traffic lights (native desktop only) ─────────────────────
+          if (widget.showTrafficLights)
+            DragToMoveArea(
+              child: _TrafficLights(),
+            ),
 
           const SizedBox(height: 20),
 
@@ -359,6 +380,80 @@ class _BottomArea extends StatelessWidget {
           ),
         ),
       ]),
+    );
+  }
+}
+
+// ── macOS traffic lights ──────────────────────────────────────────────────────
+const _kClose    = Color(0xFFFF5F57);
+const _kMinimize = Color(0xFFFFBD2E);
+const _kZoom     = Color(0xFF28C840);
+
+class _TrafficLights extends StatefulWidget {
+  @override
+  State<_TrafficLights> createState() => _TrafficLightsState();
+}
+
+class _TrafficLightsState extends State<_TrafficLights> {
+  bool _hovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit:  (_) => setState(() => _hovered = false),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(14, 14, 14, 0),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          _TLDot(color: _kClose,    symbol: '×', show: _hovered, onTap: closeWindow),
+          const SizedBox(width: 8),
+          _TLDot(color: _kMinimize, symbol: '−', show: _hovered, onTap: minimizeWindow),
+          const SizedBox(width: 8),
+          _TLDot(color: _kZoom,     symbol: '+', show: _hovered, onTap: () {}),
+        ]),
+      ),
+    );
+  }
+}
+
+class _TLDot extends StatefulWidget {
+  final Color color;
+  final String symbol;
+  final bool show;
+  final VoidCallback onTap;
+  const _TLDot({required this.color, required this.symbol,
+      required this.show, required this.onTap});
+  @override
+  State<_TLDot> createState() => _TLDotState();
+}
+
+class _TLDotState extends State<_TLDot> {
+  bool _pressed = false;
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: widget.onTap,
+      onTapDown: (_) => setState(() => _pressed = true),
+      onTapUp:   (_) => setState(() => _pressed = false),
+      onTapCancel: ()  => setState(() => _pressed = false),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 80),
+        width: 12, height: 12,
+        decoration: BoxDecoration(
+          color: widget.color.withValues(alpha: _pressed ? 0.6 : 1.0),
+          shape: BoxShape.circle,
+        ),
+        child: Center(
+          child: AnimatedOpacity(
+            duration: const Duration(milliseconds: 100),
+            opacity: widget.show ? 1.0 : 0.0,
+            child: Text(widget.symbol, style: TextStyle(
+              fontSize: 8, height: 1.0, fontWeight: FontWeight.w900,
+              color: widget.color.withValues(alpha: 0.5),
+            )),
+          ),
+        ),
+      ),
     );
   }
 }
