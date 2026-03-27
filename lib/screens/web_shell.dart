@@ -197,8 +197,8 @@ class _SidebarState extends State<_Sidebar> {
   Widget build(BuildContext context) {
     final d = widget.isDark;
     final c = widget.collapsed;
-    final logoSize = c ? 32.0 : 58.0;
-    final logoRadius = c ? 8.0 : 14.0;
+    final logoSize = c ? 28.0 : 40.0;
+    final logoRadius = c ? 7.0 : 10.0;
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 220),
@@ -211,13 +211,17 @@ class _SidebarState extends State<_Sidebar> {
 
           // ── Traffic lights (native desktop only) ─────────────────────
           if (widget.showTrafficLights)
-            DragToMoveArea(
-              child: c
-                  ? const SizedBox(height: 38)
-                  : _TrafficLights(),
+            SizedBox(
+              width: double.infinity,
+              child: DragToMoveArea(
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: _TrafficLights(compact: c),
+                ),
+              ),
             ),
 
-          const SizedBox(height: 14),
+          const SizedBox(height: 10),
 
           // ── Logo + app name ───────────────────────────────────────────
           Column(mainAxisSize: MainAxisSize.min, children: [
@@ -235,8 +239,7 @@ class _SidebarState extends State<_Sidebar> {
             AnimatedOpacity(
               duration: const Duration(milliseconds: 150),
               opacity: c ? 0.0 : 1.0,
-              child: Text('Quanta', style: AppText.mono(
-                size: 13, weight: FontWeight.w700,
+              child: Text('QUANTA', style: AppText.label(
                 color: d ? const Color(0xFFD4AF37) : const Color(0xFF9A7D1A),
               )),
             ),
@@ -416,6 +419,8 @@ const _kMinimize = Color(0xFFFFBD2E);
 const _kZoom     = Color(0xFF28C840);
 
 class _TrafficLights extends StatefulWidget {
+  final bool compact;
+  const _TrafficLights({this.compact = false});
   @override
   State<_TrafficLights> createState() => _TrafficLightsState();
 }
@@ -425,11 +430,14 @@ class _TrafficLightsState extends State<_TrafficLights> {
 
   @override
   Widget build(BuildContext context) {
+    final p = widget.compact
+        ? const EdgeInsets.fromLTRB(6, 14, 0, 0)
+        : const EdgeInsets.fromLTRB(14, 14, 14, 0);
     return MouseRegion(
       onEnter: (_) => setState(() => _hovered = true),
       onExit:  (_) => setState(() => _hovered = false),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(14, 14, 14, 0),
+        padding: p,
         child: Row(mainAxisSize: MainAxisSize.min, children: [
           _TLDot(color: _kClose,    symbol: '×', show: _hovered, onTap: closeWindow),
           const SizedBox(width: 8),
