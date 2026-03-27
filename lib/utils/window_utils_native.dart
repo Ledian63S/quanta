@@ -9,7 +9,7 @@ Future<void> setupWindow() async {
     await windowManager.ensureInitialized();
     const options = WindowOptions(
       size: Size(1100, 760),
-      minimumSize: Size(800, 600),
+      minimumSize: Size(400, 400),
       center: true,
       titleBarStyle: TitleBarStyle.hidden,
       title: 'Quanta',
@@ -29,4 +29,11 @@ Future<void> setupWindow() async {
 
 Future<void> closeWindow() async => windowManager.close();
 Future<void> minimizeWindow() async => windowManager.minimize();
+Future<void> zoomWindow() async {
+  if (await windowManager.isMaximized()) {
+    await windowManager.unmaximize();
+  } else {
+    await windowManager.maximize();
+  }
+}
 bool isNativeMacOS() => Platform.isMacOS;

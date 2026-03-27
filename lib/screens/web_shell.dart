@@ -409,7 +409,7 @@ class _TrafficLightsState extends State<_TrafficLights> {
           const SizedBox(width: 8),
           _TLDot(color: _kMinimize, symbol: '−', show: _hovered, onTap: minimizeWindow),
           const SizedBox(width: 8),
-          _TLDot(color: _kZoom,     symbol: '+', show: _hovered, onTap: () {}),
+          _TLDot(color: _kZoom,     symbol: '+', show: _hovered, onTap: zoomWindow),
         ]),
       ),
     );
