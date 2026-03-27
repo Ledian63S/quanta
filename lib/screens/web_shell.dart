@@ -69,6 +69,8 @@ class _WebShellState extends State<WebShell> {
           ]);
         }
 
+        final collapsed = isNativeDesktop && cons.maxWidth < 580;
+
         final sidebarAndContent = Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -78,6 +80,7 @@ class _WebShellState extends State<WebShell> {
               isDark: d,
               onTap: _setTab,
               showTrafficLights: isNativeDesktop,
+              collapsed: collapsed,
             ),
             VerticalDivider(
               width: 1, thickness: 1,
@@ -165,11 +168,13 @@ class _Sidebar extends StatefulWidget {
   final bool isDark;
   final ValueChanged<int> onTap;
   final bool showTrafficLights;
+  final bool collapsed;
 
   const _Sidebar({
     required this.items, required this.currentIndex,
     required this.isDark, required this.onTap,
     this.showTrafficLights = false,
+    this.collapsed = false,
   });
   @override
   State<_Sidebar> createState() => _SidebarState();
@@ -191,58 +196,80 @@ class _SidebarState extends State<_Sidebar> {
   @override
   Widget build(BuildContext context) {
     final d = widget.isDark;
+    final c = widget.collapsed;
+    final logoSize = c ? 32.0 : 58.0;
+    final logoRadius = c ? 8.0 : 14.0;
 
-    return Container(
-      width: 210,
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeInOut,
+      width: c ? 58 : 210,
       decoration: BoxDecoration(color: _sidebarBg(d)),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
 
           // ── Traffic lights (native desktop only) ─────────────────────
           if (widget.showTrafficLights)
             DragToMoveArea(
-              child: _TrafficLights(),
+              child: c
+                  ? const SizedBox(height: 38)
+                  : _TrafficLights(),
             ),
 
-          const SizedBox(height: 20),
+          const SizedBox(height: 14),
 
-          // ── Logo then app name, centered ─────────────────────────────
-          Center(
-            child: Column(mainAxisSize: MainAxisSize.min, children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(14),
-                child: Image.asset('assets/icon_rounded.png', width: 58, height: 58),
+          // ── Logo + app name ───────────────────────────────────────────
+          Column(mainAxisSize: MainAxisSize.min, children: [
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 220),
+              curve: Curves.easeInOut,
+              width: logoSize, height: logoSize,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(logoRadius),
+                child: Image.asset('assets/icon_rounded.png',
+                    width: logoSize, height: logoSize),
               ),
-              const SizedBox(height: 8),
-              Text('Quanta', style: AppText.mono(
+            ),
+            const SizedBox(height: 6),
+            AnimatedOpacity(
+              duration: const Duration(milliseconds: 150),
+              opacity: c ? 0.0 : 1.0,
+              child: Text('Quanta', style: AppText.mono(
                 size: 13, weight: FontWeight.w700,
                 color: d ? const Color(0xFFD4AF37) : const Color(0xFF9A7D1A),
               )),
-            ]),
-          ),
+            ),
+          ]),
 
-          const SizedBox(height: 20),
+          const SizedBox(height: 16),
 
-          // ── Section label ────────────────────────────────────────────────
-          Padding(
-            padding: const EdgeInsets.fromLTRB(14, 0, 14, 4),
-            child: Text('MENU', style: AppText.label()),
-          ),
+          // ── Section label ─────────────────────────────────────────────
+          if (!c)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 0, 14, 4),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text('MENU', style: AppText.label()),
+              ),
+            ),
 
-          // ── Nav items ────────────────────────────────────────────────────
+          // ── Nav items ─────────────────────────────────────────────────
           for (int i = 0; i < widget.items.length; i++)
             _NavRow(
               item: widget.items[i],
               active: widget.currentIndex == i,
               onTap: () => widget.onTap(i),
+              collapsed: c,
             ),
 
           const Spacer(),
 
-          // ── Bottom area (theme toggle + footer) ──────────────────────────
-          _BottomArea(isDark: d, version: _version),
-          const SizedBox(height: 14),
+          // ── Bottom area ───────────────────────────────────────────────
+          if (!c) ...[
+            _BottomArea(isDark: d, version: _version),
+            const SizedBox(height: 14),
+          ],
         ],
       ),
     );
@@ -254,7 +281,9 @@ class _NavRow extends StatefulWidget {
   final _NavItem item;
   final bool active;
   final VoidCallback onTap;
-  const _NavRow({required this.item, required this.active, required this.onTap});
+  final bool collapsed;
+  const _NavRow({required this.item, required this.active,
+      required this.onTap, this.collapsed = false});
   @override
   State<_NavRow> createState() => _NavRowState();
 }
@@ -265,10 +294,28 @@ class _NavRowState extends State<_NavRow> {
   @override
   Widget build(BuildContext context) {
     final active = widget.active;
+    final c = widget.collapsed;
     final d = AppColors.isDark;
     final accent = d ? const Color(0xFFD4AF37) : const Color(0xFF9A7D1A);
-    final textColor = d ? const Color(0xFFF0ECD8) : const Color(0xFF080808);
     final mutedColor = d ? const Color(0xFF807060) : const Color(0xFF4A4642);
+
+    final iconBadge = Container(
+      width: 22, height: 22,
+      decoration: BoxDecoration(
+        color: active
+            ? accent.withValues(alpha: 0.2)
+            : widget.item.iconBg.withValues(alpha: 0.25),
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(
+          color: active
+              ? accent.withValues(alpha: 0.5)
+              : widget.item.iconBg.withValues(alpha: 0.4),
+          width: 1,
+        ),
+      ),
+      child: Icon(widget.item.icon, size: 13,
+          color: active ? accent : widget.item.iconBg),
+    );
 
     return MouseRegion(
       cursor: SystemMouseCursors.click,
@@ -282,7 +329,7 @@ class _NavRowState extends State<_NavRow> {
             duration: const Duration(milliseconds: 180),
             curve: Curves.easeInOut,
             height: 34,
-            padding: const EdgeInsets.symmetric(horizontal: 8),
+            padding: EdgeInsets.symmetric(horizontal: c ? 0 : 8),
             decoration: BoxDecoration(
               color: active
                   ? accent.withValues(alpha: d ? 0.15 : 0.12)
@@ -302,38 +349,18 @@ class _NavRowState extends State<_NavRow> {
                 ),
               ] : null,
             ),
-            child: Row(children: [
-              // Icon badge
-              Container(
-                width: 22, height: 22,
-                decoration: BoxDecoration(
-                  color: active
-                      ? accent.withValues(alpha: 0.2)
-                      : widget.item.iconBg.withValues(alpha: 0.25),
-                  borderRadius: BorderRadius.circular(4),
-                  border: Border.all(
-                    color: active
-                        ? accent.withValues(alpha: 0.5)
-                        : widget.item.iconBg.withValues(alpha: 0.4),
-                    width: 1,
-                  ),
-                ),
-                child: Icon(
-                  widget.item.icon,
-                  size: 13,
-                  color: active ? accent : widget.item.iconBg,
-                ),
-              ),
-              const SizedBox(width: 9),
-              AnimatedDefaultTextStyle(
-                duration: const Duration(milliseconds: 180),
-                curve: Curves.easeInOut,
-                style: AppText.label(
-                  color: active ? accent : mutedColor,
-                ),
-                child: Text(widget.item.label.toUpperCase()),
-              ),
-            ]),
+            child: c
+                ? Center(child: iconBadge)
+                : Row(children: [
+                    iconBadge,
+                    const SizedBox(width: 9),
+                    AnimatedDefaultTextStyle(
+                      duration: const Duration(milliseconds: 180),
+                      curve: Curves.easeInOut,
+                      style: AppText.label(color: active ? accent : mutedColor),
+                      child: Text(widget.item.label.toUpperCase()),
+                    ),
+                  ]),
           ),
         ),
       ),
