@@ -1,8 +1,10 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'models/quanta_state.dart';
 import 'theme/app_theme.dart';
 import 'screens/main_shell.dart';
+import 'screens/web_shell.dart';
 import 'utils/window_utils.dart';
 
 void main() async {
@@ -33,7 +35,7 @@ class QuantaApp extends StatelessWidget {
       darkTheme: AppTheme.dark(),
       themeMode: themeMode,
       themeAnimationDuration: Duration.zero,
-      home: const _ThemeFade(child: MainShell()),
+      home: _ThemeFade(child: kIsWeb ? const WebShell() : const MainShell()),
     );
   }
 }

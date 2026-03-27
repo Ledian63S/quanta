@@ -74,7 +74,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
     return Stack(children: [
       Positioned.fill(
         child: SingleChildScrollView(
-          padding: EdgeInsets.fromLTRB(16, 12, 16, 72 + keyboardHeight),
+          padding: EdgeInsets.fromLTRB(16, 12, 16, (kIsWeb ? 24.0 : 72.0) + keyboardHeight),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
 
             // ── Account strip ────────────────────────────────────────
