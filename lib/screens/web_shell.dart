@@ -1,15 +1,28 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../models/quanta_state.dart';
 import '../theme/app_theme.dart';
-import 'calculator_screen.dart';
+import 'web_calc_screen.dart';
 import 'levels_screen.dart';
 import 'instruments_screen.dart';
 import 'settings_screen.dart';
 
+// ── Palette ───────────────────────────────────────────────────────────────────
+Color _cardBg(bool d) => d ? const Color(0xFF141414) : const Color(0xFFF2F2F2);
+
+BoxDecoration _pageDeco(bool d) => BoxDecoration(
+  gradient: RadialGradient(
+    center: Alignment.center,
+    radius: 1.1,
+    colors: d
+        ? [const Color(0xFF1E1E1E), const Color(0xFF050505)]
+        : [const Color(0xFFD8D8D8), const Color(0xFFB4B4B4)],
+  ),
+);
+
+// ── Shell ─────────────────────────────────────────────────────────────────────
 class WebShell extends StatefulWidget {
   const WebShell({super.key});
   @override
@@ -18,500 +31,471 @@ class WebShell extends StatefulWidget {
 
 class _WebShellState extends State<WebShell> {
   int _tab = 0;
-  bool _sidebarExpanded = false;
-
   void _setTab(int i) => setState(() => _tab = i);
-  void _toggleSidebar() => setState(() => _sidebarExpanded = !_sidebarExpanded);
 
-  static const _labels = ['CALC', 'LEVELS', 'MARKETS', 'SETTINGS'];
-  static const _icons  = ['#', '≡', '◈', '⚙'];
+  static const _items = [
+    _NavItem('Calc',     '#'),
+    _NavItem('Levels',   '≡'),
+    _NavItem('Markets',  '◈'),
+    _NavItem('Settings', '⚙'),
+  ];
+
+  Widget _screen() {
+    switch (_tab) {
+      case 0: return const WebCalcScreen();
+      case 1: return LevelsScreen(onNavigateToCalc: () => _setTab(0));
+      case 2: return const InstrumentsScreen();
+      case 3: return const SettingsScreen();
+      default: return const WebCalcScreen();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     AppColors.isDark = Theme.of(context).brightness == Brightness.dark;
+    final d = AppColors.isDark;
+    final state = context.watch<QuantaState>();
 
     return Scaffold(
-      backgroundColor: AppColors.bg,
-      body: Stack(children: [
-        const Positioned.fill(child: ScanlineOverlay()),
-        const Positioned.fill(child: GrainOverlay()),
-        SafeArea(
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              // Narrow viewport: revert to mobile-like layout
-              if (constraints.maxWidth < 700) {
-                return Column(children: [
-                  Expanded(child: _mobileContent()),
-                  _MobileNav(currentIndex: _tab, onTap: _setTab),
-                ]);
-              }
-              // Wide viewport: sidebar dashboard
-              return Row(children: [
-                _Sidebar(
-                  currentIndex: _tab,
-                  labels: _labels,
-                  icons: _icons,
-                  expanded: _sidebarExpanded,
-                  onTap: _setTab,
-                  onToggle: _toggleSidebar,
+      body: Container(
+        decoration: _pageDeco(d),
+        child: Stack(children: [
+          const Positioned.fill(child: ScanlineOverlay()),
+          const Positioned.fill(child: GrainOverlay()),
+          LayoutBuilder(builder: (ctx, cons) {
+            final wide = cons.maxWidth >= 700;
+
+            if (!wide) {
+              return Container(
+                color: _cardBg(d),
+                child: Column(children: [
+                  Expanded(child: _screen()),
+                  _MobileNav(currentIndex: _tab, onTap: _setTab, isDark: d),
+                ]),
+              );
+            }
+
+            return Padding(
+              padding: const EdgeInsets.all(16),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 1280),
+                  child: SizedBox(
+                    width: double.infinity, height: double.infinity,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: _cardBg(d),
+                        borderRadius: BorderRadius.circular(28),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: d ? 0.6 : 0.14),
+                            blurRadius: 50, offset: const Offset(0, 14),
+                          ),
+                        ],
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(28),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            // Sidebar — floating pill with own border radius
+                            _Sidebar(
+                              items: _items,
+                              currentIndex: _tab,
+                              isDark: d,
+                              state: state,
+                              onTap: _setTab,
+                            ),
+                            Expanded(child: _screen()),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
-                Container(width: 1, color: AppColors.border),
-                Expanded(
-                  child: Column(children: [
-                    _TopBar(title: _labels[_tab]),
-                    Expanded(child: _wideContent()),
-                  ]),
-                ),
-              ]);
-            },
-          ),
-        ),
-      ]),
+              ),
+            );
+          }),
+        ]),
+      ),
     );
-  }
-
-  Widget _mobileContent() {
-    switch (_tab) {
-      case 1: return LevelsScreen(onNavigateToCalc: () => _setTab(0));
-      case 2: return const InstrumentsScreen();
-      case 3: return const SettingsScreen();
-      default: return const CalculatorScreen();
-    }
-  }
-
-  Widget _wideContent() {
-    switch (_tab) {
-      case 0: return const _WebCalcView();
-      case 1: return _WebLevelsView(onNavigateToCalc: () => _setTab(0));
-      case 2: return const _WebScrollView(child: InstrumentsScreen());
-      case 3: return const _WebScrollView(child: SettingsScreen());
-      default: return const _WebCalcView();
-    }
   }
 }
 
-// ── Sidebar ─────────────────────────────────────────────────────────────────
-class _Sidebar extends StatelessWidget {
+// ── Nav item model ────────────────────────────────────────────────────────────
+class _NavItem {
+  final String label, icon;
+  const _NavItem(this.label, this.icon);
+}
+
+// ── Sidebar ───────────────────────────────────────────────────────────────────
+class _Sidebar extends StatefulWidget {
+  final List<_NavItem> items;
   final int currentIndex;
-  final List<String> labels;
-  final List<String> icons;
-  final bool expanded;
+  final bool isDark;
+  final QuantaState state;
   final ValueChanged<int> onTap;
-  final VoidCallback onToggle;
+
   const _Sidebar({
-    required this.currentIndex,
-    required this.labels,
-    required this.icons,
-    required this.expanded,
-    required this.onTap,
-    required this.onToggle,
+    required this.items, required this.currentIndex,
+    required this.isDark, required this.state, required this.onTap,
   });
+  @override
+  State<_Sidebar> createState() => _SidebarState();
+}
+
+class _SidebarState extends State<_Sidebar> {
+  bool _expanded = true;
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 200),
-      curve: Curves.easeInOut,
-      width: expanded ? 180 : 64,
-      color: AppColors.bg,
-      child: Column(children: [
-        // Logo + toggle
-        Container(
-          height: 56,
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          child: Row(children: [
-            Text('Q',
-              style: AppText.mono(
-                size: 18, weight: FontWeight.w700, color: AppColors.accent,
-              ),
-            ),
-            if (expanded) ...[
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text('QUANTA',
-                  style: AppText.mono(
-                    size: 11, weight: FontWeight.w700, color: AppColors.text,
-                  ),
-                  overflow: TextOverflow.clip,
-                ),
-              ),
-            ],
-            const Spacer(),
-            Clickable(
-              onTap: onToggle,
-              child: Text(expanded ? '‹' : '›',
-                style: AppText.mono(size: 16, color: AppColors.muted),
-              ),
-            ),
-          ]),
-        ),
-        Container(height: 1, color: AppColors.border),
-        const SizedBox(height: 8),
-        // Nav items
-        for (int i = 0; i < labels.length; i++)
-          _SidebarItem(
-            icon: icons[i],
-            label: labels[i],
-            active: currentIndex == i,
-            expanded: expanded,
-            onTap: () => onTap(i),
+    final d = widget.isDark;
+
+    // Wrap in padding so sidebar floats inside the outer card
+    // The AnimatedContainer has its OWN border radius (all 4 corners)
+    return Padding(
+      padding: const EdgeInsets.all(10),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 240),
+        curve: Curves.easeInOut,
+        width: _expanded ? 172 : 62,
+        clipBehavior: Clip.hardEdge,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: d
+                ? [const Color(0xFF2D2D2D), const Color(0xFF1F1F1F)]
+                : [const Color(0xFF464646), const Color(0xFF383838)],
           ),
-      ]),
+          borderRadius: BorderRadius.circular(22),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 22),
+
+            // Logo
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: _expanded ? 16 : 0),
+              child: _expanded
+                  ? Row(children: [
+                      _GoldCircle(),
+                      const SizedBox(width: 10),
+                      Text('Quanta', style: GoogleFonts.inter(
+                        fontSize: 14, fontWeight: FontWeight.w700,
+                        color: const Color(0xFFD4AF37),
+                      )),
+                    ])
+                  : Center(child: _GoldCircle()),
+            ),
+
+            const SizedBox(height: 24),
+
+            // Nav items
+            for (int i = 0; i < widget.items.length; i++)
+              _NavRow(
+                item: widget.items[i],
+                active: widget.currentIndex == i,
+                expanded: _expanded,
+                onTap: () => widget.onTap(i),
+              ),
+
+            const Spacer(),
+
+            // Bottom card — matches Image #2 exactly
+            _BottomCard(
+              isDark: d,
+              expanded: _expanded,
+              state: widget.state,
+              onToggle: () => setState(() => _expanded = !_expanded),
+            ),
+
+            const SizedBox(height: 10),
+          ],
+        ),
+      ),
     );
   }
 }
 
-class _SidebarItem extends StatefulWidget {
-  final String icon, label;
-  final bool active, expanded;
-  final VoidCallback onTap;
-  const _SidebarItem({
-    required this.icon, required this.label,
-    required this.active, required this.expanded,
-    required this.onTap,
-  });
+// ── Gold circle logo ──────────────────────────────────────────────────────────
+class _GoldCircle extends StatelessWidget {
   @override
-  State<_SidebarItem> createState() => _SidebarItemState();
+  Widget build(BuildContext context) {
+    return Container(
+      width: 38, height: 38,
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFFD4AF37), Color(0xFF9E7C1A)],
+        ),
+        shape: BoxShape.circle,
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFD4AF37).withValues(alpha: 0.45),
+            blurRadius: 14, offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Center(
+        child: Text('Q', style: GoogleFonts.inter(
+          fontSize: 16, fontWeight: FontWeight.w800, color: Colors.black,
+        )),
+      ),
+    );
+  }
 }
 
-class _SidebarItemState extends State<_SidebarItem> {
+// ── Nav row ───────────────────────────────────────────────────────────────────
+class _NavRow extends StatefulWidget {
+  final _NavItem item;
+  final bool active, expanded;
+  final VoidCallback onTap;
+  const _NavRow({
+    required this.item, required this.active,
+    required this.expanded, required this.onTap,
+  });
+  @override
+  State<_NavRow> createState() => _NavRowState();
+}
+
+class _NavRowState extends State<_NavRow> {
   bool _hovered = false;
 
   @override
   Widget build(BuildContext context) {
-    final iconColor = widget.active
-        ? AppColors.accent
-        : _hovered ? AppColors.text : AppColors.muted;
+    final active   = widget.active;
+    final expanded = widget.expanded;
 
-    final item = MouseRegion(
-      cursor: SystemMouseCursors.click,
-      onEnter: (_) => setState(() => _hovered = true),
-      onExit:  (_) => setState(() => _hovered = false),
-      child: GestureDetector(
-        onTap: widget.onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 120),
-          width: double.infinity,
-          height: 48,
-          padding: const EdgeInsets.symmetric(horizontal: 18),
-          decoration: BoxDecoration(
-            color: widget.active
-                ? AppColors.accent.withValues(alpha: 0.1)
-                : _hovered ? AppColors.elevated : Colors.transparent,
-            border: Border(
-              left: BorderSide(
-                color: widget.active ? AppColors.accent : Colors.transparent,
-                width: 2,
-              ),
+    return Tooltip(
+      message: !expanded ? widget.item.label : '',
+      preferBelow: false,
+      waitDuration: const Duration(milliseconds: 600),
+      textStyle: GoogleFonts.inter(
+        fontSize: 11, fontWeight: FontWeight.w600, color: Colors.black,
+      ),
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        onEnter: (_) => setState(() => _hovered = true),
+        onExit:  (_) => setState(() => _hovered = false),
+        child: GestureDetector(
+          onTap: widget.onTap,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 150),
+            height: 52,
+            margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            padding: EdgeInsets.symmetric(horizontal: expanded ? 8 : 0),
+            decoration: BoxDecoration(
+              // Row gets a very subtle tint on hover
+              color: _hovered && !active
+                  ? Colors.white.withValues(alpha: 0.04)
+                  : Colors.transparent,
+              borderRadius: BorderRadius.circular(12),
             ),
-          ),
-          child: Row(children: [
-            Text(widget.icon,
-              style: TextStyle(fontSize: 16, color: iconColor)),
-            if (widget.expanded) ...[
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(widget.label,
-                  overflow: TextOverflow.clip,
-                  style: AppText.label(
-                    size: 11,
-                    color: widget.active ? AppColors.accent : AppColors.muted,
+            child: Row(
+              mainAxisAlignment: expanded
+                  ? MainAxisAlignment.start
+                  : MainAxisAlignment.center,
+              children: [
+                // Circle — gold gradient (active) or visible gray fill (inactive)
+                // This matches Image #2 exactly
+                Container(
+                  width: 40, height: 40,
+                  decoration: BoxDecoration(
+                    gradient: active
+                        ? const LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [Color(0xFFD4AF37), Color(0xFF9E7C1A)],
+                          )
+                        : null,
+                    // Inactive: clearly visible gray circle (like Image #2)
+                    color: active ? null : const Color(0xFF595959),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Center(
+                    child: Text(widget.item.icon, style: TextStyle(
+                      fontSize: 16,
+                      color: active ? Colors.black : const Color(0xFFBBBBBB),
+                    )),
                   ),
                 ),
-              ),
-            ],
-          ]),
-        ),
-      ),
-    );
-
-    // Only show tooltip when collapsed
-    if (widget.expanded) return item;
-    return Tooltip(
-      message: widget.label,
-      preferBelow: false,
-      textStyle: GoogleFonts.jetBrainsMono(
-        fontSize: 10, fontWeight: FontWeight.w700,
-        color: AppColors.bg, letterSpacing: 1.4,
-      ),
-      child: item,
-    );
-  }
-}
-
-// ── Top bar ──────────────────────────────────────────────────────────────────
-class _TopBar extends StatelessWidget {
-  final String title;
-  const _TopBar({required this.title});
-
-  @override
-  Widget build(BuildContext context) {
-    final state = context.watch<QuantaState>();
-    return ClipRect(
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-        child: Container(
-          height: 56,
-          decoration: BoxDecoration(
-            color: AppColors.bg.withValues(alpha: 0.92),
-            border: Border(bottom: BorderSide(color: AppColors.border)),
-          ),
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: Row(children: [
-            Text('> ', style: AppText.mono(size: 12, color: AppColors.accent)),
-            Text(title,
-              style: AppText.mono(
-                size: 13, weight: FontWeight.w700, color: AppColors.text,
-              ),
+                if (expanded) ...[
+                  const SizedBox(width: 12),
+                  Text(widget.item.label, style: GoogleFonts.inter(
+                    fontSize: 14,
+                    fontWeight: active ? FontWeight.w600 : FontWeight.w400,
+                    color: active ? Colors.white : const Color(0xFF888888),
+                  )),
+                ],
+              ],
             ),
-            const Spacer(),
-            // Theme toggle
-            Clickable(
-              onTap: () => state.setThemeMode(
-                state.themeMode == ThemeMode.dark
-                    ? ThemeMode.light
-                    : ThemeMode.dark,
-              ),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: AppColors.elevated,
-                  borderRadius: BorderRadius.circular(3),
-                  border: Border.all(color: AppColors.border),
-                ),
-                child: Text(
-                  state.themeMode == ThemeMode.dark ? '◑  LIGHT' : '☀  DARK',
-                  style: AppText.label(size: 10, color: AppColors.muted),
-                ),
-              ),
-            ),
-          ]),
-        ),
-      ),
-    );
-  }
-}
-
-// ── Web Calc View (two-column dashboard) ─────────────────────────────────────
-class _WebCalcView extends StatelessWidget {
-  const _WebCalcView();
-
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        // Below 900px: single column (calc + levels stacked)
-        if (constraints.maxWidth < 900) {
-          return const CalculatorScreen();
-        }
-        return Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Left: inputs (account + instrument + stop loss + result)
-            SizedBox(width: 420, child: const CalculatorScreen()),
-            Container(width: 1, color: AppColors.border),
-            // Right: levels table
-            const Expanded(child: _LevelsPanel()),
-          ],
-        );
-      },
-    );
-  }
-}
-
-// ── Web Levels View ──────────────────────────────────────────────────────────
-class _WebLevelsView extends StatelessWidget {
-  final VoidCallback? onNavigateToCalc;
-  const _WebLevelsView({this.onNavigateToCalc});
-
-  @override
-  Widget build(BuildContext context) {
-    return LevelsScreen(onNavigateToCalc: onNavigateToCalc);
-  }
-}
-
-// ── Scrollable wrapper for screens designed for mobile ──────────────────────
-class _WebScrollView extends StatelessWidget {
-  final Widget child;
-  const _WebScrollView({required this.child});
-
-  @override
-  Widget build(BuildContext context) {
-    return child;
-  }
-}
-
-// ── Levels panel for the right column ───────────────────────────────────────
-class _LevelsPanel extends StatelessWidget {
-  const _LevelsPanel();
-
-  @override
-  Widget build(BuildContext context) {
-    final state = context.watch<QuantaState>();
-    final levels = state.nearbyRiskLevels;
-
-    if (levels.isEmpty) {
-      return Center(
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Text('—', style: AppText.mono(size: 32, color: AppColors.subtle)),
-          const SizedBox(height: 12),
-          Text('ENTER A STOP LOSS', style: AppText.label(size: 10, color: AppColors.subtle)),
-          const SizedBox(height: 4),
-          Text('to see risk levels', style: AppText.body(size: 11, color: AppColors.subtle)),
-        ]),
-      );
-    }
-
-    final maxCts = levels
-        .map((r) => state.contractsForRisk(r))
-        .fold(1, (a, b) => a > b ? a : b);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Header
-        Padding(
-          padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
-          child: Row(children: [
-            Text('LEVELS', style: AppText.label()),
-            const SizedBox(width: 12),
-            Expanded(child: Container(height: 1, color: AppColors.border)),
-            const SizedBox(width: 12),
-            Text(
-              'SL  ${AppFormat.stopLoss(state.stopLossPoints)} PTS',
-              style: AppText.label(size: 10, color: AppColors.muted),
-            ),
-          ]),
-        ),
-        const SizedBox(height: 14),
-        // Column headers
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: Row(children: [
-            SizedBox(width: 100,
-              child: Text('RISK', style: AppText.label(size: 10, color: AppColors.muted))),
-            SizedBox(width: 72,
-              child: Text('CTS', textAlign: TextAlign.center,
-                  style: AppText.label(size: 10, color: AppColors.muted))),
-            Expanded(
-              child: Text('ACTUAL', textAlign: TextAlign.right,
-                  style: AppText.label(size: 10, color: AppColors.muted))),
-          ]),
-        ),
-        const SizedBox(height: 6),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: Container(height: 1, color: AppColors.border),
-        ),
-        const SizedBox(height: 4),
-        // Rows
-        Expanded(
-          child: ListView.builder(
-            padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
-            itemCount: levels.length,
-            itemBuilder: (context, i) {
-              final risk      = levels[i];
-              final cts       = state.contractsForRisk(risk);
-              final actual    = state.actualRiskForRisk(risk);
-              final isCurrent = (risk - state.effectiveRisk).abs() < 0.01;
-              final barFrac   = maxCts > 0 ? cts / maxCts : 0.0;
-              return _LevelRow(
-                risk: risk, contracts: cts, actual: actual,
-                isCurrent: isCurrent, barFraction: barFrac,
-              );
-            },
           ),
         ),
-      ],
+      ),
     );
   }
 }
 
-class _LevelRow extends StatelessWidget {
-  final double risk, actual, barFraction;
-  final int contracts;
-  final bool isCurrent;
-  const _LevelRow({
-    required this.risk, required this.contracts,
-    required this.actual, required this.isCurrent,
-    required this.barFraction,
+// ── Bottom card — matches Image #2 bottom widget ──────────────────────────────
+class _BottomCard extends StatefulWidget {
+  final bool isDark, expanded;
+  final QuantaState state;
+  final VoidCallback onToggle;
+  const _BottomCard({
+    required this.isDark, required this.expanded,
+    required this.state, required this.onToggle,
   });
+  @override
+  State<_BottomCard> createState() => _BottomCardState();
+}
+class _BottomCardState extends State<_BottomCard> {
+  bool _btnHovered = false;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 2),
-      child: Stack(children: [
-        // Background bar
-        if (!isCurrent)
-          Positioned.fill(
-            child: FractionallySizedBox(
-              alignment: Alignment.centerLeft,
-              widthFactor: barFraction,
+    final d = widget.isDark;
+    final exp = widget.expanded;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      child: Container(
+        clipBehavior: Clip.hardEdge,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: d
+                ? [const Color(0xFF1E1E1E), const Color(0xFF161616)]
+                : [const Color(0xFF2E2E2E), const Color(0xFF242424)],
+          ),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Stack(children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (exp) ...[
+                  Text('Quanta', style: GoogleFonts.inter(
+                    fontSize: 14, fontWeight: FontWeight.w700, color: Colors.white,
+                  )),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Fast position sizing\nfor futures traders.',
+                    style: GoogleFonts.inter(
+                      fontSize: 10, color: const Color(0xFF777777), height: 1.4,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                ],
+
+                // White "Get Started" style button — matches Image #2 exactly
+                MouseRegion(
+                  cursor: SystemMouseCursors.click,
+                  onEnter: (_) => setState(() => _btnHovered = true),
+                  onExit:  (_) => setState(() => _btnHovered = false),
+                  child: GestureDetector(
+                    onTap: () => widget.state.setThemeMode(
+                        d ? ThemeMode.light : ThemeMode.dark),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 150),
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(vertical: 9),
+                      decoration: BoxDecoration(
+                        color: _btnHovered
+                            ? const Color(0xFFE8E8E8)
+                            : Colors.white,
+                        borderRadius: BorderRadius.circular(100),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(d ? '◑' : '☀',
+                              style: const TextStyle(
+                                  fontSize: 13, color: Colors.black)),
+                          if (exp) ...[
+                            const SizedBox(width: 6),
+                            Text(d ? 'Light mode' : 'Dark mode',
+                              style: GoogleFonts.inter(
+                                fontSize: 12, fontWeight: FontWeight.w600,
+                                color: Colors.black,
+                              )),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 8),
+
+                // Collapse/expand arrow
+                Center(
+                  child: GestureDetector(
+                    onTap: widget.onToggle,
+                    child: MouseRegion(
+                      cursor: SystemMouseCursors.click,
+                      child: AnimatedRotation(
+                        turns: exp ? 0.5 : 0.0,
+                        duration: const Duration(milliseconds: 240),
+                        child: const Icon(Icons.chevron_right,
+                            color: Color(0xFF555555), size: 18),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Partially-cut-off gold circle icon in bottom-right — matches Image #2
+          if (exp)
+            Positioned(
+              bottom: -18, right: -18,
               child: Container(
+                width: 68, height: 68,
                 decoration: BoxDecoration(
-                  color: AppColors.elevated,
-                  borderRadius: BorderRadius.circular(3),
+                  gradient: const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Color(0xFFD4AF37), Color(0xFF9E7C1A)],
+                  ),
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFFD4AF37).withValues(alpha: 0.3),
+                      blurRadius: 12,
+                    ),
+                  ],
+                ),
+                child: const Center(
+                  child: Text('#', style: TextStyle(
+                    fontSize: 22, fontWeight: FontWeight.w800,
+                    color: Colors.black,
+                  )),
                 ),
               ),
             ),
-          ),
-        // Highlight row
-        if (isCurrent)
-          Positioned.fill(
-            child: Container(
-              decoration: BoxDecoration(
-                color: AppColors.accent.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(3),
-                border: Border.all(color: AppColors.accent.withValues(alpha: 0.35)),
-              ),
-            ),
-          ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 9),
-          child: Row(children: [
-            SizedBox(
-              width: 100,
-              child: Text(AppFormat.dollar(risk),
-                style: AppText.mono(
-                  size: 13,
-                  weight: isCurrent ? FontWeight.w700 : FontWeight.w400,
-                  color: isCurrent ? AppColors.accent : AppColors.text,
-                )),
-            ),
-            SizedBox(
-              width: 72,
-              child: Text('$contracts',
-                textAlign: TextAlign.center,
-                style: AppText.mono(
-                  size: 13,
-                  weight: isCurrent ? FontWeight.w700 : FontWeight.w400,
-                  color: isCurrent ? AppColors.accent : AppColors.text,
-                )),
-            ),
-            Expanded(
-              child: Text(AppFormat.dollar(actual),
-                textAlign: TextAlign.right,
-                style: AppText.mono(
-                  size: 13,
-                  weight: isCurrent ? FontWeight.w700 : FontWeight.w400,
-                  color: isCurrent ? AppColors.accentLight : AppColors.muted,
-                )),
-            ),
-          ]),
-        ),
-      ]),
+        ]),
+      ),
     );
   }
 }
 
-// ── Mobile bottom nav (narrow viewports) ────────────────────────────────────
+// ── Mobile bottom nav ─────────────────────────────────────────────────────────
 class _MobileNav extends StatelessWidget {
   final int currentIndex;
   final ValueChanged<int> onTap;
-  const _MobileNav({required this.currentIndex, required this.onTap});
-
-  static const _labels = ['CALC', 'LEVELS', 'MARKETS', 'SETTINGS'];
+  final bool isDark;
+  const _MobileNav({
+    required this.currentIndex, required this.onTap, required this.isDark,
+  });
+  static const _labels = ['Calc', 'Levels', 'Markets', 'Settings'];
 
   @override
   Widget build(BuildContext context) {
@@ -520,35 +504,39 @@ class _MobileNav extends StatelessWidget {
         filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
         child: Container(
           decoration: BoxDecoration(
-            color: AppColors.bg.withValues(alpha: 0.92),
-            border: Border(top: BorderSide(color: AppColors.border, width: 1)),
+            gradient: const LinearGradient(
+              colors: [Color(0xFF464646), Color(0xFF383838)],
+            ),
+            border: Border(
+              top: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
+            ),
           ),
           child: Row(
             children: List.generate(_labels.length, (i) {
               final active = currentIndex == i;
               return Expanded(
-                child: MouseRegion(
-                  cursor: SystemMouseCursors.click,
-                  child: GestureDetector(
-                    onTap: () => onTap(i),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 150),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      decoration: BoxDecoration(
-                        border: Border(
-                          top: BorderSide(
-                            color: active ? AppColors.accent : Colors.transparent,
-                            width: 2,
-                          ),
+                child: GestureDetector(
+                  onTap: () => onTap(i),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 150),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    decoration: BoxDecoration(
+                      border: Border(
+                        top: BorderSide(
+                          color: active
+                              ? const Color(0xFFD4AF37)
+                              : Colors.transparent,
+                          width: 2,
                         ),
                       ),
-                      child: Text(_labels[i],
-                        textAlign: TextAlign.center,
-                        style: GoogleFonts.jetBrainsMono(
-                          fontSize: 10, fontWeight: FontWeight.w700,
-                          letterSpacing: 1.4,
-                          color: active ? AppColors.accent : AppColors.muted,
-                        ),
+                    ),
+                    child: Text(_labels[i],
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.inter(
+                        fontSize: 11, fontWeight: FontWeight.w600,
+                        color: active
+                            ? const Color(0xFFD4AF37)
+                            : const Color(0xFF888888),
                       ),
                     ),
                   ),
