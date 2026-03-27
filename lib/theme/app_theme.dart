@@ -120,7 +120,8 @@ class _TerminalNumberState extends State<TerminalNumber>
 class ContractsOdometer extends StatefulWidget {
   final int contracts;
   final bool hasData;
-  const ContractsOdometer({super.key, required this.contracts, required this.hasData});
+  final double digitSize;
+  const ContractsOdometer({super.key, required this.contracts, required this.hasData, this.digitSize = 90});
   @override
   State<ContractsOdometer> createState() => _ContractsOdometerState();
 }
@@ -150,7 +151,7 @@ class _ContractsOdometerState extends State<ContractsOdometer> {
     final digits = _toDigits(widget.contracts, widget.hasData);
 
     return SizedBox(
-      height: 155,
+      height: widget.digitSize + 30,
       child: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -164,6 +165,7 @@ class _ContractsOdometerState extends State<ContractsOdometer> {
                   key: ValueKey(posFromRight),
                   digit: digits[i],
                   goingUp: _goingUp,
+                  digitSize: widget.digitSize,
                 );
               }),
             ),
@@ -179,7 +181,8 @@ class _ContractsOdometerState extends State<ContractsOdometer> {
 class _DigitWheel extends StatefulWidget {
   final int digit;
   final bool goingUp;
-  const _DigitWheel({super.key, required this.digit, required this.goingUp});
+  final double digitSize;
+  const _DigitWheel({super.key, required this.digit, required this.goingUp, this.digitSize = 90});
   @override
   State<_DigitWheel> createState() => _DigitWheelState();
 }
@@ -191,7 +194,7 @@ class _DigitWheelState extends State<_DigitWheel>
   int _prevDigit = 0;
   bool _goingUp = true;
 
-  static const _h = 90.0;
+  double get _h => widget.digitSize;
 
   @override
   void initState() {

@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -57,15 +58,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Stack(children: [
       SafeArea(
       child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 80),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
 
           // Header
-          Row(children: [
-            Text('> ', style: AppText.mono(size: 11, color: AppColors.accent)),
-            Text('SETTINGS', style: AppText.label(color: AppColors.accentLight)),
-          ]),
-          const SizedBox(height: 20),
+          Text('Settings', style: AppText.mono(
+            size: kIsWeb ? 15 : 18, weight: FontWeight.w700,
+            color: AppColors.text,
+          )),
+          const SizedBox(height: 18),
 
           // ── ACCOUNT ──────────────────────────────────────────────────
           const _SectionHeader('ACCOUNT'),
@@ -79,13 +80,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 prefix: '\$',
                 onChanged: (v) => state.setBalance(double.tryParse(v) ?? state.accountBalance),
               ),
-              Container(height: 1, color: AppColors.border,
-                  margin: const EdgeInsets.symmetric(horizontal: 12)),
+              Divider(height: 1, thickness: 0.5, indent: 16, endIndent: 0,
+                  color: AppColors.border),
               const _LabelRow(label: 'Currency', value: 'USD'),
             ]),
           ),
 
-          const SizedBox(height: 20),
+          const SizedBox(height: 14),
 
           // ── RISK ─────────────────────────────────────────────────────
           const _SectionHeader('RISK'),
@@ -103,8 +104,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       : state.riskAmount.toStringAsFixed(0);
                 },
               ),
-              Container(height: 1, color: AppColors.border,
-                  margin: const EdgeInsets.symmetric(horizontal: 12)),
+              Divider(height: 1, thickness: 0.5, indent: 16, endIndent: 0,
+                  color: AppColors.border),
               _InputRow(
                 label: 'Risk / Trade',
                 controller: _riskCtrl,
@@ -122,7 +123,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ]),
           ),
 
-          const SizedBox(height: 20),
+          const SizedBox(height: 14),
 
           // ── PREFERENCES ──────────────────────────────────────────────
           const _SectionHeader('PREFERENCES'),
@@ -132,18 +133,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
             child: Column(children: [
               _ToggleRow(label: 'Remember Balance',
                   value: state.rememberBalance, onChanged: state.setRememberBalance),
-              Container(height: 1, color: AppColors.border,
-                  margin: const EdgeInsets.symmetric(horizontal: 12)),
+              Divider(height: 1, thickness: 0.5, indent: 16, endIndent: 0,
+                  color: AppColors.border),
               _ToggleRow(label: 'Remember Risk',
                   value: state.rememberRisk, onChanged: state.setRememberRisk),
-              Container(height: 1, color: AppColors.border,
-                  margin: const EdgeInsets.symmetric(horizontal: 12)),
+              Divider(height: 1, thickness: 0.5, indent: 16, endIndent: 0,
+                  color: AppColors.border),
               _ToggleRow(label: 'Remember Instrument',
                   value: state.rememberInstrument, onChanged: state.setRememberInstrument),
             ]),
           ),
 
-          const SizedBox(height: 20),
+          const SizedBox(height: 14),
 
           // ── APPEARANCE ───────────────────────────────────────────────
           const _SectionHeader('APPEARANCE'),
@@ -153,7 +154,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             child: _AppearanceRow(current: state.themeMode, onChanged: state.setThemeMode),
           ),
 
-          const SizedBox(height: 20),
+          const SizedBox(height: 14),
 
           // ── ABOUT ────────────────────────────────────────────────────
           const _SectionHeader('ABOUT'),
@@ -162,11 +163,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
             decoration: AppDecor.card(),
             child: Column(children: [
               _LabelRow(label: 'Version', value: _version.isEmpty ? '...' : _version),
-              Container(height: 1, color: AppColors.border,
-                  margin: const EdgeInsets.symmetric(horizontal: 12)),
+              Divider(height: 1, thickness: 0.5, indent: 16, endIndent: 0,
+                  color: AppColors.border),
               const _LabelRow(label: 'Developer', value: 'Ledian Leka'),
-              Container(height: 1, color: AppColors.border,
-                  margin: const EdgeInsets.symmetric(horizontal: 12)),
+              Divider(height: 1, thickness: 0.5, indent: 16, endIndent: 0,
+                  color: AppColors.border),
               _TappableLabelRow(
                 label: 'Website',
                 value: 'ledian63s.github.io',
@@ -176,13 +177,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   mode: LaunchMode.externalApplication,
                 ),
               ),
-              Container(height: 1, color: AppColors.border,
-                  margin: const EdgeInsets.symmetric(horizontal: 12)),
+              Divider(height: 1, thickness: 0.5, indent: 16, endIndent: 0,
+                  color: AppColors.border),
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
                 child: Center(
                   child: Text('Made with ♥ for traders',
-                    style: AppText.mono(size: 12, color: AppColors.muted)),
+                    style: AppText.mono(size: kIsWeb ? 11 : 13, color: AppColors.muted)),
                 ),
               ),
             ]),
@@ -228,11 +229,10 @@ class _SectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     Theme.of(context);
-    return Row(children: [
-      Text(title, style: AppText.label()),
-      const SizedBox(width: 8),
-      Expanded(child: Container(height: 1, color: AppColors.border)),
-    ]);
+    return Padding(
+      padding: const EdgeInsets.only(left: 4, bottom: 2),
+      child: Text(title.toUpperCase(), style: AppText.label()),
+    );
   }
 }
 
@@ -284,19 +284,14 @@ class _InputRowState extends State<_InputRow> {
         });
       },
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
         child: Row(children: [
-          Text('> ', style: AppText.mono(size: 11, color: AppColors.muted)),
-          Text(widget.label, style: AppText.mono(
-              size: 13, weight: FontWeight.w500, color: AppColors.text)),
-          const SizedBox(width: 4),
-          const DotLeader(),
-          const SizedBox(width: 4),
+          Expanded(child: Text(widget.label.toUpperCase(), style: AppText.label())),
           if (_focused) ...[
             if (!widget.isPercent)
-              Text(widget.prefix, style: AppText.mono(size: 13,
-                  weight: FontWeight.w600, color: AppColors.muted)),
-            SizedBox(width: 80, child: TextField(
+              Text(widget.prefix, style: AppText.mono(size: kIsWeb ? 11 : 13,
+                  weight: FontWeight.w500, color: AppColors.muted)),
+            SizedBox(width: 90, child: TextField(
               controller: widget.controller,
               focusNode: _focus,
               onChanged: widget.onChanged,
@@ -305,18 +300,18 @@ class _InputRowState extends State<_InputRow> {
               inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[\d.]'))],
               enableInteractiveSelection: false,
               cursorColor: AppColors.accent,
-              style: AppText.mono(size: 13, weight: FontWeight.w700,
-                  color: AppColors.accentLight),
+              style: AppText.mono(size: kIsWeb ? 11 : 13, weight: FontWeight.w600,
+                  color: AppColors.accent),
               decoration: const InputDecoration(
                   border: InputBorder.none, isDense: true, contentPadding: EdgeInsets.zero),
             )),
             if (widget.isPercent)
-              Text('%', style: AppText.mono(size: 13,
-                  weight: FontWeight.w600, color: AppColors.muted)),
+              Text('%', style: AppText.mono(size: kIsWeb ? 11 : 13,
+                  weight: FontWeight.w500, color: AppColors.muted)),
           ] else
             Text(displayText,
-              style: AppText.mono(size: 13, weight: FontWeight.w700,
-                  color: AppColors.accentLight)),
+              style: AppText.mono(size: kIsWeb ? 11 : 13, weight: FontWeight.w600,
+                  color: AppColors.accent)),
         ]),
       ),
     );
@@ -332,16 +327,11 @@ class _LabelRow extends StatelessWidget {
   Widget build(BuildContext context) {
     Theme.of(context);
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       child: Row(children: [
-        Text('> ', style: AppText.mono(size: 11, color: AppColors.subtle)),
-        Text(label, style: AppText.mono(
-            size: 13, weight: FontWeight.w500, color: AppColors.muted)),
-        const SizedBox(width: 4),
-        const DotLeader(),
-        const SizedBox(width: 4),
-        Text(value, style: AppText.mono(size: 13, weight: FontWeight.w700,
-            color: AppColors.text)),
+        Expanded(child: Text(label.toUpperCase(), style: AppText.label())),
+        Text(value, style: AppText.mono(size: kIsWeb ? 11 : 13, weight: FontWeight.w500,
+            color: AppColors.muted)),
       ]),
     );
   }
@@ -361,18 +351,13 @@ class _TappableLabelRow extends StatelessWidget {
     return Clickable(
       onTap: onTap,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
         child: Row(children: [
-          Text('> ', style: AppText.mono(size: 11, color: AppColors.subtle)),
-          Text(label, style: AppText.mono(
-              size: 13, weight: FontWeight.w500, color: AppColors.muted)),
+          Expanded(child: Text(label.toUpperCase(), style: AppText.label())),
+          Text(value, style: AppText.mono(size: kIsWeb ? 11 : 13, weight: FontWeight.w500,
+              color: valueColor ?? AppColors.accent)),
           const SizedBox(width: 4),
-          const DotLeader(),
-          const SizedBox(width: 4),
-          Text(value, style: AppText.mono(size: 13, weight: FontWeight.w700,
-              color: valueColor ?? AppColors.text)),
-          const SizedBox(width: 4),
-          Text('↗', style: AppText.mono(size: 11, color: AppColors.muted)),
+          Icon(Icons.arrow_outward_rounded, size: 14, color: valueColor ?? AppColors.accent),
         ]),
       ),
     );
@@ -390,18 +375,16 @@ class _ToggleRow extends StatelessWidget {
   Widget build(BuildContext context) {
     Theme.of(context);
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
       child: Row(children: [
-        Text('> ', style: AppText.mono(size: 11, color: AppColors.subtle)),
-        Expanded(child: Text(label, style: AppText.mono(
-            size: 13, weight: FontWeight.w500, color: AppColors.text))),
+        Expanded(child: Text(label.toUpperCase(), style: AppText.label())),
         _AppToggle(value: value, onChanged: onChanged),
       ]),
     );
   }
 }
 
-// ── Custom amber terminal toggle ─────────────────────────────────────────────
+// ── Terminal toggle ───────────────────────────────────────────────────────────
 class _AppToggle extends StatelessWidget {
   final bool value;
   final ValueChanged<bool> onChanged;
@@ -410,39 +393,38 @@ class _AppToggle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     Theme.of(context);
-    return Clickable(
+    return GestureDetector(
       onTap: () {
         HapticFeedback.selectionClick();
         onChanged(!value);
       },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        width: 48, height: 26,
-        decoration: BoxDecoration(
-          color: value
-              ? AppColors.accent.withValues(alpha: 0.15)
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(4),
-          border: Border.all(
-            color: value ? AppColors.accent : AppColors.border,
-            width: 1.5,
-          ),
-        ),
-        child: Stack(children: [
-          AnimatedPositioned(
-            duration: const Duration(milliseconds: 150),
-            curve: Curves.easeOut,
-            top: 3, bottom: 3,
-            left: value ? 23 : 3,
-            right: value ? 3 : 23,
-            child: Container(
-              decoration: BoxDecoration(
-                color: value ? AppColors.accent : AppColors.muted,
-                borderRadius: BorderRadius.circular(2),
-              ),
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeInOut,
+          width: 40, height: 20,
+          decoration: BoxDecoration(
+            color: value
+                ? AppColors.accent.withValues(alpha: 0.15)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(2),
+            border: Border.all(
+              color: value ? AppColors.accent : AppColors.border,
+              width: 1,
             ),
           ),
-        ]),
+          child: Center(
+            child: AnimatedDefaultTextStyle(
+              duration: const Duration(milliseconds: 200),
+              style: AppText.label(
+                size: 8,
+                color: value ? AppColors.accent : AppColors.muted,
+              ),
+              child: Text(value ? 'ON' : 'OFF'),
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -477,17 +459,15 @@ class _AppearanceRow extends StatelessWidget {
               },
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 150),
-                padding: const EdgeInsets.symmetric(vertical: 10),
+                padding: const EdgeInsets.symmetric(vertical: 9),
                 decoration: BoxDecoration(
                   color: active
                       ? AppColors.accent.withValues(alpha: 0.12)
                       : Colors.transparent,
-                  borderRadius: BorderRadius.circular(4),
-                  border: Border.all(
-                    color: active
-                        ? AppColors.accent.withValues(alpha: 0.5)
-                        : Colors.transparent,
-                  ),
+                  borderRadius: BorderRadius.circular(2),
+                  border: active
+                      ? Border.all(color: AppColors.accent.withValues(alpha: 0.5))
+                      : null,
                 ),
                 child: Text(label,
                   textAlign: TextAlign.center,

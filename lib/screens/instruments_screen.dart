@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -15,26 +16,23 @@ class InstrumentsScreen extends StatelessWidget {
 
     return SafeArea(
       child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
 
           // ── Header ───────────────────────────────────────────────────
-          Row(children: [
-            Text('> ', style: AppText.mono(size: 11, color: AppColors.accent)),
-            Text('MARKETS', style: AppText.label(color: AppColors.accentLight)),
-          ]),
-          const SizedBox(height: 16),
+          Text('Markets', style: AppText.mono(
+            size: kIsWeb ? 15 : 18, weight: FontWeight.w700, color: AppColors.text)),
+          const SizedBox(height: 18),
 
           // ── Watchlist strip ──────────────────────────────────────────
           if (state.favoriteInstruments.isNotEmpty) ...[
             Row(children: [
               Text('WATCHLIST', style: AppText.label()),
-              const SizedBox(width: 8),
-              Expanded(child: Container(height: 1, color: AppColors.border)),
-              const SizedBox(width: 8),
-              if (state.favoriteInstruments.length > 1)
-                Text('DRAG · SWIPE TO REMOVE',
-                    style: AppText.mono(size: 9, color: AppColors.subtle)),
+              if (state.favoriteInstruments.length > 1) ...[
+                const Spacer(),
+                Text('Drag to reorder · Swipe to remove',
+                    style: AppText.mono(size: 11, color: AppColors.subtle)),
+              ],
             ]),
             const SizedBox(height: 10),
             ReorderableListView.builder(
@@ -65,20 +63,15 @@ class InstrumentsScreen extends StatelessWidget {
           ],
 
           // ── All instruments ──────────────────────────────────────────
-          Row(children: [
-            Text('ALL INSTRUMENTS', style: AppText.label()),
-            const SizedBox(width: 8),
-            Expanded(child: Container(height: 1, color: AppColors.border)),
-          ]),
+          Text('ALL INSTRUMENTS', style: AppText.label()),
           const SizedBox(height: 10),
 
           ...groups.map((g) {
             final instruments = kAllInstruments.where((i) => i.group == g).toList();
             return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Padding(
-                padding: const EdgeInsets.only(top: 4, bottom: 8),
-                child: Text('// $g', style: AppText.mono(
-                    size: 11, color: AppColors.muted)),
+                padding: const EdgeInsets.only(top: 10, bottom: 8),
+                child: Text(g.toUpperCase(), style: AppText.label()),
               ),
               Container(
                 decoration: AppDecor.card(),
@@ -131,8 +124,9 @@ class _WatchlistItem extends StatelessWidget {
         borderRadius: BorderRadius.circular(4),
         border: Border.all(
           color: isSelected
-              ? AppColors.accent.withValues(alpha: 0.5)
+              ? AppColors.accent.withValues(alpha: 0.4)
               : AppColors.border,
+          width: isSelected ? 1.5 : 0.5,
         ),
       ),
       child: Row(children: [
@@ -140,8 +134,8 @@ class _WatchlistItem extends StatelessWidget {
         ReorderableDragStartListener(
           index: index,
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
-            child: Text('≡', style: AppText.mono(size: 16, color: AppColors.muted)),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            child: Text('≡', style: AppText.mono(size: kIsWeb ? 13 : 16, color: AppColors.muted)),
           ),
         ),
         // Left accent bar
@@ -234,7 +228,7 @@ class _InstrumentRow extends StatelessWidget {
       // Content
       Expanded(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(14, 14, 12, 14),
+          padding: const EdgeInsets.fromLTRB(12, 12, 10, 12),
           child: Row(children: [
             // Ticker + name
             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [

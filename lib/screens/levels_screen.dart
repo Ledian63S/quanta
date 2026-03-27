@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -81,34 +82,31 @@ class _LevelsScreenState extends State<LevelsScreen> {
     if (!hasData) {
       return Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
         Container(
-          width: 48, height: 48,
+          width: 56, height: 56,
           decoration: BoxDecoration(
-            color: AppColors.card,
-            borderRadius: BorderRadius.circular(4),
-            border: Border.all(color: AppColors.border),
+            color: AppColors.elevated,
+            shape: BoxShape.circle,
           ),
-          child: Center(child: Text('///', style: AppText.mono(
-              size: 14, weight: FontWeight.w700, color: AppColors.muted))),
+          child: Icon(Icons.bar_chart_outlined, size: 24, color: AppColors.muted),
         ),
         const SizedBox(height: 16),
-        Text('NO DATA', style: AppText.label(color: AppColors.muted)),
+        Text('No data', style: AppText.mono(
+            size: 14, weight: FontWeight.w600, color: AppColors.text)),
         const SizedBox(height: 6),
-        Text('> SET STOP LOSS IN CALC FIRST',
-            style: AppText.mono(size: 11, color: AppColors.subtle)),
+        Text('Set a stop loss in Calc first',
+            style: AppText.mono(size: 13, color: AppColors.muted)),
         if (widget.onNavigateToCalc != null) ...[
           const SizedBox(height: 20),
-          Clickable(
+          GestureDetector(
             onTap: widget.onNavigateToCalc,
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
               decoration: BoxDecoration(
-                color: AppColors.accent.withValues(alpha: 0.1),
+                color: AppColors.accent,
                 borderRadius: BorderRadius.circular(4),
-                border: Border.all(
-                    color: AppColors.accent.withValues(alpha: 0.4)),
               ),
-              child: Text('GO TO CALC',
-                  style: AppText.label(color: AppColors.accent)),
+              child: Text('Go to Calc', style: AppText.mono(
+                  size: 13, weight: FontWeight.w600, color: Colors.white)),
             ),
           ),
         ],
@@ -151,68 +149,69 @@ class _LevelsScreenState extends State<LevelsScreen> {
 
         // ── Hero ──────────────────────────────────────────────────────
         Padding(
-          padding: const EdgeInsets.fromLTRB(_kH, 16, _kH, 0),
+          padding: const EdgeInsets.fromLTRB(_kH, 12, _kH, 0),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
 
             // Ticker / label bar
             Row(children: [
-              Text('> ', style: AppText.mono(size: 11, color: AppColors.accent)),
               Text(state.currentInstrument.ticker,
-                  style: AppText.mono(size: 11, weight: FontWeight.w700,
-                      color: AppColors.accentLight)),
-              Text('  \$${state.currentInstrument.pointValue}/PT',
-                  style: AppText.mono(size: 11, color: AppColors.muted)),
+                  style: AppText.mono(size: 13, weight: FontWeight.w700,
+                      color: AppColors.accent)),
+              const SizedBox(width: 6),
+              Text('\$${state.currentInstrument.pointValue}/pt',
+                  style: AppText.mono(size: 12, color: AppColors.muted)),
               const Spacer(),
-              Text('LEVELS', style: AppText.label(color: AppColors.muted)),
+              Text('Risk Levels', style: AppText.mono(
+                  size: 13, weight: FontWeight.w600, color: AppColors.muted)),
             ]),
-            const SizedBox(height: 14),
+            const SizedBox(height: 10),
 
             // Hero stats — 3-column row matching wheel columns below
             Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
               // STOP LOSS — fixed from calculator (left)
               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                Text('STOP LOSS', style: AppText.label(size: 10)),
+                Text('Stop Loss', style: AppText.label(size: 11)),
                 const SizedBox(height: 4),
                 Text(AppFormat.stopLoss(state.stopLossPoints),
-                    style: AppText.mono(size: 34, weight: FontWeight.w700,
+                    style: AppText.mono(size: kIsWeb ? 18 : 26, weight: FontWeight.w700,
                         color: AppColors.muted)),
-                Text('pts  ·  fixed', style: AppText.label(size: 10, color: AppColors.subtle)),
+                Text('pts · fixed', style: AppText.label(size: 10, color: AppColors.subtle)),
               ])),
 
               // CONTRACTS for selected risk (center)
               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                Text('CONTRACTS', style: AppText.label(size: 10)),
+                Text('Contracts', style: AppText.label(size: 11)),
                 const SizedBox(height: 4),
                 Text('$contracts',
                     textAlign: TextAlign.center,
-                    style: AppText.mono(size: 34, weight: FontWeight.w700,
-                        color: AppColors.accentLight)),
+                    style: AppText.mono(size: kIsWeb ? 18 : 26, weight: FontWeight.w700,
+                        color: AppColors.accent)),
               ])),
 
               // ACTUAL RISK for selected risk (right)
               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                Text('ACTUAL RISK', style: AppText.label(size: 10)),
+                Text('Actual Risk', style: AppText.label(size: 11)),
                 const SizedBox(height: 4),
                 Text(AppFormat.dollar(actualRisk),
-                    style: AppText.mono(size: 34, weight: FontWeight.w700,
+                    style: AppText.mono(size: kIsWeb ? 18 : 26, weight: FontWeight.w700,
                         color: AppColors.green)),
               ])),
             ]),
 
-            const SizedBox(height: 14),
-            Container(height: 1, color: AppColors.border),
             const SizedBox(height: 10),
+            Container(height: 1, color: AppColors.border),
+            const SizedBox(height: 8),
 
             // Column headers
             Row(children: [
-              Expanded(child: Text('RISK', style: AppText.label(size: 10))),
-              Expanded(child: Text('CONTRACTS', textAlign: TextAlign.center,
-                  style: AppText.label(size: 10))),
-              Expanded(child: Text('ACTUAL', textAlign: TextAlign.right,
-                  style: AppText.label(size: 10))),
+              Expanded(child: Text('Risk', style: AppText.label(size: 11))),
+              Expanded(child: Text('Contracts', textAlign: TextAlign.center,
+                  style: AppText.label(size: 11))),
+              Expanded(child: Text('Actual', textAlign: TextAlign.right,
+                  style: AppText.label(size: 11))),
             ]),
             const SizedBox(height: 6),
           ]),
@@ -229,16 +228,10 @@ class _LevelsScreenState extends State<LevelsScreen> {
                   height: _kRowHeight,
                   margin: const EdgeInsets.symmetric(horizontal: _kH - 4),
                   decoration: BoxDecoration(
-                    color: AppColors.elevated,
+                    color: AppColors.accent.withValues(alpha: 0.08),
                     borderRadius: BorderRadius.circular(4),
                     border: Border.all(
-                        color: AppColors.accent.withValues(alpha: 0.65), width: 1.5),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.accent.withValues(alpha: 0.1),
-                        blurRadius: 16, spreadRadius: 0,
-                      ),
-                    ],
+                        color: AppColors.accent.withValues(alpha: 0.4), width: 1.5),
                   ),
                 ),
               ),
@@ -326,7 +319,7 @@ class _LevelsScreenState extends State<LevelsScreen> {
                                   Expanded(child: Row(children: [
                                     Text(AppFormat.dollar(risk),
                                         style: AppText.mono(
-                                          size: isSelected ? 18 : 14,
+                                          size: isSelected ? (kIsWeb ? 14 : 18) : (kIsWeb ? 12 : 14),
                                           weight: isSelected
                                               ? FontWeight.w700 : FontWeight.w400,
                                           color: isSelected
@@ -350,7 +343,7 @@ class _LevelsScreenState extends State<LevelsScreen> {
                                         size: isSelected ? 18 : 14,
                                         weight: FontWeight.w700,
                                         color: isSelected
-                                            ? AppColors.accentLight : AppColors.subtle,
+                                            ? AppColors.accent : AppColors.subtle,
                                       ))),
                                   // ACTUAL column
                                   Expanded(child: Text(AppFormat.dollar(ar),

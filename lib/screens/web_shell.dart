@@ -1,35 +1,23 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:provider/provider.dart';
-import '../models/quanta_state.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import '../theme/app_theme.dart';
 import 'web_calc_screen.dart';
 import 'levels_screen.dart';
 import 'instruments_screen.dart';
 import 'settings_screen.dart';
 
-// ── Palette ───────────────────────────────────────────────────────────────────
-Color _cardBg(bool d) => d ? const Color(0xFF141414) : const Color(0xFFF0F0F0);
-
-BoxDecoration _pageDeco(bool d) => BoxDecoration(
-  gradient: RadialGradient(
-    center: Alignment.center,
-    radius: 1.1,
-    colors: d
-        ? [const Color(0xFF1E1E1E), const Color(0xFF050505)]
-        : [const Color(0xFFD8D8D8), const Color(0xFFB4B4B4)],
-  ),
-);
-
-const Color _gold  = Color(0xFFD4AF37);
-const Color _goldD = Color(0xFF9E7C1A);
+// ── Palette — VOID terminal ────────────────────────────────────────────────────
+Color _sidebarBg(bool d) => d ? const Color(0xFF0C0C0C) : const Color(0xFFF0ECE8);
+Color _desktopBg(bool d) => d ? const Color(0xFF000000) : const Color(0xFFD8D4CF);
 
 // ── Nav item model ────────────────────────────────────────────────────────────
 class _NavItem {
   final String label;
   final IconData icon;
-  const _NavItem(this.label, this.icon);
+  final Color iconBg;
+  const _NavItem(this.label, this.icon, this.iconBg);
 }
 
 // ── Shell ─────────────────────────────────────────────────────────────────────
@@ -44,10 +32,10 @@ class _WebShellState extends State<WebShell> {
   void _setTab(int i) => setState(() => _tab = i);
 
   static const _items = [
-    _NavItem('Calc',     Icons.calculate_outlined),
-    _NavItem('Levels',   Icons.bar_chart_outlined),
-    _NavItem('Markets',  Icons.candlestick_chart_outlined),
-    _NavItem('Settings', Icons.settings_outlined),
+    _NavItem('Calculator', Icons.calculate_outlined,      Color(0xFFD4AF37)),
+    _NavItem('Levels',   Icons.bar_chart_outlined,         Color(0xFF4ADE80)),
+    _NavItem('Markets',  Icons.candlestick_chart_outlined, Color(0xFFFF6B35)),
+    _NavItem('Settings', Icons.settings_outlined,          Color(0xFF807060)),
   ];
 
   Widget _screen() {
@@ -64,78 +52,95 @@ class _WebShellState extends State<WebShell> {
   Widget build(BuildContext context) {
     AppColors.isDark = Theme.of(context).brightness == Brightness.dark;
     final d = AppColors.isDark;
-    final state = context.watch<QuantaState>();
-
     return Scaffold(
-      body: Container(
-        decoration: _pageDeco(d),
-        child: Stack(children: [
-          const Positioned.fill(child: ScanlineOverlay()),
-          const Positioned.fill(child: GrainOverlay()),
-          LayoutBuilder(builder: (ctx, cons) {
-            final wide = cons.maxWidth >= 700;
+      backgroundColor: AppColors.bg,
+      body: LayoutBuilder(builder: (ctx, cons) {
+        final wide = cons.maxWidth >= 700;
 
-            if (!wide) {
-              return Container(
-                color: _cardBg(d),
-                child: Column(children: [
-                  Expanded(child: _screen()),
-                  _MobileNav(currentIndex: _tab, onTap: _setTab, isDark: d),
-                ]),
-              );
-            }
+        // ── Mobile layout — unchanged ──────────────────────────────────────
+        if (!wide) {
+          return Column(children: [
+            Expanded(child: _screen()),
+            _MobileNav(currentIndex: _tab, onTap: _setTab, isDark: d),
+          ]);
+        }
 
-            return Padding(
-              padding: const EdgeInsets.all(16),
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 1280),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: _cardBg(d),
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(
+        // ── Desktop: centered floating macOS window ────────────────────────
+        return Container(
+          color: _desktopBg(d),
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(28),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxWidth: 1100,
+                  maxHeight: cons.maxHeight - 56,
+                ),
+                child: _FloatingWindow(
+                  isDark: d,
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _Sidebar(
+                        items: _items,
+                        currentIndex: _tab,
+                        isDark: d,
+                        onTap: _setTab,
+                      ),
+                      VerticalDivider(
+                        width: 1, thickness: 1,
                         color: d
-                            ? Colors.white.withValues(alpha: 0.07)
-                            : Colors.black.withValues(alpha: 0.10),
+                            ? Colors.white.withValues(alpha: 0.06)
+                            : Colors.black.withValues(alpha: 0.07),
                       ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: d ? 0.55 : 0.18),
-                          blurRadius: 60, offset: const Offset(0, 20),
-                        ),
-                      ],
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(13),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          _Sidebar(
-                            items: _items,
-                            currentIndex: _tab,
-                            isDark: d,
-                            state: state,
-                            onTap: _setTab,
-                          ),
-                          // Hairline separator
-                          VerticalDivider(
-                            width: 1,
-                            thickness: 1,
-                            color: d
-                                ? Colors.white.withValues(alpha: 0.06)
-                                : Colors.black.withValues(alpha: 0.08),
-                          ),
-                          Expanded(child: _screen()),
-                        ],
-                      ),
-                    ),
+                      Expanded(child: _screen()),
+                    ],
                   ),
                 ),
               ),
-            );
-          }),
-        ]),
+            ),
+          ),
+        );
+      }),
+    );
+  }
+}
+
+// ── Floating window container ──────────────────────────────────────────────────
+class _FloatingWindow extends StatelessWidget {
+  final bool isDark;
+  final Widget child;
+  const _FloatingWindow({required this.isDark, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.bg,
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(
+          color: isDark
+              ? const Color(0xFFD4AF37).withValues(alpha: 0.2)
+              : const Color(0xFFB8B0A6),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.7 : 0.18),
+            blurRadius: 48,
+            offset: const Offset(0, 16),
+            spreadRadius: -8,
+          ),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.08),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(4),
+        child: child,
       ),
     );
   }
@@ -146,116 +151,77 @@ class _Sidebar extends StatefulWidget {
   final List<_NavItem> items;
   final int currentIndex;
   final bool isDark;
-  final QuantaState state;
   final ValueChanged<int> onTap;
 
   const _Sidebar({
     required this.items, required this.currentIndex,
-    required this.isDark, required this.state, required this.onTap,
+    required this.isDark, required this.onTap,
   });
   @override
   State<_Sidebar> createState() => _SidebarState();
 }
 
 class _SidebarState extends State<_Sidebar> {
-  bool _expanded = true;
+  String _version = '';
+
+  @override
+  void initState() {
+    super.initState();
+    PackageInfo.fromPlatform().then((info) {
+      if (mounted) {
+        setState(() => _version = 'v${info.version}.${info.buildNumber}');
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     final d = widget.isDark;
 
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 220),
-      curve: Curves.easeInOut,
-      width: _expanded ? 220 : 64,
-      decoration: BoxDecoration(
-        color: d ? const Color(0xFF161616) : const Color(0xFF1C1C1E),
-      ),
+    return Container(
+      width: 210,
+      decoration: BoxDecoration(color: _sidebarBg(d)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
 
-          // ── Traffic lights ──────────────────────────────────────────────
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-            child: _expanded
-                ? Row(children: [
-                    _Dot(const Color(0xFFFF5F57)),
-                    const SizedBox(width: 7),
-                    _Dot(const Color(0xFFFFBD2E)),
-                    const SizedBox(width: 7),
-                    _Dot(const Color(0xFF28C840)),
-                  ])
-                : Center(
-                    child: Column(mainAxisSize: MainAxisSize.min, children: [
-                      _Dot(const Color(0xFFFF5F57)),
-                      const SizedBox(height: 5),
-                      _Dot(const Color(0xFFFFBD2E)),
-                      const SizedBox(height: 5),
-                      _Dot(const Color(0xFF28C840)),
-                    ]),
-                  ),
+          const SizedBox(height: 20),
+
+          // ── Logo then app name, centered ─────────────────────────────
+          Center(
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(14),
+                child: Image.asset('assets/icon_rounded.png', width: 58, height: 58),
+              ),
+              const SizedBox(height: 8),
+              Text('Quanta', style: AppText.mono(
+                size: 13, weight: FontWeight.w700,
+                color: d ? const Color(0xFFD4AF37) : const Color(0xFF9A7D1A),
+              )),
+            ]),
           ),
 
           const SizedBox(height: 20),
 
-          // ── Logo ─────────────────────────────────────────────────────────
+          // ── Section label ────────────────────────────────────────────────
           Padding(
-            padding: EdgeInsets.symmetric(horizontal: _expanded ? 14 : 0),
-            child: _expanded
-                ? Row(children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: Image.asset('assets/icon_rounded.png',
-                          width: 32, height: 32),
-                    ),
-                    const SizedBox(width: 10),
-                    Text('Quanta', style: GoogleFonts.inter(
-                      fontSize: 15, fontWeight: FontWeight.w700,
-                      color: Colors.white,
-                    )),
-                  ])
-                : Center(
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: Image.asset('assets/icon_rounded.png',
-                          width: 32, height: 32),
-                    ),
-                  ),
+            padding: const EdgeInsets.fromLTRB(14, 0, 14, 4),
+            child: Text('MENU', style: AppText.label()),
           ),
 
-          const SizedBox(height: 24),
-
-          // ── Section label ─────────────────────────────────────────────────
-          if (_expanded)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 6),
-              child: Text('MENU', style: GoogleFonts.inter(
-                fontSize: 10, fontWeight: FontWeight.w600,
-                color: Colors.white.withValues(alpha: 0.25),
-                letterSpacing: 0.8,
-              )),
-            ),
-
-          // ── Nav items ─────────────────────────────────────────────────────
+          // ── Nav items ────────────────────────────────────────────────────
           for (int i = 0; i < widget.items.length; i++)
             _NavRow(
               item: widget.items[i],
               active: widget.currentIndex == i,
-              expanded: _expanded,
               onTap: () => widget.onTap(i),
             ),
 
           const Spacer(),
 
-          // ── Bottom area ───────────────────────────────────────────────────
-          _BottomArea(
-            isDark: d,
-            expanded: _expanded,
-            state: widget.state,
-            onToggle: () => setState(() => _expanded = !_expanded),
-          ),
-
+          // ── Bottom area (theme toggle + footer) ──────────────────────────
+          _BottomArea(isDark: d, version: _version),
           const SizedBox(height: 14),
         ],
       ),
@@ -263,28 +229,12 @@ class _SidebarState extends State<_Sidebar> {
   }
 }
 
-// ── Traffic light dot ─────────────────────────────────────────────────────────
-class _Dot extends StatelessWidget {
-  final Color color;
-  const _Dot(this.color);
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 11, height: 11,
-      decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-    );
-  }
-}
-
-// ── Nav row — macOS sidebar style ─────────────────────────────────────────────
+// ── Nav row — macOS System Settings style ─────────────────────────────────────
 class _NavRow extends StatefulWidget {
   final _NavItem item;
-  final bool active, expanded;
+  final bool active;
   final VoidCallback onTap;
-  const _NavRow({
-    required this.item, required this.active,
-    required this.expanded, required this.onTap,
-  });
+  const _NavRow({required this.item, required this.active, required this.onTap});
   @override
   State<_NavRow> createState() => _NavRowState();
 }
@@ -294,62 +244,76 @@ class _NavRowState extends State<_NavRow> {
 
   @override
   Widget build(BuildContext context) {
-    final active   = widget.active;
-    final expanded = widget.expanded;
+    final active = widget.active;
+    final d = AppColors.isDark;
+    final accent = d ? const Color(0xFFD4AF37) : const Color(0xFF9A7D1A);
+    final textColor = d ? const Color(0xFFF0ECD8) : const Color(0xFF080808);
+    final mutedColor = d ? const Color(0xFF807060) : const Color(0xFF4A4642);
 
-    return Tooltip(
-      message: !expanded ? widget.item.label : '',
-      preferBelow: false,
-      waitDuration: const Duration(milliseconds: 500),
-      textStyle: GoogleFonts.inter(
-        fontSize: 11, fontWeight: FontWeight.w500, color: Colors.black,
-      ),
-      child: MouseRegion(
-        cursor: SystemMouseCursors.click,
-        onEnter: (_) => setState(() => _hovered = true),
-        onExit:  (_) => setState(() => _hovered = false),
-        child: GestureDetector(
-          onTap: widget.onTap,
-          child: Padding(
-            padding: EdgeInsets.symmetric(
-              horizontal: expanded ? 10 : 8,
-              vertical: 2,
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit:  (_) => setState(() => _hovered = false),
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 180),
+            curve: Curves.easeInOut,
+            height: 34,
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            decoration: BoxDecoration(
+              color: active
+                  ? accent.withValues(alpha: d ? 0.15 : 0.12)
+                  : (_hovered
+                      ? (d
+                          ? Colors.white.withValues(alpha: 0.04)
+                          : Colors.black.withValues(alpha: 0.05))
+                      : Colors.transparent),
+              borderRadius: BorderRadius.circular(2),
+              border: active
+                  ? Border.all(color: accent.withValues(alpha: 0.4), width: 1)
+                  : null,
+              boxShadow: active ? [
+                BoxShadow(
+                  color: accent.withValues(alpha: 0.12),
+                  blurRadius: 8, offset: const Offset(0, 2),
+                ),
+              ] : null,
             ),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 120),
-              height: 36,
-              padding: EdgeInsets.symmetric(horizontal: expanded ? 10 : 0),
-              decoration: BoxDecoration(
-                color: active
-                    ? _gold.withValues(alpha: 0.14)
-                    : (_hovered
-                        ? Colors.white.withValues(alpha: 0.05)
-                        : Colors.transparent),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                mainAxisAlignment: expanded
-                    ? MainAxisAlignment.start
-                    : MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    widget.item.icon,
-                    size: 17,
-                    color: active ? _gold : Colors.white.withValues(alpha: 0.4),
+            child: Row(children: [
+              // Icon badge
+              Container(
+                width: 22, height: 22,
+                decoration: BoxDecoration(
+                  color: active
+                      ? accent.withValues(alpha: 0.2)
+                      : widget.item.iconBg.withValues(alpha: 0.25),
+                  borderRadius: BorderRadius.circular(4),
+                  border: Border.all(
+                    color: active
+                        ? accent.withValues(alpha: 0.5)
+                        : widget.item.iconBg.withValues(alpha: 0.4),
+                    width: 1,
                   ),
-                  if (expanded) ...[
-                    const SizedBox(width: 10),
-                    Text(widget.item.label, style: GoogleFonts.inter(
-                      fontSize: 13,
-                      fontWeight: active ? FontWeight.w600 : FontWeight.w400,
-                      color: active
-                          ? Colors.white
-                          : Colors.white.withValues(alpha: 0.5),
-                    )),
-                  ],
-                ],
+                ),
+                child: Icon(
+                  widget.item.icon,
+                  size: 13,
+                  color: active ? accent : widget.item.iconBg,
+                ),
               ),
-            ),
+              const SizedBox(width: 9),
+              AnimatedDefaultTextStyle(
+                duration: const Duration(milliseconds: 180),
+                curve: Curves.easeInOut,
+                style: AppText.label(
+                  color: active ? accent : mutedColor,
+                ),
+                child: Text(widget.item.label.toUpperCase()),
+              ),
+            ]),
           ),
         ),
       ),
@@ -358,108 +322,39 @@ class _NavRowState extends State<_NavRow> {
 }
 
 // ── Bottom area ───────────────────────────────────────────────────────────────
-class _BottomArea extends StatefulWidget {
-  final bool isDark, expanded;
-  final QuantaState state;
-  final VoidCallback onToggle;
+class _BottomArea extends StatelessWidget {
+  final bool isDark;
+  final String version;
   const _BottomArea({
-    required this.isDark, required this.expanded,
-    required this.state, required this.onToggle,
+    required this.isDark, required this.version,
   });
-  @override
-  State<_BottomArea> createState() => _BottomAreaState();
-}
-class _BottomAreaState extends State<_BottomArea> {
-  bool _themeHovered = false;
 
   @override
   Widget build(BuildContext context) {
-    final d = widget.isDark;
-    final exp = widget.expanded;
+    final d = isDark;
 
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: exp ? 10 : 8),
+      padding: const EdgeInsets.symmetric(horizontal: 8),
       child: Column(mainAxisSize: MainAxisSize.min, children: [
 
         // Hairline separator
         Divider(height: 1, thickness: 1,
-            color: Colors.white.withValues(alpha: 0.07)),
-        const SizedBox(height: 12),
+            color: d
+                ? Colors.white.withValues(alpha: 0.07)
+                : Colors.black.withValues(alpha: 0.07)),
+        const SizedBox(height: 10),
 
-        // Theme toggle row
-        MouseRegion(
-          cursor: SystemMouseCursors.click,
-          onEnter: (_) => setState(() => _themeHovered = true),
-          onExit:  (_) => setState(() => _themeHovered = false),
-          child: GestureDetector(
-            onTap: () => widget.state.setThemeMode(
-                d ? ThemeMode.light : ThemeMode.dark),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 120),
-              height: 36,
-              padding: EdgeInsets.symmetric(horizontal: exp ? 10 : 0),
-              decoration: BoxDecoration(
-                color: _themeHovered
-                    ? Colors.white.withValues(alpha: 0.05)
-                    : Colors.transparent,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                mainAxisAlignment: exp
-                    ? MainAxisAlignment.start
-                    : MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    d ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
-                    size: 17,
-                    color: Colors.white.withValues(alpha: 0.4),
-                  ),
-                  if (exp) ...[
-                    const SizedBox(width: 10),
-                    Text(d ? 'Light mode' : 'Dark mode',
-                      style: GoogleFonts.inter(
-                        fontSize: 13, fontWeight: FontWeight.w400,
-                        color: Colors.white.withValues(alpha: 0.5),
-                      )),
-                  ],
-                ],
-              ),
-            ),
-          ),
-        ),
-
-        const SizedBox(height: 4),
-
-        // Collapse / expand toggle
-        GestureDetector(
-          onTap: widget.onToggle,
-          child: MouseRegion(
-            cursor: SystemMouseCursors.click,
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: exp ? 10 : 0),
-              child: SizedBox(
-                height: 32,
-                child: Row(
-                  mainAxisAlignment: exp
-                      ? MainAxisAlignment.start
-                      : MainAxisAlignment.center,
-                  children: [
-                    AnimatedRotation(
-                      turns: exp ? 0.5 : 0.0,
-                      duration: const Duration(milliseconds: 220),
-                      child: Icon(Icons.chevron_right,
-                          color: Colors.white.withValues(alpha: 0.2), size: 18),
-                    ),
-                    if (exp) ...[
-                      const SizedBox(width: 8),
-                      Text('Collapse', style: GoogleFonts.inter(
-                        fontSize: 12, fontWeight: FontWeight.w400,
-                        color: Colors.white.withValues(alpha: 0.2),
-                      )),
-                    ],
-                  ],
-                ),
-              ),
+        // Footer — centered, subtle
+        Center(
+          child: Text(
+            'Made with ♥ for traders'
+            '${version.isEmpty ? '' : '\n$version'}',
+            textAlign: TextAlign.center,
+            style: AppText.mono(
+              size: 10,
+              color: d
+                  ? Colors.white.withValues(alpha: 0.18)
+                  : Colors.black.withValues(alpha: 0.22),
             ),
           ),
         ),
@@ -476,8 +371,8 @@ class _MobileNav extends StatelessWidget {
   const _MobileNav({
     required this.currentIndex, required this.onTap, required this.isDark,
   });
-  static const _labels  = ['Calc', 'Levels', 'Markets', 'Settings'];
-  static const _icons   = [
+  static const _labels = ['Calc', 'Levels', 'Markets', 'Settings'];
+  static const _icons  = [
     Icons.calculate_outlined,
     Icons.bar_chart_outlined,
     Icons.candlestick_chart_outlined,
@@ -509,22 +404,29 @@ class _MobileNav extends StatelessWidget {
                 child: GestureDetector(
                   onTap: () => onTap(i),
                   child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 150),
+                    duration: const Duration(milliseconds: 200),
+                    curve: Curves.easeInOut,
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     child: Column(mainAxisSize: MainAxisSize.min, children: [
-                      Icon(_icons[i], size: 20,
-                        color: active
-                            ? _gold
-                            : (isDark
-                                ? Colors.white.withValues(alpha: 0.35)
-                                : Colors.black.withValues(alpha: 0.35)),
+                      AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 200),
+                        child: Icon(
+                          _icons[i],
+                          key: ValueKey(active),
+                          size: 20,
+                          color: active
+                              ? (isDark ? const Color(0xFFD4AF37) : const Color(0xFF9A7D1A))
+                              : (isDark
+                                  ? Colors.white.withValues(alpha: 0.35)
+                                  : Colors.black.withValues(alpha: 0.35)),
+                        ),
                       ),
                       const SizedBox(height: 4),
                       Text(_labels[i],
-                        style: GoogleFonts.inter(
-                          fontSize: 10, fontWeight: FontWeight.w500,
+                        style: AppText.mono(
+                          size: 10, weight: FontWeight.w500,
                           color: active
-                              ? _gold
+                              ? (isDark ? const Color(0xFFD4AF37) : const Color(0xFF9A7D1A))
                               : (isDark
                                   ? Colors.white.withValues(alpha: 0.35)
                                   : Colors.black.withValues(alpha: 0.35)),

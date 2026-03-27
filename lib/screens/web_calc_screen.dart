@@ -6,27 +6,25 @@ import 'package:provider/provider.dart';
 import '../models/quanta_state.dart';
 import '../theme/app_theme.dart';
 
-// ── Palette matching reference exactly ───────────────────────────────────────
-// Light mode: content bg = #F2F2F2, cards = #FFFFFF with shadow
-// Dark mode: content bg = #141414, cards = #1E1E1E
-Color _bg(bool d)   => d ? const Color(0xFF141414) : const Color(0xFFF2F2F2);
-Color _card(bool d) => d ? const Color(0xFF1E1E1E) : const Color(0xFFFFFFFF);
-Color _text(bool d) => d ? const Color(0xFFEEEEEE) : const Color(0xFF111111);
-Color _sub(bool d)  => d ? const Color(0xFF888888) : const Color(0xFF999999);
-Color _line(bool d) => d ? const Color(0xFF2C2C2C) : const Color(0xFFEEEEEE);
+// ── Palette — VOID terminal ────────────────────────────────────────────────────
+Color _bg(bool d)   => d ? const Color(0xFF000000) : const Color(0xFFE8E4DF);
+Color _card(bool d) => d ? const Color(0xFF0C0C0C) : const Color(0xFFF8F6F3);
+Color _text(bool d) => d ? const Color(0xFFF0ECD8) : const Color(0xFF080808);
+Color _sub(bool d)  => d ? const Color(0xFF807060) : const Color(0xFF4A4642);
+Color _line(bool d) => d ? const Color(0xFF242018) : const Color(0xFFB8B0A6);
 
-// Card shadow — subtle lift
+// Card shadow — terminal subtle
 List<BoxShadow> _shadow(bool d) => d
-    ? [BoxShadow(color: Colors.black.withValues(alpha: 0.30), blurRadius: 8, offset: const Offset(0, 3))]
-    : [
-        BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8,  offset: const Offset(0, 3)),
-        BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 2,  offset: const Offset(0, 1)),
-      ];
+    ? [BoxShadow(color: Colors.black.withValues(alpha: 0.5), blurRadius: 4, offset: const Offset(0, 1))]
+    : [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 4, offset: const Offset(0, 1))];
 
 const Color _gold    = Color(0xFFD4AF37);
-const Color _goldLt  = Color(0xFFE8C84A);
+const Color _goldLt  = Color(0xFFF0CC60);
 const Color _green   = Color(0xFF4ADE80);
 const Color _red     = Color(0xFFFF6B35);
+
+// Keep _blue alias for any remaining references
+const Color _blue = _gold;
 
 // ── Screen ────────────────────────────────────────────────────────────────────
 class WebCalcScreen extends StatefulWidget {
@@ -87,129 +85,100 @@ class _WebCalcScreenState extends State<WebCalcScreen> {
       onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
       behavior: HitTestBehavior.translucent,
       child: Container(
-        color: _bg(d),
-        child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        color: AppColors.bg,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
 
-          // ── Left column ───────────────────────────────────────────────────
-          Expanded(
-            flex: 58,
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(32, 32, 20, 32),
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            // ── Heading
+            RichText(text: TextSpan(children: [
+              TextSpan(
+                text: 'POSITION ',
+                style: AppText.mono(size: 20, weight: FontWeight.w700,
+                    color: AppColors.text),
+              ),
+              TextSpan(
+                text: 'SIZE',
+                style: AppText.mono(size: 20, weight: FontWeight.w700,
+                    color: _gold),
+              ),
+            ])),
+            const SizedBox(height: 12),
 
-                // ── Big heading — matches "Let's start strong!" from reference
-                Text('Position\nSize.',
-                  style: GoogleFonts.inter(
-                    fontSize: 44, fontWeight: FontWeight.w800,
-                    color: _text(d), height: 1.05, letterSpacing: -1.5,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Text('Enter your balance, risk and stop loss to calculate position size.',
-                  style: GoogleFonts.inter(
-                    fontSize: 13, color: _sub(d),
-                    fontWeight: FontWeight.w400, height: 1.4,
-                  ),
-                ),
-                const SizedBox(height: 28),
-
-                // ── "You're set up" progress-style card (matches reference top card)
-                _GoalCard(state: state, isDark: d),
-                const SizedBox(height: 20),
-
-                // ── Instrument row (matches reference's circular action buttons)
-                Text('Instrument', style: GoogleFonts.inter(
-                  fontSize: 13, fontWeight: FontWeight.w600, color: _text(d),
-                )),
-                const SizedBox(height: 12),
-                _InstrumentRow(state: state, isDark: d),
-                const SizedBox(height: 24),
-
-                // ── "Summary" section (matches reference)
-                Row(children: [
-                  Text('Inputs', style: GoogleFonts.inter(
-                    fontSize: 18, fontWeight: FontWeight.w700, color: _text(d),
-                  )),
-                ]),
-                const SizedBox(height: 14),
-
-                // Balance + Risk — two cards side by side
-                Row(children: [
-                  Expanded(child: _InputCard(
-                    label: 'Account balance',
-                    prefix: '\$',
-                    controller: _balCtrl,
-                    focusNode: _balFocus,
-                    focused: _balFocused,
-                    isDark: d,
-                    onChanged: (v) =>
-                        state.setBalance(double.tryParse(v) ?? state.accountBalance),
-                    onSubmitted: (_) => _riskFocus.requestFocus(),
-                  )),
-                  const SizedBox(width: 12),
-                  Expanded(child: _InputCard(
-                    label: state.riskIsPercent ? 'Risk %' : 'Risk / trade',
-                    prefix: state.riskIsPercent ? '' : '\$',
-                    suffix: state.riskIsPercent ? '%' : '',
-                    controller: _riskCtrl,
-                    focusNode: _riskFocus,
-                    focused: _riskFocused,
-                    isDark: d,
-                    onChanged: (v) {
-                      if (state.riskIsPercent) {
-                        final pct = double.tryParse(v) ?? 0;
-                        state.setSessionRisk(pct / 100 * state.accountBalance);
-                      } else {
-                        state.setSessionRisk(
-                            double.tryParse(v) ?? state.riskAmount);
-                      }
-                    },
-                    onSubmitted: (_) => _slFocus.requestFocus(),
-                  )),
-                ]),
-                const SizedBox(height: 12),
-
-                // Stop loss — full width card
-                _StopLossCard(
-                  controller: _slCtrl,
-                  focusNode: _slFocus,
-                  focused: _slFocused,
-                  isDark: d,
-                  ticker: state.currentInstrument.ticker,
-                  steps: state.currentInstrument.steps,
-                  onChanged: (v) {
-                    final n = v.replaceAll(',', '.');
-                    state.setStopLoss(
-                        n.isEmpty ? 0 : (double.tryParse(n) ?? state.stopLossPoints));
-                  },
-                  onAdjust: (delta) {
-                    final nv = (state.stopLossPoints + delta).clamp(0.0, double.infinity);
-                    _slCtrl.text = nv > 0 ? AppFormat.stopLoss(nv) : '';
-                    state.setStopLoss(nv);
-                  },
-                ),
-              ]),
+            // ── Balance + Risk — single stacked card (matches mobile)
+            _AccountStrip(
+              state: state,
+              balCtrl: _balCtrl,
+              riskCtrl: _riskCtrl,
+              balFocus: _balFocus,
+              riskFocus: _riskFocus,
+              slFocus: _slFocus,
+              balFocused: _balFocused,
+              riskFocused: _riskFocused,
+              isDark: d,
             ),
-          ),
+            const SizedBox(height: 12),
 
-          // ── Right column ──────────────────────────────────────────────────
-          Expanded(
-            flex: 42,
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(20, 32, 32, 32),
-              child: Column(children: [
-                // Orange glow "AI Chatbot" style — our Contracts hero
-                _ContractsHero(state: state, isDark: d),
-                const SizedBox(height: 16),
-                _RiskBreakdown(state: state, isDark: d),
-              ]),
+            // ── Instrument row (horizontal scroll pills, matches mobile)
+            _SectionLabel('Instrument', d),
+            const SizedBox(height: 8),
+            _InstrumentRow(state: state, isDark: d),
+            const SizedBox(height: 12),
+
+            // ── Stop loss
+            _SectionLabel('Stop Loss', d),
+            const SizedBox(height: 8),
+            _StopLossCard(
+              controller: _slCtrl,
+              focusNode: _slFocus,
+              focused: _slFocused,
+              isDark: d,
+              ticker: state.currentInstrument.ticker,
+              steps: state.currentInstrument.steps,
+              onChanged: (v) {
+                final n = v.replaceAll(',', '.');
+                state.setStopLoss(
+                    n.isEmpty ? 0 : (double.tryParse(n) ?? state.stopLossPoints));
+              },
+              onAdjust: (delta) {
+                final nv = (state.stopLossPoints + delta).clamp(0.0, double.infinity);
+                _slCtrl.text = nv > 0 ? AppFormat.stopLoss(nv) : '';
+                state.setStopLoss(nv);
+              },
             ),
-          ),
-        ]),
+            const SizedBox(height: 12),
+
+            // ── Result
+            Row(children: [
+              _SectionLabel('Result', d),
+              const Spacer(),
+              if (state.hasSessionContracts) ...[
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: AppColors.accent.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(4),
+                    border: Border.all(color: AppColors.accent.withValues(alpha: 0.3)),
+                  ),
+                  child: Text('MANUAL', style: AppText.mono(
+                    size: 9, weight: FontWeight.w600, color: _blue,
+                  )),
+                ),
+              ],
+            ]),
+            const SizedBox(height: 8),
+            _ResultPanel(state: state, isDark: d),
+          ]),
+        ),
       ),
     );
   }
 }
+
+// ── Section label — matches mobile AppText.label() ────────────────────────────
+Widget _SectionLabel(String text, bool isDark) => Text(text.toUpperCase(),
+  style: AppText.label(),
+);
 
 // ── Goal card — matches reference "You're 45% to your daily goal" card ────────
 class _GoalCard extends StatelessWidget {
@@ -227,11 +196,11 @@ class _GoalCard extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: _card(isDark),
-        borderRadius: BorderRadius.circular(18),
-        border: isDark ? Border.all(color: Colors.white.withValues(alpha: 0.05)) : null,
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(4),
+        border: isDark ? Border.all(color: Colors.white.withValues(alpha: 0.07), width: 0.5) : null,
         boxShadow: _shadow(isDark),
       ),
       child: Row(children: [
@@ -241,67 +210,55 @@ class _GoalCard extends StatelessWidget {
               hasData
                   ? '$contracts contract${contracts == 1 ? '' : 's'} at ${AppFormat.pct(ratio * 100)} of max risk'
                   : 'Enter your stop loss to calculate',
-              style: GoogleFonts.inter(
-                fontSize: 14, fontWeight: FontWeight.w600,
-                color: _text(isDark), height: 1.3,
+              style: AppText.mono(
+                size: 13, weight: FontWeight.w600,
+                color: AppColors.text,
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
             // Progress bar (matches reference)
             ClipRRect(
-              borderRadius: BorderRadius.circular(100),
+              borderRadius: BorderRadius.circular(4),
               child: Container(
-                height: 6,
-                color: _line(isDark),
+                height: 4,
+                color: AppColors.border,
                 child: FractionallySizedBox(
                   alignment: Alignment.centerLeft,
                   widthFactor: ratio,
                   child: Container(
                     decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFFD4AF37), Color(0xFF9E7C1A)],
-                      ),
-                      borderRadius: BorderRadius.circular(100),
+                      color: _blue,
+                      borderRadius: BorderRadius.circular(4),
                     ),
                   ),
                 ),
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 6),
             Row(children: [
               Text(AppFormat.dollar(state.actualRisk),
-                style: GoogleFonts.jetBrainsMono(
-                  fontSize: 13, fontWeight: FontWeight.w700,
-                  color: _text(isDark),
+                style: AppText.mono(
+                  size: 12, weight: FontWeight.w700,
+                  color: AppColors.text,
                 )),
               Text(' / ${AppFormat.dollar(state.effectiveRisk)}',
-                style: GoogleFonts.jetBrainsMono(
-                  fontSize: 13, color: _sub(isDark),
+                style: AppText.mono(
+                  size: 12, color: AppColors.muted,
                 )),
             ]),
           ]),
         ),
-        const SizedBox(width: 14),
-        // Gold circle icon (matches reference orange lightning bolt circle)
+        const SizedBox(width: 12),
+        // Blue circle icon
         Container(
-          width: 48, height: 48,
+          width: 40, height: 40,
           decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [Color(0xFFD4AF37), Color(0xFF9E7C1A)],
-            ),
+            color: AppColors.accent.withValues(alpha: 0.12),
             shape: BoxShape.circle,
-            boxShadow: [
-              BoxShadow(
-                color: const Color(0xFFD4AF37).withValues(alpha: 0.4),
-                blurRadius: 16, offset: const Offset(0, 4),
-              ),
-            ],
           ),
-          child: const Center(
-            child: Text('#', style: TextStyle(
-              fontSize: 20, color: Colors.black, fontWeight: FontWeight.w800,
+          child: Center(
+            child: Text('#', style: AppText.mono(
+              size: 20, color: _blue, weight: FontWeight.w700,
             )),
           ),
         ),
@@ -310,7 +267,134 @@ class _GoalCard extends StatelessWidget {
   }
 }
 
-// ── Instrument row — mini cards with arc ring (like "Push up 200kcal" card) ───
+// ── Account strip — single card, balance + risk stacked with divider ──────────
+class _AccountStrip extends StatelessWidget {
+  final QuantaState state;
+  final TextEditingController balCtrl, riskCtrl;
+  final FocusNode balFocus, riskFocus, slFocus;
+  final bool balFocused, riskFocused, isDark;
+
+  const _AccountStrip({
+    required this.state,
+    required this.balCtrl, required this.riskCtrl,
+    required this.balFocus, required this.riskFocus, required this.slFocus,
+    required this.balFocused, required this.riskFocused,
+    required this.isDark,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: AppColors.border, width: 1),
+        boxShadow: _shadow(isDark),
+      ),
+      child: Column(children: [
+        _AccountRow(
+          label: 'Balance',
+          prefix: '\$',
+          controller: balCtrl,
+          focusNode: balFocus,
+          focused: balFocused,
+          isDark: isDark,
+          onChanged: (v) => state.setBalance(double.tryParse(v) ?? state.accountBalance),
+          onSubmitted: (_) => riskFocus.requestFocus(),
+        ),
+        Container(height: 1, color: AppColors.border),
+        _AccountRow(
+          label: state.riskIsPercent ? 'Risk %' : 'Risk / trade',
+          prefix: state.riskIsPercent ? '' : '\$',
+          suffix: state.riskIsPercent ? '%' : '',
+          controller: riskCtrl,
+          focusNode: riskFocus,
+          focused: riskFocused,
+          isDark: isDark,
+          onChanged: (v) {
+            if (state.riskIsPercent) {
+              final pct = double.tryParse(v) ?? 0;
+              state.setSessionRisk(pct / 100 * state.accountBalance);
+            } else {
+              state.setSessionRisk(double.tryParse(v) ?? state.riskAmount);
+            }
+          },
+          onSubmitted: (_) => slFocus.requestFocus(),
+        ),
+      ]),
+    );
+  }
+}
+
+class _AccountRow extends StatelessWidget {
+  final String label, prefix;
+  final String suffix;
+  final TextEditingController controller;
+  final FocusNode focusNode;
+  final bool focused, isDark;
+  final ValueChanged<String> onChanged, onSubmitted;
+
+  const _AccountRow({
+    required this.label, required this.prefix,
+    required this.controller, required this.focusNode,
+    required this.focused, required this.isDark,
+    required this.onChanged, required this.onSubmitted,
+    this.suffix = '',
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: focused ? null : () {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (context.mounted) focusNode.requestFocus();
+        });
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        child: Row(children: [
+          Text('> ', style: AppText.mono(size: 11,
+              color: focused ? AppColors.accent : AppColors.subtle)),
+          Text(label.toUpperCase(), style: AppText.label(
+              size: 10,
+              color: focused ? AppColors.accentLight : AppColors.muted)),
+          const Spacer(),
+          if (prefix.isNotEmpty)
+            Text(prefix, style: AppText.mono(size: 14, weight: FontWeight.w600,
+              color: focused ? AppColors.accent : AppColors.muted)),
+          IntrinsicWidth(child: TextField(
+            controller: controller,
+            focusNode: focusNode,
+            onChanged: onChanged,
+            onSubmitted: onSubmitted,
+            textInputAction: TextInputAction.next,
+            textAlign: TextAlign.right,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[\d.]'))],
+            enableInteractiveSelection: false,
+            cursorColor: AppColors.accent,
+            style: AppText.mono(size: 14, weight: FontWeight.w600,
+              color: focused ? AppColors.accentLight : AppColors.text),
+            decoration: InputDecoration(
+              border: InputBorder.none,
+              isDense: true, contentPadding: EdgeInsets.zero,
+              hintText: '0',
+              hintStyle: AppText.mono(size: 14, weight: FontWeight.w300,
+                color: AppColors.muted.withValues(alpha: 0.3)),
+            ),
+          )),
+          if (suffix.isNotEmpty)
+            Text(suffix, style: AppText.mono(size: 14, weight: FontWeight.w600,
+              color: focused ? AppColors.accent : AppColors.muted)),
+        ]),
+      ),
+    );
+  }
+}
+
+// ── Instrument row — horizontal scroll pills (matches mobile) ─────────────────
 class _InstrumentRow extends StatelessWidget {
   final QuantaState state;
   final bool isDark;
@@ -320,13 +404,25 @@ class _InstrumentRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final favs = state.favoriteInstruments;
     if (favs.isEmpty) {
-      return Text('No instruments — add in Markets',
-        style: GoogleFonts.inter(fontSize: 13, color: _sub(isDark)));
+      return Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: AppColors.card,
+          borderRadius: BorderRadius.circular(4),
+          border: Border.all(
+            color: isDark
+                ? Colors.white.withValues(alpha: 0.08)
+                : AppColors.border,
+          ),
+          boxShadow: _shadow(isDark),
+        ),
+        child: Text('Star instruments in Markets to add here',
+          style: AppText.mono(size: 13, color: AppColors.muted)),
+      );
     }
-    return Wrap(
-      spacing: 10,
-      runSpacing: 10,
-      children: favs.take(6).map((inst) {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(children: favs.map((inst) {
         final active = inst.ticker == state.selectedTicker;
         return GestureDetector(
           onTap: () => state.setInstrument(inst.ticker),
@@ -334,86 +430,40 @@ class _InstrumentRow extends StatelessWidget {
             cursor: SystemMouseCursors.click,
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 150),
-              width: 130, height: 68,
-              padding: const EdgeInsets.fromLTRB(12, 10, 10, 10),
+              margin: const EdgeInsets.only(right: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               decoration: BoxDecoration(
-                color: _card(isDark),
-                borderRadius: BorderRadius.circular(18),
+                color: active
+                    ? AppColors.accent.withValues(alpha: isDark ? 0.15 : 0.1)
+                    : AppColors.card,
+                borderRadius: BorderRadius.circular(4),
                 border: Border.all(
                   color: active
-                      ? _gold.withValues(alpha: 0.55)
+                      ? AppColors.accent.withValues(alpha: 0.45)
                       : (isDark
-                          ? Colors.white.withValues(alpha: 0.06)
-                          : Colors.black.withValues(alpha: 0.07)),
+                          ? Colors.white.withValues(alpha: 0.08)
+                          : AppColors.border),
                   width: active ? 1.5 : 1,
                 ),
-                boxShadow: active ? [
-                  BoxShadow(
-                    color: _gold.withValues(alpha: isDark ? 0.18 : 0.10),
-                    blurRadius: 10, offset: const Offset(0, 3),
-                  ),
-                ] : _shadow(isDark),
+                boxShadow: active ? null : _shadow(isDark),
               ),
-              child: Row(children: [
-                // Left: label + ticker
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        inst.name.length > 12
-                            ? inst.name.substring(0, 12)
-                            : inst.name,
-                        style: GoogleFonts.inter(
-                          fontSize: 10, fontWeight: FontWeight.w500,
-                          color: active ? _gold : _sub(isDark),
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      Text(inst.ticker,
-                        style: GoogleFonts.jetBrainsMono(
-                          fontSize: 14, fontWeight: FontWeight.w700,
-                          color: active ? _text(isDark) : _sub(isDark),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                // Right: circular arc ring
-                SizedBox(
-                  width: 36, height: 36,
-                  child: Stack(alignment: Alignment.center, children: [
-                    SizedBox(
-                      width: 36, height: 36,
-                      child: CircularProgressIndicator(
-                        value: active ? 0.72 : 0.25,
-                        strokeWidth: 4.5,
-                        strokeCap: StrokeCap.round,
-                        backgroundColor: active
-                            ? _gold.withValues(alpha: 0.15)
-                            : (isDark
-                                ? Colors.white.withValues(alpha: 0.08)
-                                : Colors.black.withValues(alpha: 0.08)),
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          active ? _gold : _sub(isDark),
-                        ),
-                      ),
-                    ),
-                    Text(
-                      inst.ticker.substring(0, 1),
-                      style: GoogleFonts.inter(
-                        fontSize: 11, fontWeight: FontWeight.w800,
-                        color: active ? _gold : _sub(isDark),
-                      ),
-                    ),
-                  ]),
-                ),
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                Text(inst.ticker, style: AppText.mono(
+                  size: 13, weight: FontWeight.w700,
+                  color: active ? AppColors.accent : AppColors.text,
+                )),
+                const SizedBox(width: 6),
+                Text('\$${inst.pointValue}', style: AppText.label(
+                  size: 9,
+                  color: active
+                      ? AppColors.accent.withValues(alpha: 0.6)
+                      : AppColors.muted,
+                )),
               ]),
             ),
           ),
         );
-      }).toList(),
+      }).toList()),
     );
   }
 }
@@ -444,28 +494,38 @@ class _InputCard extends StatelessWidget {
           });
         }
       },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+      child: AnimatedScale(
+        scale: focused ? 1.005 : 1.0,
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeInOut,
+        child: AnimatedContainer(
+        duration: const Duration(milliseconds: 220),
+        curve: Curves.easeInOut,
+        padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
         decoration: BoxDecoration(
-          color: _card(isDark),
-          borderRadius: BorderRadius.circular(16),
+          color: AppColors.card,
+          borderRadius: BorderRadius.circular(4),
           border: focused
-              ? Border.all(color: _gold.withValues(alpha: 0.5), width: 1.5)
-              : (isDark ? Border.all(color: Colors.white.withValues(alpha: 0.05)) : null),
-          boxShadow: focused ? [] : _shadow(isDark),
+              ? Border.all(color: _blue, width: 1.5)
+              : Border.all(
+                  color: isDark
+                      ? Colors.white.withValues(alpha: 0.08)
+                      : AppColors.border,
+                  width: 1,
+                ),
+          boxShadow: focused ? null : _shadow(isDark),
         ),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(label, style: GoogleFonts.inter(
-            fontSize: 11, fontWeight: FontWeight.w500,
-            color: focused ? _gold : _sub(isDark),
+          Text(label, style: AppText.mono(
+            size: 10, weight: FontWeight.w500,
+            color: focused ? _blue : AppColors.muted,
           )),
-          const SizedBox(height: 6),
+          const SizedBox(height: 4),
           Row(children: [
             if (prefix.isNotEmpty)
-              Text(prefix, style: GoogleFonts.jetBrainsMono(
-                fontSize: 22, fontWeight: FontWeight.w600,
-                color: focused ? _gold : _text(isDark),
+              Text(prefix, style: AppText.mono(
+                size: 14, weight: FontWeight.w600,
+                color: focused ? _blue : AppColors.text,
               )),
             Expanded(
               child: TextField(
@@ -477,30 +537,31 @@ class _InputCard extends StatelessWidget {
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
                 inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[\d.]'))],
                 enableInteractiveSelection: false,
-                cursorColor: _gold,
-                style: GoogleFonts.jetBrainsMono(
-                  fontSize: 22, fontWeight: FontWeight.w600,
-                  color: focused ? _goldLt : _text(isDark),
+                cursorColor: _blue,
+                style: AppText.mono(
+                  size: 14, weight: FontWeight.w600,
+                  color: focused ? AppColors.accentLight : AppColors.text,
                 ),
                 decoration: InputDecoration(
                   border: InputBorder.none,
                   isDense: true, contentPadding: EdgeInsets.zero,
                   hintText: '0',
-                  hintStyle: GoogleFonts.jetBrainsMono(
-                    fontSize: 22, fontWeight: FontWeight.w300,
-                    color: _line(isDark),
+                  hintStyle: AppText.mono(
+                    size: 14, weight: FontWeight.w300,
+                    color: AppColors.border,
                   ),
                 ),
               ),
             ),
             if (suffix.isNotEmpty)
-              Text(suffix, style: GoogleFonts.jetBrainsMono(
-                fontSize: 22, fontWeight: FontWeight.w600,
-                color: focused ? _gold : _text(isDark),
+              Text(suffix, style: AppText.mono(
+                size: 14, weight: FontWeight.w600,
+                color: focused ? _blue : AppColors.text,
               )),
           ]),
         ]),
-      ),
+        ),   // AnimatedContainer
+      ),     // AnimatedScale
     );
   }
 }
@@ -525,28 +586,31 @@ class _StopLossCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final deltas = [-steps[1], -steps[0], steps[0], steps[1]];
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 180),
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+    return AnimatedScale(
+      scale: focused ? 1.005 : 1.0,
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeInOut,
+      child: AnimatedContainer(
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeInOut,
+      padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
       decoration: BoxDecoration(
-        color: _card(isDark),
-        borderRadius: BorderRadius.circular(16),
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(4),
         border: focused
-            ? Border.all(color: _gold.withValues(alpha: 0.5), width: 1.5)
-            : (isDark ? Border.all(color: Colors.white.withValues(alpha: 0.05)) : null),
-        boxShadow: focused ? [] : _shadow(isDark),
+            ? Border.all(color: AppColors.accent.withValues(alpha: 0.7), width: 1)
+            : Border.all(color: AppColors.border, width: 1),
+        boxShadow: focused ? null : _shadow(isDark),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
-          Text('Stop loss', style: GoogleFonts.inter(
-            fontSize: 11, fontWeight: FontWeight.w500,
-            color: focused ? _gold : _sub(isDark),
-          )),
+          Text('> ', style: AppText.mono(size: 12,
+              color: focused ? AppColors.accent : AppColors.muted)),
+          Text('$ticker  ', style: AppText.mono(size: 12,
+              color: focused ? AppColors.accentLight : AppColors.subtle)),
           const Spacer(),
-          Text('$ticker · pts', style: GoogleFonts.inter(
-            fontSize: 11, fontWeight: FontWeight.w400,
-            color: focused ? _gold.withValues(alpha: 0.6) : _sub(isDark),
-          )),
+          Text('PTS', style: AppText.label(
+              color: focused ? AppColors.accent : AppColors.muted)),
         ]),
         TextField(
           controller: controller,
@@ -557,22 +621,22 @@ class _StopLossCard extends StatelessWidget {
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
           inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[\d.,]'))],
           enableInteractiveSelection: false,
-          cursorColor: _gold, cursorWidth: 2.5,
-          style: GoogleFonts.jetBrainsMono(
-            fontSize: 46, fontWeight: FontWeight.w700,
-            color: focused ? _gold : _text(isDark), height: 1.1,
+          cursorColor: AppColors.accent, cursorWidth: 2,
+          style: AppText.mono(
+            size: 22, weight: FontWeight.w700,
+            color: focused ? AppColors.accent : AppColors.text,
           ),
           decoration: InputDecoration(
             border: InputBorder.none,
-            hintText: '—',
-            hintStyle: GoogleFonts.jetBrainsMono(
-              fontSize: 46, fontWeight: FontWeight.w200,
-              color: _line(isDark), height: 1.1,
+            hintText: '0.0',
+            hintStyle: AppText.mono(
+              size: 22, weight: FontWeight.w300,
+              color: AppColors.muted.withValues(alpha: 0.3),
             ),
             isDense: true, contentPadding: EdgeInsets.zero,
           ),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 8),
         Row(children: [
           for (int i = 0; i < deltas.length; i++) ...[
             Expanded(child: _StepBtn(
@@ -585,7 +649,8 @@ class _StopLossCard extends StatelessWidget {
             if (i < deltas.length - 1) const SizedBox(width: 6),
           ],
         ]),
-      ]),
+      ]),      // AnimatedContainer
+    ),         // AnimatedScale
     );
   }
 }
@@ -608,26 +673,129 @@ class _StepBtnState extends State<_StepBtn> {
       onExit:  (_) => setState(() => _hovered = false),
       child: GestureDetector(
         onTap: widget.onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 100),
-          padding: const EdgeInsets.symmetric(vertical: 8),
+        child: AnimatedScale(
+          scale: _hovered ? 1.03 : 1.0,
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeInOut,
+          child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeInOut,
+          padding: const EdgeInsets.symmetric(vertical: 6),
           decoration: BoxDecoration(
-            color: _hovered ? _gold.withValues(alpha: 0.1) : _bg(widget.isDark),
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(
-              color: _hovered ? _gold.withValues(alpha: 0.4) : _line(widget.isDark),
-            ),
+            color: _hovered
+                ? (widget.isDark
+                    ? Colors.white.withValues(alpha: 0.08)
+                    : const Color(0xFFE5E5EA))
+                : _bg(widget.isDark),
+            borderRadius: BorderRadius.circular(4),
+            border: Border.all(color: AppColors.border),
           ),
           child: Text(widget.label,
             textAlign: TextAlign.center,
-            style: GoogleFonts.inter(
-              fontSize: 11, fontWeight: FontWeight.w500,
-              color: _hovered ? _gold : _sub(widget.isDark),
-            ),
+            style: AppText.mono(size: 12, weight: FontWeight.w600,
+              color: _hovered ? AppColors.text : AppColors.muted),
           ),
-        ),
+        ),  // AnimatedContainer
+        ),  // AnimatedScale
       ),
     );
+  }
+}
+
+// ── Result panel — matches mobile layout exactly ──────────────────────────────
+class _ResultPanel extends StatelessWidget {
+  final QuantaState state;
+  final bool isDark;
+  const _ResultPanel({required this.state, required this.isDark});
+
+  @override
+  Widget build(BuildContext context) {
+    final hasData  = state.stopLossPoints > 0;
+    final noCont   = hasData && state.effectiveContracts == 0;
+    final isOver   = hasData && state.isOverRisk;
+    final riskPct  = state.accountBalance > 0
+        ? state.actualRisk / state.accountBalance * 100
+        : 0.0;
+
+    return Column(children: [
+
+      // Contracts +/- row (bare, no card wrapper)
+      Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+        _ContractBtn('−',
+          enabled: hasData && state.effectiveContracts > 0,
+          onTap: () => state.setSessionContracts(state.effectiveContracts - 1),
+        ),
+        const SizedBox(width: 20),
+        GestureDetector(
+          onDoubleTap: state.hasSessionContracts
+              ? () => state.resetSessionContracts()
+              : null,
+          child: ContractsOdometer(
+            contracts: hasData ? state.effectiveContracts : 0,
+            hasData: hasData,
+            digitSize: 56,
+          ),
+        ),
+        const SizedBox(width: 20),
+        _ContractBtn('+',
+          enabled: hasData,
+          onTap: () => state.setSessionContracts(state.effectiveContracts + 1),
+        ),
+      ]),
+
+      // Zero-contracts warning
+      if (noCont) ...[
+        const SizedBox(height: 10),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            color: _red.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(4),
+            border: Border.all(color: _red.withValues(alpha: 0.3)),
+          ),
+          child: Row(children: [
+            Icon(Icons.warning_amber_rounded, size: 14, color: _red),
+            const SizedBox(width: 8),
+            Expanded(child: Text('Stop too large — reduce SL or increase risk',
+              style: AppText.mono(
+                size: 11, weight: FontWeight.w500, color: _red,
+              ))),
+          ]),
+        ),
+      ],
+
+      const SizedBox(height: 10),
+
+      // Readout card
+      Container(
+        width: double.infinity,
+        padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
+        decoration: BoxDecoration(
+          color: AppColors.card,
+          borderRadius: BorderRadius.circular(4),
+          border: Border.all(color: AppColors.border, width: 1),
+          boxShadow: _shadow(isDark),
+        ),
+        child: Column(children: [
+          _BRow('MAX RISK', AppFormat.dollar(state.effectiveRisk),
+              AppColors.muted, isDark),
+          const SizedBox(height: 8),
+          _BRow('ACTUAL', AppFormat.dollar(state.actualRisk),
+              hasData && !noCont ? (isOver ? _red : _green) : AppColors.muted,
+              isDark),
+          if (isOver) ...[
+            const SizedBox(height: 8),
+            _BRow('OVER', '+${AppFormat.dollar(state.overRisk)}', _red, isDark),
+          ],
+          if (hasData && !noCont) ...[
+            const SizedBox(height: 8),
+            Container(height: 1, color: AppColors.border),
+            const SizedBox(height: 8),
+            _BRow('RISK %', AppFormat.pct(riskPct), AppColors.muted, isDark),
+          ],
+        ]),
+      ),
+    ]);
   }
 }
 
@@ -645,60 +813,50 @@ class _ContractsHero extends StatelessWidget {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        color: _card(isDark),
-        borderRadius: BorderRadius.circular(20),
-        border: isDark ? Border.all(color: Colors.white.withValues(alpha: 0.05)) : null,
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(4),
+        border: isDark ? Border.all(color: Colors.white.withValues(alpha: 0.07), width: 0.5) : null,
         boxShadow: _shadow(isDark),
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(4),
         child: Stack(children: [
-          // Radial gold glow — top-right corner, matches reference orange glow
+          // Subtle blue radial glow — top-right corner
           Positioned(
             top: -50, right: -50,
             child: Container(
-              width: 200, height: 200,
+              width: 180, height: 180,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: RadialGradient(colors: [
-                  _gold.withValues(alpha: hasData && !noCont
-                      ? (isDark ? 0.22 : 0.15)
-                      : 0.04),
-                  _gold.withValues(alpha: 0),
+                  AppColors.accent.withValues(alpha: hasData && !noCont
+                      ? (isDark ? 0.12 : 0.08)
+                      : 0.02),
+                  AppColors.accent.withValues(alpha: 0),
                 ]),
               ),
             ),
           ),
 
           Padding(
-            padding: const EdgeInsets.all(22),
+            padding: const EdgeInsets.all(18),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
 
               // "AI Chatbot" style pill — our "Contracts" badge
               Center(
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFFD4AF37), Color(0xFF9E7C1A)],
-                    ),
-                    borderRadius: BorderRadius.circular(100),
-                    boxShadow: [
-                      BoxShadow(
-                        color: _gold.withValues(alpha: 0.4),
-                        blurRadius: 16, offset: const Offset(0, 4),
-                      ),
-                    ],
+                    color: AppColors.accent.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(4),
+                    border: Border.all(color: AppColors.accent.withValues(alpha: 0.25)),
                   ),
                   child: Row(mainAxisSize: MainAxisSize.min, children: [
-                    const Text('#', style: TextStyle(
-                      fontSize: 14, fontWeight: FontWeight.w800,
-                      color: Colors.black,
-                    )),
+                    Icon(Icons.calculate_outlined, size: 14, color: _blue),
                     const SizedBox(width: 6),
-                    Text('Contracts', style: GoogleFonts.inter(
-                      fontSize: 13, fontWeight: FontWeight.w700,
-                      color: Colors.black,
+                    Text('Contracts', style: AppText.mono(
+                      size: 13, weight: FontWeight.w600,
+                      color: _blue,
                     )),
                     if (state.hasSessionContracts) ...[
                       const SizedBox(width: 6),
@@ -706,21 +864,21 @@ class _ContractsHero extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.2),
+                          color: AppColors.accent.withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(6),
                         ),
-                        child: Text('MANUAL', style: GoogleFonts.inter(
-                          fontSize: 9, fontWeight: FontWeight.w700,
-                          color: Colors.black,
+                        child: Text('manual', style: AppText.mono(
+                          size: 9, weight: FontWeight.w600,
+                          color: _blue,
                         )),
                       ),
                     ],
                   ]),
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 14),
 
-              // Number + controls — matches reference's big result display
+              // Number + controls
               Row(mainAxisAlignment: MainAxisAlignment.center, children: [
                 _ContractBtn('−',
                   enabled: hasData && state.effectiveContracts > 0,
@@ -734,6 +892,7 @@ class _ContractsHero extends StatelessWidget {
                   child: ContractsOdometer(
                     contracts: hasData ? state.effectiveContracts : 0,
                     hasData: hasData,
+                    digitSize: 56,
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -750,13 +909,13 @@ class _ContractsHero extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                   decoration: BoxDecoration(
                     color: _red.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(4),
                     border: Border.all(color: _red.withValues(alpha: 0.3)),
                   ),
                   child: Text('Stop too large — reduce SL or increase risk',
                     textAlign: TextAlign.center,
-                    style: GoogleFonts.inter(
-                      fontSize: 11, fontWeight: FontWeight.w500, color: _red,
+                    style: AppText.mono(
+                      size: 11, weight: FontWeight.w500, color: _red,
                     ),
                   ),
                 ),
@@ -795,13 +954,13 @@ class _ContractBtnState extends State<_ContractBtn> {
       onLongPressEnd: (_) => _stop(),
       onLongPressCancel: _stop,
       child: SizedBox(
-        width: 48, height: 48,
+        width: 40, height: 40,
         child: Center(
-          child: Text(widget.label, style: GoogleFonts.jetBrainsMono(
-            fontSize: 26, fontWeight: FontWeight.w300,
+          child: Text(widget.label, style: AppText.mono(
+            size: 22, weight: FontWeight.w300,
             color: widget.enabled
-                ? _gold.withValues(alpha: 0.7)
-                : _line(AppColors.isDark),
+                ? AppColors.muted
+                : AppColors.subtle.withValues(alpha: 0.3),
           )),
         ),
       ),
@@ -826,21 +985,21 @@ class _RiskBreakdown extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: _card(isDark),
-        borderRadius: BorderRadius.circular(18),
-        border: isDark ? Border.all(color: Colors.white.withValues(alpha: 0.05)) : null,
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(4),
+        border: isDark ? Border.all(color: Colors.white.withValues(alpha: 0.07), width: 0.5) : null,
         boxShadow: _shadow(isDark),
       ),
       child: Column(children: [
         _BRow('Max risk',  AppFormat.dollar(state.effectiveRisk),
-            _sub(isDark), isDark),
+            AppColors.muted, isDark),
         const SizedBox(height: 10),
         _BRow(
           'Actual',
           AppFormat.dollar(state.actualRisk),
-          hasData && !noCont ? (isOver ? _red : _green) : _sub(isDark),
+          hasData && !noCont ? (isOver ? _red : _green) : AppColors.muted,
           isDark,
         ),
         if (isOver) ...[
@@ -849,21 +1008,21 @@ class _RiskBreakdown extends StatelessWidget {
         ],
         if (hasData && !noCont) ...[
           const SizedBox(height: 14),
-          Divider(color: _line(isDark), height: 1),
+          Divider(color: AppColors.border, height: 1),
           const SizedBox(height: 14),
           // Two mini stat cards like reference's "Running 120kcal / Push up 200kcal"
           Row(children: [
             Expanded(child: _MiniStat(
               label: 'Risk %',
               value: AppFormat.pct(riskPct),
-              color: _text(isDark),
+              color: AppColors.text,
               isDark: isDark,
             )),
             const SizedBox(width: 10),
             Expanded(child: _MiniStat(
               label: 'Stop loss',
               value: '${AppFormat.stopLoss(state.stopLossPoints)} pts',
-              color: _text(isDark),
+              color: AppColors.text,
               isDark: isDark,
             )),
           ]),
@@ -882,13 +1041,19 @@ class _BRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(children: [
-      Text(label, style: GoogleFonts.inter(
-        fontSize: 13, fontWeight: FontWeight.w500, color: _sub(isDark),
-      )),
-      const Spacer(),
-      Text(value, style: GoogleFonts.jetBrainsMono(
-        fontSize: 14, fontWeight: FontWeight.w700, color: color,
-      )),
+      Text(label, style: AppText.label(size: 10)),
+      const SizedBox(width: 4),
+      const DotLeader(),
+      const SizedBox(width: 4),
+      AnimatedSwitcher(
+        duration: const Duration(milliseconds: 150),
+        child: Text(value,
+          key: ValueKey(value),
+          style: AppText.mono(
+            size: 13, weight: FontWeight.w700, color: color,
+          ),
+        ),
+      ),
     ]);
   }
 }
@@ -904,23 +1069,23 @@ class _MiniStat extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
         color: isDark
             ? Colors.white.withValues(alpha: 0.04)
             : const Color(0xFFF8F8F8),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(4),
         border: isDark
             ? Border.all(color: Colors.white.withValues(alpha: 0.06))
             : null,
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(label, style: GoogleFonts.inter(
-          fontSize: 11, color: _sub(isDark), fontWeight: FontWeight.w500,
+        Text(label, style: AppText.mono(
+          size: 11, color: AppColors.muted, weight: FontWeight.w500,
         )),
         const SizedBox(height: 4),
-        Text(value, style: GoogleFonts.jetBrainsMono(
-          fontSize: 14, fontWeight: FontWeight.w700, color: color,
+        Text(value, style: AppText.mono(
+          size: 14, weight: FontWeight.w700, color: color,
         )),
       ]),
     );
