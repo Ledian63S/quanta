@@ -10,7 +10,7 @@ import 'instruments_screen.dart';
 import 'settings_screen.dart';
 
 // ── Palette ───────────────────────────────────────────────────────────────────
-Color _cardBg(bool d) => d ? const Color(0xFF141414) : const Color(0xFFF2F2F2);
+Color _cardBg(bool d) => d ? const Color(0xFF141414) : const Color(0xFFF0F0F0);
 
 BoxDecoration _pageDeco(bool d) => BoxDecoration(
   gradient: RadialGradient(
@@ -21,6 +21,16 @@ BoxDecoration _pageDeco(bool d) => BoxDecoration(
         : [const Color(0xFFD8D8D8), const Color(0xFFB4B4B4)],
   ),
 );
+
+const Color _gold  = Color(0xFFD4AF37);
+const Color _goldD = Color(0xFF9E7C1A);
+
+// ── Nav item model ────────────────────────────────────────────────────────────
+class _NavItem {
+  final String label;
+  final IconData icon;
+  const _NavItem(this.label, this.icon);
+}
 
 // ── Shell ─────────────────────────────────────────────────────────────────────
 class WebShell extends StatefulWidget {
@@ -34,18 +44,18 @@ class _WebShellState extends State<WebShell> {
   void _setTab(int i) => setState(() => _tab = i);
 
   static const _items = [
-    _NavItem('Calc',     '#'),
-    _NavItem('Levels',   '≡'),
-    _NavItem('Markets',  '◈'),
-    _NavItem('Settings', '⚙'),
+    _NavItem('Calc',     Icons.calculate_outlined),
+    _NavItem('Levels',   Icons.bar_chart_outlined),
+    _NavItem('Markets',  Icons.candlestick_chart_outlined),
+    _NavItem('Settings', Icons.settings_outlined),
   ];
 
   Widget _screen() {
     switch (_tab) {
-      case 0: return const WebCalcScreen();
-      case 1: return LevelsScreen(onNavigateToCalc: () => _setTab(0));
-      case 2: return const InstrumentsScreen();
-      case 3: return const SettingsScreen();
+      case 0:  return const WebCalcScreen();
+      case 1:  return LevelsScreen(onNavigateToCalc: () => _setTab(0));
+      case 2:  return const InstrumentsScreen();
+      case 3:  return const SettingsScreen();
       default: return const WebCalcScreen();
     }
   }
@@ -80,35 +90,44 @@ class _WebShellState extends State<WebShell> {
               child: Center(
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 1280),
-                  child: SizedBox(
-                    width: double.infinity, height: double.infinity,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: _cardBg(d),
-                        borderRadius: BorderRadius.circular(28),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: d ? 0.6 : 0.14),
-                            blurRadius: 50, offset: const Offset(0, 14),
-                          ),
-                        ],
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: _cardBg(d),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: d
+                            ? Colors.white.withValues(alpha: 0.07)
+                            : Colors.black.withValues(alpha: 0.10),
                       ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(28),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            // Sidebar — floating pill with own border radius
-                            _Sidebar(
-                              items: _items,
-                              currentIndex: _tab,
-                              isDark: d,
-                              state: state,
-                              onTap: _setTab,
-                            ),
-                            Expanded(child: _screen()),
-                          ],
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: d ? 0.55 : 0.18),
+                          blurRadius: 60, offset: const Offset(0, 20),
                         ),
+                      ],
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(13),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          _Sidebar(
+                            items: _items,
+                            currentIndex: _tab,
+                            isDark: d,
+                            state: state,
+                            onTap: _setTab,
+                          ),
+                          // Hairline separator
+                          VerticalDivider(
+                            width: 1,
+                            thickness: 1,
+                            color: d
+                                ? Colors.white.withValues(alpha: 0.06)
+                                : Colors.black.withValues(alpha: 0.08),
+                          ),
+                          Expanded(child: _screen()),
+                        ],
                       ),
                     ),
                   ),
@@ -120,12 +139,6 @@ class _WebShellState extends State<WebShell> {
       ),
     );
   }
-}
-
-// ── Nav item model ────────────────────────────────────────────────────────────
-class _NavItem {
-  final String label, icon;
-  const _NavItem(this.label, this.icon);
 }
 
 // ── Sidebar ───────────────────────────────────────────────────────────────────
@@ -151,104 +164,119 @@ class _SidebarState extends State<_Sidebar> {
   Widget build(BuildContext context) {
     final d = widget.isDark;
 
-    // Wrap in padding so sidebar floats inside the outer card
-    // The AnimatedContainer has its OWN border radius (all 4 corners)
-    return Padding(
-      padding: const EdgeInsets.all(10),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 240),
-        curve: Curves.easeInOut,
-        width: _expanded ? 172 : 62,
-        clipBehavior: Clip.hardEdge,
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: d
-                ? [const Color(0xFF2D2D2D), const Color(0xFF1F1F1F)]
-                : [const Color(0xFF464646), const Color(0xFF383838)],
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeInOut,
+      width: _expanded ? 220 : 64,
+      decoration: BoxDecoration(
+        color: d ? const Color(0xFF161616) : const Color(0xFF1C1C1E),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+
+          // ── Traffic lights ──────────────────────────────────────────────
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+            child: _expanded
+                ? Row(children: [
+                    _Dot(const Color(0xFFFF5F57)),
+                    const SizedBox(width: 7),
+                    _Dot(const Color(0xFFFFBD2E)),
+                    const SizedBox(width: 7),
+                    _Dot(const Color(0xFF28C840)),
+                  ])
+                : Center(
+                    child: Column(mainAxisSize: MainAxisSize.min, children: [
+                      _Dot(const Color(0xFFFF5F57)),
+                      const SizedBox(height: 5),
+                      _Dot(const Color(0xFFFFBD2E)),
+                      const SizedBox(height: 5),
+                      _Dot(const Color(0xFF28C840)),
+                    ]),
+                  ),
           ),
-          borderRadius: BorderRadius.circular(22),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 22),
 
-            // Logo
+          const SizedBox(height: 20),
+
+          // ── Logo ─────────────────────────────────────────────────────────
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: _expanded ? 14 : 0),
+            child: _expanded
+                ? Row(children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.asset('assets/icon_rounded.png',
+                          width: 32, height: 32),
+                    ),
+                    const SizedBox(width: 10),
+                    Text('Quanta', style: GoogleFonts.inter(
+                      fontSize: 15, fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    )),
+                  ])
+                : Center(
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.asset('assets/icon_rounded.png',
+                          width: 32, height: 32),
+                    ),
+                  ),
+          ),
+
+          const SizedBox(height: 24),
+
+          // ── Section label ─────────────────────────────────────────────────
+          if (_expanded)
             Padding(
-              padding: EdgeInsets.symmetric(horizontal: _expanded ? 16 : 0),
-              child: _expanded
-                  ? Row(children: [
-                      _GoldCircle(),
-                      const SizedBox(width: 10),
-                      Text('Quanta', style: GoogleFonts.inter(
-                        fontSize: 14, fontWeight: FontWeight.w700,
-                        color: const Color(0xFFD4AF37),
-                      )),
-                    ])
-                  : Center(child: _GoldCircle()),
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 6),
+              child: Text('MENU', style: GoogleFonts.inter(
+                fontSize: 10, fontWeight: FontWeight.w600,
+                color: Colors.white.withValues(alpha: 0.25),
+                letterSpacing: 0.8,
+              )),
             ),
 
-            const SizedBox(height: 24),
-
-            // Nav items
-            for (int i = 0; i < widget.items.length; i++)
-              _NavRow(
-                item: widget.items[i],
-                active: widget.currentIndex == i,
-                expanded: _expanded,
-                onTap: () => widget.onTap(i),
-              ),
-
-            const Spacer(),
-
-            // Bottom card — matches Image #2 exactly
-            _BottomCard(
-              isDark: d,
+          // ── Nav items ─────────────────────────────────────────────────────
+          for (int i = 0; i < widget.items.length; i++)
+            _NavRow(
+              item: widget.items[i],
+              active: widget.currentIndex == i,
               expanded: _expanded,
-              state: widget.state,
-              onToggle: () => setState(() => _expanded = !_expanded),
+              onTap: () => widget.onTap(i),
             ),
 
-            const SizedBox(height: 10),
-          ],
-        ),
+          const Spacer(),
+
+          // ── Bottom area ───────────────────────────────────────────────────
+          _BottomArea(
+            isDark: d,
+            expanded: _expanded,
+            state: widget.state,
+            onToggle: () => setState(() => _expanded = !_expanded),
+          ),
+
+          const SizedBox(height: 14),
+        ],
       ),
     );
   }
 }
 
-// ── Gold circle logo ──────────────────────────────────────────────────────────
-class _GoldCircle extends StatelessWidget {
+// ── Traffic light dot ─────────────────────────────────────────────────────────
+class _Dot extends StatelessWidget {
+  final Color color;
+  const _Dot(this.color);
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 38, height: 38,
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFFD4AF37), Color(0xFF9E7C1A)],
-        ),
-        shape: BoxShape.circle,
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFFD4AF37).withValues(alpha: 0.45),
-            blurRadius: 14, offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Center(
-        child: Text('Q', style: GoogleFonts.inter(
-          fontSize: 16, fontWeight: FontWeight.w800, color: Colors.black,
-        )),
-      ),
+      width: 11, height: 11,
+      decoration: BoxDecoration(color: color, shape: BoxShape.circle),
     );
   }
 }
 
-// ── Nav row ───────────────────────────────────────────────────────────────────
+// ── Nav row — macOS sidebar style ─────────────────────────────────────────────
 class _NavRow extends StatefulWidget {
   final _NavItem item;
   final bool active, expanded;
@@ -272,9 +300,9 @@ class _NavRowState extends State<_NavRow> {
     return Tooltip(
       message: !expanded ? widget.item.label : '',
       preferBelow: false,
-      waitDuration: const Duration(milliseconds: 600),
+      waitDuration: const Duration(milliseconds: 500),
       textStyle: GoogleFonts.inter(
-        fontSize: 11, fontWeight: FontWeight.w600, color: Colors.black,
+        fontSize: 11, fontWeight: FontWeight.w500, color: Colors.black,
       ),
       child: MouseRegion(
         cursor: SystemMouseCursors.click,
@@ -282,55 +310,45 @@ class _NavRowState extends State<_NavRow> {
         onExit:  (_) => setState(() => _hovered = false),
         child: GestureDetector(
           onTap: widget.onTap,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 150),
-            height: 52,
-            margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-            padding: EdgeInsets.symmetric(horizontal: expanded ? 8 : 0),
-            decoration: BoxDecoration(
-              // Row gets a very subtle tint on hover
-              color: _hovered && !active
-                  ? Colors.white.withValues(alpha: 0.04)
-                  : Colors.transparent,
-              borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: EdgeInsets.symmetric(
+              horizontal: expanded ? 10 : 8,
+              vertical: 2,
             ),
-            child: Row(
-              mainAxisAlignment: expanded
-                  ? MainAxisAlignment.start
-                  : MainAxisAlignment.center,
-              children: [
-                // Circle — gold gradient (active) or visible gray fill (inactive)
-                // This matches Image #2 exactly
-                Container(
-                  width: 40, height: 40,
-                  decoration: BoxDecoration(
-                    gradient: active
-                        ? const LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: [Color(0xFFD4AF37), Color(0xFF9E7C1A)],
-                          )
-                        : null,
-                    // Inactive: clearly visible gray circle (like Image #2)
-                    color: active ? null : const Color(0xFF595959),
-                    shape: BoxShape.circle,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 120),
+              height: 36,
+              padding: EdgeInsets.symmetric(horizontal: expanded ? 10 : 0),
+              decoration: BoxDecoration(
+                color: active
+                    ? _gold.withValues(alpha: 0.14)
+                    : (_hovered
+                        ? Colors.white.withValues(alpha: 0.05)
+                        : Colors.transparent),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                mainAxisAlignment: expanded
+                    ? MainAxisAlignment.start
+                    : MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    widget.item.icon,
+                    size: 17,
+                    color: active ? _gold : Colors.white.withValues(alpha: 0.4),
                   ),
-                  child: Center(
-                    child: Text(widget.item.icon, style: TextStyle(
-                      fontSize: 16,
-                      color: active ? Colors.black : const Color(0xFFBBBBBB),
+                  if (expanded) ...[
+                    const SizedBox(width: 10),
+                    Text(widget.item.label, style: GoogleFonts.inter(
+                      fontSize: 13,
+                      fontWeight: active ? FontWeight.w600 : FontWeight.w400,
+                      color: active
+                          ? Colors.white
+                          : Colors.white.withValues(alpha: 0.5),
                     )),
-                  ),
-                ),
-                if (expanded) ...[
-                  const SizedBox(width: 12),
-                  Text(widget.item.label, style: GoogleFonts.inter(
-                    fontSize: 14,
-                    fontWeight: active ? FontWeight.w600 : FontWeight.w400,
-                    color: active ? Colors.white : const Color(0xFF888888),
-                  )),
+                  ],
                 ],
-              ],
+              ),
             ),
           ),
         ),
@@ -339,20 +357,20 @@ class _NavRowState extends State<_NavRow> {
   }
 }
 
-// ── Bottom card — matches Image #2 bottom widget ──────────────────────────────
-class _BottomCard extends StatefulWidget {
+// ── Bottom area ───────────────────────────────────────────────────────────────
+class _BottomArea extends StatefulWidget {
   final bool isDark, expanded;
   final QuantaState state;
   final VoidCallback onToggle;
-  const _BottomCard({
+  const _BottomArea({
     required this.isDark, required this.expanded,
     required this.state, required this.onToggle,
   });
   @override
-  State<_BottomCard> createState() => _BottomCardState();
+  State<_BottomArea> createState() => _BottomAreaState();
 }
-class _BottomCardState extends State<_BottomCard> {
-  bool _btnHovered = false;
+class _BottomAreaState extends State<_BottomArea> {
+  bool _themeHovered = false;
 
   @override
   Widget build(BuildContext context) {
@@ -360,129 +378,92 @@ class _BottomCardState extends State<_BottomCard> {
     final exp = widget.expanded;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 10),
-      child: Container(
-        clipBehavior: Clip.hardEdge,
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: d
-                ? [const Color(0xFF1E1E1E), const Color(0xFF161616)]
-                : [const Color(0xFF2E2E2E), const Color(0xFF242424)],
-          ),
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Stack(children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (exp) ...[
-                  Text('Quanta', style: GoogleFonts.inter(
-                    fontSize: 14, fontWeight: FontWeight.w700, color: Colors.white,
-                  )),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Fast position sizing\nfor futures traders.',
-                    style: GoogleFonts.inter(
-                      fontSize: 10, color: const Color(0xFF777777), height: 1.4,
-                    ),
+      padding: EdgeInsets.symmetric(horizontal: exp ? 10 : 8),
+      child: Column(mainAxisSize: MainAxisSize.min, children: [
+
+        // Hairline separator
+        Divider(height: 1, thickness: 1,
+            color: Colors.white.withValues(alpha: 0.07)),
+        const SizedBox(height: 12),
+
+        // Theme toggle row
+        MouseRegion(
+          cursor: SystemMouseCursors.click,
+          onEnter: (_) => setState(() => _themeHovered = true),
+          onExit:  (_) => setState(() => _themeHovered = false),
+          child: GestureDetector(
+            onTap: () => widget.state.setThemeMode(
+                d ? ThemeMode.light : ThemeMode.dark),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 120),
+              height: 36,
+              padding: EdgeInsets.symmetric(horizontal: exp ? 10 : 0),
+              decoration: BoxDecoration(
+                color: _themeHovered
+                    ? Colors.white.withValues(alpha: 0.05)
+                    : Colors.transparent,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                mainAxisAlignment: exp
+                    ? MainAxisAlignment.start
+                    : MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    d ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
+                    size: 17,
+                    color: Colors.white.withValues(alpha: 0.4),
                   ),
-                  const SizedBox(height: 12),
+                  if (exp) ...[
+                    const SizedBox(width: 10),
+                    Text(d ? 'Light mode' : 'Dark mode',
+                      style: GoogleFonts.inter(
+                        fontSize: 13, fontWeight: FontWeight.w400,
+                        color: Colors.white.withValues(alpha: 0.5),
+                      )),
+                  ],
                 ],
-
-                // White "Get Started" style button — matches Image #2 exactly
-                MouseRegion(
-                  cursor: SystemMouseCursors.click,
-                  onEnter: (_) => setState(() => _btnHovered = true),
-                  onExit:  (_) => setState(() => _btnHovered = false),
-                  child: GestureDetector(
-                    onTap: () => widget.state.setThemeMode(
-                        d ? ThemeMode.light : ThemeMode.dark),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 150),
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(vertical: 9),
-                      decoration: BoxDecoration(
-                        color: _btnHovered
-                            ? const Color(0xFFE8E8E8)
-                            : Colors.white,
-                        borderRadius: BorderRadius.circular(100),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(d ? '◑' : '☀',
-                              style: const TextStyle(
-                                  fontSize: 13, color: Colors.black)),
-                          if (exp) ...[
-                            const SizedBox(width: 6),
-                            Text(d ? 'Light mode' : 'Dark mode',
-                              style: GoogleFonts.inter(
-                                fontSize: 12, fontWeight: FontWeight.w600,
-                                color: Colors.black,
-                              )),
-                          ],
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 8),
-
-                // Collapse/expand arrow
-                Center(
-                  child: GestureDetector(
-                    onTap: widget.onToggle,
-                    child: MouseRegion(
-                      cursor: SystemMouseCursors.click,
-                      child: AnimatedRotation(
-                        turns: exp ? 0.5 : 0.0,
-                        duration: const Duration(milliseconds: 240),
-                        child: const Icon(Icons.chevron_right,
-                            color: Color(0xFF555555), size: 18),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
+        ),
 
-          // Partially-cut-off gold circle icon in bottom-right — matches Image #2
-          if (exp)
-            Positioned(
-              bottom: -18, right: -18,
-              child: Container(
-                width: 68, height: 68,
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [Color(0xFFD4AF37), Color(0xFF9E7C1A)],
-                  ),
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFFD4AF37).withValues(alpha: 0.3),
-                      blurRadius: 12,
+        const SizedBox(height: 4),
+
+        // Collapse / expand toggle
+        GestureDetector(
+          onTap: widget.onToggle,
+          child: MouseRegion(
+            cursor: SystemMouseCursors.click,
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: exp ? 10 : 0),
+              child: SizedBox(
+                height: 32,
+                child: Row(
+                  mainAxisAlignment: exp
+                      ? MainAxisAlignment.start
+                      : MainAxisAlignment.center,
+                  children: [
+                    AnimatedRotation(
+                      turns: exp ? 0.5 : 0.0,
+                      duration: const Duration(milliseconds: 220),
+                      child: Icon(Icons.chevron_right,
+                          color: Colors.white.withValues(alpha: 0.2), size: 18),
                     ),
+                    if (exp) ...[
+                      const SizedBox(width: 8),
+                      Text('Collapse', style: GoogleFonts.inter(
+                        fontSize: 12, fontWeight: FontWeight.w400,
+                        color: Colors.white.withValues(alpha: 0.2),
+                      )),
+                    ],
                   ],
-                ),
-                child: const Center(
-                  child: Text('#', style: TextStyle(
-                    fontSize: 22, fontWeight: FontWeight.w800,
-                    color: Colors.black,
-                  )),
                 ),
               ),
             ),
-        ]),
-      ),
+          ),
+        ),
+      ]),
     );
   }
 }
@@ -495,7 +476,13 @@ class _MobileNav extends StatelessWidget {
   const _MobileNav({
     required this.currentIndex, required this.onTap, required this.isDark,
   });
-  static const _labels = ['Calc', 'Levels', 'Markets', 'Settings'];
+  static const _labels  = ['Calc', 'Levels', 'Markets', 'Settings'];
+  static const _icons   = [
+    Icons.calculate_outlined,
+    Icons.bar_chart_outlined,
+    Icons.candlestick_chart_outlined,
+    Icons.settings_outlined,
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -504,11 +491,15 @@ class _MobileNav extends StatelessWidget {
         filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
         child: Container(
           decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [Color(0xFF464646), Color(0xFF383838)],
-            ),
+            color: isDark
+                ? Colors.black.withValues(alpha: 0.7)
+                : Colors.white.withValues(alpha: 0.8),
             border: Border(
-              top: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
+              top: BorderSide(
+                color: isDark
+                    ? Colors.white.withValues(alpha: 0.08)
+                    : Colors.black.withValues(alpha: 0.08),
+              ),
             ),
           ),
           child: Row(
@@ -519,26 +510,27 @@ class _MobileNav extends StatelessWidget {
                   onTap: () => onTap(i),
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 150),
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    decoration: BoxDecoration(
-                      border: Border(
-                        top: BorderSide(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    child: Column(mainAxisSize: MainAxisSize.min, children: [
+                      Icon(_icons[i], size: 20,
+                        color: active
+                            ? _gold
+                            : (isDark
+                                ? Colors.white.withValues(alpha: 0.35)
+                                : Colors.black.withValues(alpha: 0.35)),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(_labels[i],
+                        style: GoogleFonts.inter(
+                          fontSize: 10, fontWeight: FontWeight.w500,
                           color: active
-                              ? const Color(0xFFD4AF37)
-                              : Colors.transparent,
-                          width: 2,
+                              ? _gold
+                              : (isDark
+                                  ? Colors.white.withValues(alpha: 0.35)
+                                  : Colors.black.withValues(alpha: 0.35)),
                         ),
                       ),
-                    ),
-                    child: Text(_labels[i],
-                      textAlign: TextAlign.center,
-                      style: GoogleFonts.inter(
-                        fontSize: 11, fontWeight: FontWeight.w600,
-                        color: active
-                            ? const Color(0xFFD4AF37)
-                            : const Color(0xFF888888),
-                      ),
-                    ),
+                    ]),
                   ),
                 ),
               );
