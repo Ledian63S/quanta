@@ -8,7 +8,7 @@ Future<void> setupWindow() async {
   if (Platform.isMacOS || Platform.isWindows || Platform.isLinux) {
     await windowManager.ensureInitialized();
     const options = WindowOptions(
-      size: Size(1100, 760),
+      size: Size(662, 870),
       minimumSize: Size(400, 400),
       center: true,
       titleBarStyle: TitleBarStyle.hidden,
