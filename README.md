@@ -1,12 +1,21 @@
 <p align="center">
   <img src="assets/icon_rounded.png" width="96" height="96" alt="Quanta Logo">
   <h1 align="center">Quanta — Position Size Calculator</h1>
-  <p align="center">A terminal-styled futures position size calculator built for <strong>Quantower</strong> traders. Enter your account balance, risk per trade, and stop loss — get the exact number of contracts instantly. Override manually with +/− and see actual risk update live.</p>
+  <p align="center">A terminal-styled futures position size calculator for <strong>Quantower</strong> traders. Enter your account balance, risk per trade, and stop loss — get the exact number of contracts instantly.</p>
   <p align="center">
     <a href="https://github.com/Ledian63S/quanta/releases"><img src="https://img.shields.io/github/v/release/Ledian63S/quanta?style=flat-square" alt="Release"></a>
-    <a href="https://github.com/Ledian63S/quanta/releases"><img src="https://img.shields.io/badge/platform-iOS%20%7C%20Android%20%7C%20macOS%20%7C%20Windows-lightgrey?style=flat-square" alt="Platform"></a>
+    <a href="https://github.com/Ledian63S/quanta/releases"><img src="https://img.shields.io/badge/platform-iOS%20%7C%20Android%20%7C%20macOS%20%7C%20Windows%20%7C%20Web-lightgrey?style=flat-square" alt="Platform"></a>
+    <a href="https://ledian63s.github.io/quanta/calc"><img src="https://img.shields.io/badge/try-online-D4AF37?style=flat-square" alt="Try Online"></a>
   </p>
 </p>
+
+---
+
+## Try it Online
+
+**[→ ledian63s.github.io/quanta/calc](https://ledian63s.github.io/quanta/calc)**
+
+No install required. Full web app with the same sidebar UI as the desktop versions.
 
 ---
 
@@ -31,6 +40,7 @@ Get the latest release for your platform from the [Releases page](https://github
 | Android | `Quanta-Android-vX.X.X.X.apk` |
 | Windows | `Quanta-Windows-vX.X.X.X.zip` |
 | iOS | `Quanta-iOS-vX.X.X.X.zip` — sideload via AltStore |
+| Web | [Try online](https://ledian63s.github.io/quanta/calc) — no install |
 
 ---
 
@@ -43,7 +53,9 @@ Get the latest release for your platform from the [Releases page](https://github
 - **Instrument favorites** — star instruments, only favorites appear in the calculator
 - **Risk modes** — fixed dollar amount or % of account balance
 - **Persistent settings** — balance, risk, and instrument remembered across sessions
-- **VOID theme** — gold-on-black terminal aesthetic with scanline overlay
+- **macOS native desktop** — sidebar layout with macOS traffic light window controls (close/minimize/zoom), auto-collapses to icon-only when the window is narrowed
+- **Web app** — full sidebar UI in the browser, no install needed
+- **VOID theme** — gold-on-black terminal aesthetic with scanline overlay, light mode available
 
 ---
 
@@ -96,8 +108,8 @@ flutter build ipa --release       # iOS, requires Apple Developer account
 
 - **Flutter** — cross-platform UI
 - **Provider** — state management
-- **Google Fonts** — Manrope (UI) + JetBrains Mono (numbers)
-- **window_manager** — custom desktop title bar
+- **Google Fonts** — JetBrains Mono
+- **window_manager** — custom desktop title bar and traffic lights
 - **url_launcher** — external links
 - **package_info_plus** — dynamic version display
 
