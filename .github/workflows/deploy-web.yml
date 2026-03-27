@@ -24,7 +24,7 @@ jobs:
         run: flutter pub get
 
       - name: Build web
-        run: flutter build web --base-href /quanta-app/calc/ --release
+        run: flutter build web --base-href /quanta/calc/ --release
 
       - name: Copy to docs/calc
         run: |
