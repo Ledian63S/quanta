@@ -1,7 +1,6 @@
 import 'dart:convert';
-import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:path_provider/path_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'instrument.dart';
 import '../theme/app_theme.dart';
 
@@ -201,18 +200,14 @@ class QuantaState extends ChangeNotifier with WidgetsBindingObserver {
         (themeMode == ThemeMode.system && platformDark);
   }
 
-  static Future<File> _prefsFile() async {
-    final dir = Platform.isMacOS
-        ? Directory('${Platform.environment['HOME']}/Documents')
-        : await getApplicationDocumentsDirectory();
-    return File('${dir.path}/quanta_prefs.json');
-  }
+  static const _kPrefsKey = 'quanta_prefs';
 
   Future<void> load() async {
     try {
-      final file = await _prefsFile();
-      if (await file.exists()) {
-        final data = jsonDecode(await file.readAsString()) as Map<String, dynamic>;
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_kPrefsKey);
+      if (raw != null) {
+        final data = jsonDecode(raw) as Map<String, dynamic>;
         rememberBalance = data['rememberBalance'] as bool? ?? true;
         rememberRisk = data['rememberRisk'] as bool? ?? true;
         rememberInstrument = data['rememberInstrument'] as bool? ?? true;
@@ -249,14 +244,14 @@ class QuantaState extends ChangeNotifier with WidgetsBindingObserver {
 
   Future<void> _save() async {
     try {
-      final file = await _prefsFile();
-      await file.writeAsString(jsonEncode(_buildSaveData()));
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_kPrefsKey, jsonEncode(_buildSaveData()));
     } catch (_) {
       // Ignore save errors
     }
   }
 
   void _saveSync() {
-    _save(); // lifecycle save — async is fine, OS gives the app time on background
+    _save();
   }
 }

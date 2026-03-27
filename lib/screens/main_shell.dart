@@ -1,5 +1,5 @@
-import 'dart:io';
 import 'dart:ui';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -63,7 +63,7 @@ class _MainShellState extends State<MainShell>
   @override
   Widget build(BuildContext context) {
     AppColors.isDark = Theme.of(context).brightness == Brightness.dark;
-    final isDesktop = Platform.isMacOS || Platform.isWindows;
+    final isDesktop = !kIsWeb && (defaultTargetPlatform == TargetPlatform.macOS || defaultTargetPlatform == TargetPlatform.windows);
     return Scaffold(
       resizeToAvoidBottomInset: false,
       backgroundColor: AppColors.bg,

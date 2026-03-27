@@ -239,6 +239,31 @@
       box-shadow: 0 8px 24px rgba(212,175,55,0.25);
     }
 
+    .btn-secondary {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: transparent;
+      color: var(--accent);
+      font-family: var(--font);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      padding: 13px 28px;
+      border-radius: 3px;
+      border: 1px solid rgba(212,175,55,0.45);
+      text-decoration: none;
+      transition: background 0.15s, transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+      margin-bottom: 28px;
+      margin-left: 12px;
+    }
+    .btn-secondary:hover {
+      background: rgba(212,175,55,0.08);
+      border-color: var(--accent);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(212,175,55,0.12);
+    }
+
     .platform-grid {
       display: flex;
       justify-content: center;
@@ -545,6 +570,7 @@
       .nav-links { display: none; }
       .formula-block { padding: 18px; overflow-x: auto; }
       .formula-block pre { font-size: 11px; }
+      .btn-secondary { margin-left: 0; display: block; text-align: center; }
     }
   </style>
 </head>
@@ -567,6 +593,7 @@
         <a href="#features">FEATURES</a>
         <a href="changelog.html">CHANGELOG</a>
         <a href="https://github.com/Ledian63S/quanta" target="_blank">GITHUB</a>
+        <a href="/quanta-app/calc" style="color:var(--accent)">TRY ONLINE</a>
       </div>
       <button class="theme-toggle" id="theme-toggle" aria-label="Toggle theme">
         <span class="toggle-icon">☀</span>
@@ -585,6 +612,7 @@
     <div class="hero-cta">
       <br>
       <a class="download-primary" id="primary-btn" href="https://github.com/Ledian63S/quanta/releases/latest">↓ DOWNLOAD</a>
+      <a class="btn-secondary" href="/quanta-app/calc">⟶ TRY ONLINE</a>
       <div class="platform-grid">
         <a class="platform-btn" id="btn-macos"   href="#">⌘ macOS</a>
         <a class="platform-btn" id="btn-windows" href="#">⊞ Windows</a>
@@ -655,6 +683,7 @@
     <div class="footer-logo">QUANTA</div>
     <div class="footer-links">
       <a href="https://github.com/Ledian63S/quanta/releases/latest">DOWNLOAD</a>
+      <a href="/quanta-app/calc">TRY ONLINE</a>
       <a href="changelog.html">CHANGELOG</a>
       <a href="https://github.com/Ledian63S/quanta">GITHUB</a>
       <a href="https://github.com/Ledian63S/quanta/issues">ISSUES</a>

@@ -1,7 +1,6 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:window_manager/window_manager.dart';
 import '../theme/app_theme.dart';
+import '../utils/window_utils.dart';
 
 class DesktopTitleBar extends StatelessWidget {
   const DesktopTitleBar({super.key});
@@ -9,14 +8,14 @@ class DesktopTitleBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     Theme.of(context);
-    final isMac = Platform.isMacOS;
+    final isMac = isNativeMacOS();
 
     final buttons = Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        _TitleBtn(label: '×', onTap: () => windowManager.close()),
+        _TitleBtn(label: '×', onTap: closeWindow),
         const SizedBox(width: 4),
-        _TitleBtn(label: '−', onTap: () => windowManager.minimize()),
+        _TitleBtn(label: '−', onTap: minimizeWindow),
       ],
     );
 

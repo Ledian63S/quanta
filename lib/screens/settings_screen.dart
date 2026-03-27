@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -191,7 +191,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
     ),
       // Done button — mobile only
-      if (!Platform.isMacOS && !Platform.isWindows) Positioned(
+      if (!kIsWeb && defaultTargetPlatform != TargetPlatform.macOS && defaultTargetPlatform != TargetPlatform.windows) Positioned(
         bottom: keyboardHeight > 0 ? keyboardHeight + 12 : 100,
         right: 16,
         child: AnimatedOpacity(
