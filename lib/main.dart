@@ -21,6 +21,10 @@ void main() async {
   );
 }
 
+bool get _isMobile => !kIsWeb &&
+    (defaultTargetPlatform == TargetPlatform.iOS ||
+     defaultTargetPlatform == TargetPlatform.android);
+
 class QuantaApp extends StatelessWidget {
   const QuantaApp({super.key});
 
@@ -35,7 +39,7 @@ class QuantaApp extends StatelessWidget {
       darkTheme: AppTheme.dark(),
       themeMode: themeMode,
       themeAnimationDuration: Duration.zero,
-      home: _ThemeFade(child: kIsWeb ? const WebShell() : const MainShell()),
+      home: _ThemeFade(child: _isMobile ? const MainShell() : const WebShell()),
     );
   }
 }

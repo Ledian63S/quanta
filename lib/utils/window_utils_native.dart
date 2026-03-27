@@ -8,9 +8,8 @@ Future<void> setupWindow() async {
   if (Platform.isMacOS || Platform.isWindows || Platform.isLinux) {
     await windowManager.ensureInitialized();
     const options = WindowOptions(
-      size: Size(430, 860),
-      minimumSize: Size(430, 860),
-      maximumSize: Size(430, 860),
+      size: Size(1100, 760),
+      minimumSize: Size(800, 600),
       center: true,
       titleBarStyle: TitleBarStyle.hidden,
       title: 'Quanta',
@@ -22,7 +21,6 @@ Future<void> setupWindow() async {
           windowButtonVisibility: false,
         );
       }
-      await windowManager.setResizable(false);
       await windowManager.show();
       await windowManager.focus();
     });
