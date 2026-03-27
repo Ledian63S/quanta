@@ -57,18 +57,17 @@ class _WebShellState extends State<WebShell> {
     return Scaffold(
       backgroundColor: AppColors.bg,
       body: LayoutBuilder(builder: (ctx, cons) {
-        final wide = cons.maxWidth >= 700;
+        final isNativeDesktop = !kIsWeb && (defaultTargetPlatform == TargetPlatform.macOS ||
+            defaultTargetPlatform == TargetPlatform.windows);
+        final wide = isNativeDesktop || cons.maxWidth >= 700;
 
-        // ── Mobile layout — unchanged ──────────────────────────────────────
+        // ── Mobile layout — web/mobile only ───────────────────────────────
         if (!wide) {
           return Column(children: [
             Expanded(child: _screen()),
             _MobileNav(currentIndex: _tab, onTap: _setTab, isDark: d),
           ]);
         }
-
-        final isNativeDesktop = !kIsWeb && (defaultTargetPlatform == TargetPlatform.macOS ||
-            defaultTargetPlatform == TargetPlatform.windows);
 
         final sidebarAndContent = Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
