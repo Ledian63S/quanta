@@ -90,20 +90,6 @@ class _WebCalcScreenState extends State<WebCalcScreen> {
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
 
-            // ── Heading
-            RichText(text: TextSpan(children: [
-              TextSpan(
-                text: 'POSITION ',
-                style: AppText.mono(size: 20, weight: FontWeight.w700,
-                    color: AppColors.text),
-              ),
-              TextSpan(
-                text: 'SIZE',
-                style: AppText.mono(size: 20, weight: FontWeight.w700,
-                    color: _gold),
-              ),
-            ])),
-            const SizedBox(height: 12),
 
             // ── Balance + Risk — single stacked card (matches mobile)
             _AccountStrip(
